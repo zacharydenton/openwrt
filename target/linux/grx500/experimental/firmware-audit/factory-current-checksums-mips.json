@@ -1,0 +1,32 @@
+{
+  "passed": true,
+  "hardware_tested": false,
+  "flash_operations_performed": false,
+  "image_sha256": "102e2f0c8d0532831a7baa8d36ec4648aed0717b7519883f10d60084df87399e",
+  "packaged_mips_busybox_sha256": "d57eafed62b524c529c1fc52b967a18acaa4071e145fd915ce0034fd9bfe30d3",
+  "qemu_sha256": "8d02f418b92f4ddf984ed8352954b0067d1a5cd810d38247aaf5f0fddc31c42e",
+  "platform_source_sha256": "4dad5e73290373bbcadda4d41e32b069012e85e3db774287875596f2220dfa60",
+  "cases": [
+    {
+      "case": "intact",
+      "passed": true,
+      "candidate_sha256": "102e2f0c8d0532831a7baa8d36ec4648aed0717b7519883f10d60084df87399e",
+      "exit_code": 0,
+      "stderr": ""
+    },
+    {
+      "case": "kernel-corrupt",
+      "passed": true,
+      "candidate_sha256": "da4153b070981806d64a233e2fb8372476b43b9d60ce7a19b1d4fd8fbf4fe9dc",
+      "exit_code": 1,
+      "stderr": "AX3000 sysupgrade payload checksum mismatch."
+    },
+    {
+      "case": "root-corrupt",
+      "passed": true,
+      "candidate_sha256": "417b8e23f83c3e25a60c4aba96ce3d02ea2f7578920de4ffe2e3add15de80e9c",
+      "exit_code": 1,
+      "stderr": "AX3000 sysupgrade payload checksum mismatch."
+    }
+  ]
+}

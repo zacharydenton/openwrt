@@ -1,0 +1,1464 @@
+--- a/drivers/dma/intel/Makefile
++++ b/drivers/dma/intel/Makefile
+@@ -1,2 +1 @@
+-obj-$(CONFIG_INTEL_CDMA)	+= cdma.o
+-obj-$(CONFIG_INTEL_HDMA)	+= hdma.o
++obj-y += hdma.o
+--- a/drivers/dma/intel/hdma.c
++++ b/drivers/dma/intel/hdma.c
+@@ -3148,12 +3148,6 @@
+ 	.map = dma_irq_map,
+ };
+ 
+-static struct irqaction dma_cascade = {
+-	.handler = no_action,
+-	.flags = 0,
+-	.name = "dma_cascade",
+-};
+-
+ static int dma_irq_chip_init(struct dma_ctrl *pctrl)
+ {
+ 	struct resource irqres;
+@@ -3166,11 +3160,9 @@
+ 			return -ENODEV;
+ 		}
+ 		pctrl->chained_irq = irqres.start;
+-		irq_domain_add_legacy(node, pctrl->chans, pctrl->irq_base, 0,
++		irq_domain_create_legacy(of_fwnode_handle(node), pctrl->chans, pctrl->irq_base, 0,
+ 				      &dma_irq_domain_ops, pctrl);
+-		setup_irq(irqres.start, &dma_cascade);
+-		irq_set_handler_data(irqres.start, pctrl);
+-		irq_set_chained_handler(irqres.start, dma_irq_handler);
++		irq_set_chained_handler_and_data(irqres.start, dma_irq_handler, pctrl);
+ 		/*
+ 		 * NB DMA3 TOE and Memcpy doesn't use controller irq but it re
+ 		 * directs to their individual module. channel level interrupt
+@@ -4055,7 +4047,7 @@
+ 	char dma_dir[64] = {0};
+ 	struct dentry *file;
+ 
+-	strlcpy(dma_dir, pctrl->name, sizeof(dma_dir));
++	strscpy(dma_dir, pctrl->name, sizeof(dma_dir));
+ 	pctrl->debugfs = debugfs_create_dir(dma_dir, NULL);
+ 	if (!pctrl->debugfs)
+ 		return -ENOMEM;
+--- a/drivers/net/datapath/dpm/datapath.h
++++ b/drivers/net/datapath/dpm/datapath.h
+@@ -34,11 +34,13 @@
+ 	#define DP_SKB_HACK
+ #endif
+ #include <net/datapath_api_qos.h>
+-#if IS_ENABLED(CONFIG_NET_SWITCHDEV)
++#if IS_ENABLED(CONFIG_INTEL_DATAPATH_SWITCHDEV)
+ #include <net/switchdev.h>
+ #endif
++#if IS_ENABLED(CONFIG_INTEL_DATAPATH_SWITCHDEV)
+ #if IS_ENABLED(CONFIG_INTEL_DATAPATH_SWITCHDEV)
+ #include "datapath_swdev.h"
++#endif
+ #endif
+ #include <net/datapath_inst.h>
+ #include <net/datapath_api_umt.h>
+@@ -442,7 +444,7 @@
+ 	struct net_device *ctp_dev; /*CTP dev for PON pmapper case*/
+ 	u16 fid; /* switch bridge id */
+ 	struct list_head logic_dev; /*unexplicit logical dev*/
+-#if IS_ENABLED(CONFIG_NET_SWITCHDEV)
++#if IS_ENABLED(CONFIG_INTEL_DATAPATH_SWITCHDEV)
+ 	void *swdev_priv; /*to store ext vlan info*/
+ #endif
+ 	u8 deq_port_idx; /* To store deq port index from register_subif */
+--- a/drivers/net/datapath/dpm/datapath_api.c
++++ b/drivers/net/datapath/dpm/datapath_api.c
+@@ -1,3 +1,4 @@
++#include <net/grx500_skb.h>
+ // SPDX-License-Identifier: GPL-2.0
+ /*****************************************************************************
+  * Copyright (c) 2020 - 2021, MaxLinear, Inc.
+@@ -2498,8 +2499,8 @@
+ 		return DP_FAILURE;
+ 	}
+ 
+-	((struct dma_tx_desc_1 *)&skb->DW1)->field.ep = subif.port_id;
+-	((struct dma_tx_desc_0 *)&skb->DW0)->field.dest_sub_if_id =
++	((struct dma_tx_desc_1 *)&grx500_skb_cb(skb)->DW1)->field.ep = subif.port_id;
++	((struct dma_tx_desc_0 *)&grx500_skb_cb(skb)->DW0)->field.dest_sub_if_id =
+ 		subif.subif;
+ 
+ 	ret = dp_xmit(dev, &subif, skb, skb->len, 0);
+--- a/drivers/net/datapath/dpm/datapath_br_vlan.c
++++ b/drivers/net/datapath/dpm/datapath_br_vlan.c
+@@ -10,7 +10,9 @@
+ #include <net/datapath_api_vlan.h>
+ #include "datapath.h"
+ #include "datapath_instance.h"
++#if IS_ENABLED(CONFIG_INTEL_DATAPATH_SWITCHDEV)
+ #include "datapath_swdev.h"
++#endif
+ #include "datapath_pce.h"
+ #include <linux/if_bridge.h>
+ #include <../net/bridge/br_private.h>
+--- a/drivers/net/datapath/dpm/datapath_instance.c
++++ b/drivers/net/datapath/dpm/datapath_instance.c
+@@ -587,7 +587,7 @@
+ 		ops_sz = sizeof(*dev->ethtool_ops);
+ 		break;
+ 
+-#if IS_ENABLED(CONFIG_NET_SWITCHDEV)
++#if IS_ENABLED(CONFIG_INTEL_DATAPATH_SWITCHDEV)
+ 	case DP_OPS_SWITCHDEV:
+ 		DP_DEBUG(DP_DBG_FLAG_OPS, "before DP_OPS_SWITCHDEV %s %d %s\n",
+ 			 flag & DP_OPS_RESET ? "reset" : "update",
+--- a/drivers/net/datapath/dpm/datapath_instance.h
++++ b/drivers/net/datapath/dpm/datapath_instance.h
+@@ -51,7 +51,7 @@
+ 	struct net_device_ops new_dev_ops;
+ 	const struct ethtool_ops *old_ethtool_ops;
+ 	struct ethtool_ops new_ethtool_ops;
+-#if IS_ENABLED(CONFIG_NET_SWITCHDEV)
++#if IS_ENABLED(CONFIG_INTEL_DATAPATH_SWITCHDEV)
+ 	struct switchdev_ops *old_swdev_ops;
+ 	struct switchdev_ops new_swdev_ops;
+ #endif
+--- a/drivers/net/datapath/dpm/datapath_ioctl.c
++++ b/drivers/net/datapath/dpm/datapath_ioctl.c
+@@ -12,7 +12,7 @@
+ 			    int cmd);
+ 
+ static int get_tsinfo(struct net_device *dev,
+-		      struct ethtool_ts_info *ts_info)
++		      struct kernel_ethtool_ts_info *ts_info)
+ {
+ 	struct mac_ops *ops;
+ 	dp_subif_t subif = {0};
+--- a/drivers/net/datapath/dpm/datapath_misc.c
++++ b/drivers/net/datapath/dpm/datapath_misc.c
+@@ -1008,7 +1008,7 @@
+ 		return -1;
+ 	}
+ 	hlist_del_rcu(&dp_subif->hlist);
+-	call_rcu_bh(&dp_subif->rcu, dp_subif_reclaim);
++	call_rcu(&dp_subif->rcu, dp_subif_reclaim);
+ 	DP_DEBUG(DP_DBG_FLAG_REG,
+ 		 "%s:deleted dev %s from rcu subif\n", __func__,
+ 		 netif ? netif->name : "NULL");
+@@ -1052,7 +1052,7 @@
+ 		dp_subif_new->subif_fn = subifid_fn_t;
+ 		hlist_replace_rcu(&dp_subif->hlist,
+ 				  &dp_subif_new->hlist);
+-		call_rcu_bh(&dp_subif->rcu, dp_subif_reclaim);
++		call_rcu(&dp_subif->rcu, dp_subif_reclaim);
+ 		DP_DEBUG(DP_DBG_FLAG_REG,
+ 			 "%s:updated dev %s to rcu subif\n", __func__,
+ 			 netif ? netif->name : "NULL");
+--- a/drivers/net/datapath/dpm/datapath_notifier.c
++++ b/drivers/net/datapath/dpm/datapath_notifier.c
+@@ -13,7 +13,9 @@
+ #include "datapath.h"
+ #include "datapath_instance.h"
+ #include "datapath_swdev_api.h"
++#if IS_ENABLED(CONFIG_INTEL_DATAPATH_SWITCHDEV)
+ #include "datapath_swdev.h"
++#endif
+ 
+ static int dp_event(struct notifier_block *this,
+ 		    unsigned long event, void *ptr);
+--- a/drivers/net/datapath/dpm/datapath_tx.c
++++ b/drivers/net/datapath/dpm/datapath_tx.c
+@@ -1,3 +1,4 @@
++#include <net/grx500_skb.h>
+ // SPDX-License-Identifier: GPL-2.0
+ /*****************************************************************************
+  * Copyright (c) 2020 - 2021, MaxLinear, Inc.
+@@ -91,7 +92,7 @@
+ 		 "%s: dp_xmit:skb->data/len=0x%px/%d data_ptr=%x from port=%d and subitf=%d\n",
+ 		 title,
+ 		 skb->data, skb->len,
+-		 ((struct dma_tx_desc_2 *)&skb->DW2)->field.data_ptr,
++		 ((struct dma_tx_desc_2 *)&grx500_skb_cb(skb)->DW2)->field.data_ptr,
+ 		 ex->port->port_id, ex->cmn.subif);
+ #endif
+ 	if (dp_dbg_flag & DP_DBG_FLAG_DUMP_TX_DATA) {
+@@ -129,10 +130,10 @@
+ 
+ 	if (dp_dbg_flag & DP_DBG_FLAG_DUMP_TX_DESCRIPTOR)
+ #if defined(DP_SKB_HACK)
+-		dp_info->dump_tx_dma_desc((struct dma_tx_desc_0 *)&skb->DW0,
+-					  (struct dma_tx_desc_1 *)&skb->DW1,
+-					  (struct dma_tx_desc_2 *)&skb->DW2,
+-					  (struct dma_tx_desc_3 *)&skb->DW3);
++		dp_info->dump_tx_dma_desc((struct dma_tx_desc_0 *)&grx500_skb_cb(skb)->DW0,
++					  (struct dma_tx_desc_1 *)&grx500_skb_cb(skb)->DW1,
++					  (struct dma_tx_desc_2 *)&grx500_skb_cb(skb)->DW2,
++					  (struct dma_tx_desc_3 *)&grx500_skb_cb(skb)->DW3);
+ #else
+ 		;
+ #endif
+--- a/drivers/net/datapath/dpm/gswip30/datapath_rx.c
++++ b/drivers/net/datapath/dpm/gswip30/datapath_rx.c
+@@ -1,3 +1,4 @@
++#include <net/grx500_skb.h>
+ /*
+  * Copyright (C) Intel Corporation
+  * Author: Shao Guohua <guohua.shao@intel.com>
+@@ -132,10 +133,10 @@
+ int32_t dp_rx_30(struct sk_buff *skb, u32 flags)
+ {
+ 	int res = DP_SUCCESS;
+-	struct dma_rx_desc_0 *desc_0 = (struct dma_rx_desc_0 *)&skb->DW0;
+-	struct dma_rx_desc_1 *desc_1 = (struct dma_rx_desc_1 *)&skb->DW1;
+-	struct dma_rx_desc_2 *desc_2 = (struct dma_rx_desc_2 *)&skb->DW2;
+-	struct dma_rx_desc_3 *desc_3 = (struct dma_rx_desc_3 *)&skb->DW3;
++	struct dma_rx_desc_0 *desc_0 = (struct dma_rx_desc_0 *)&grx500_skb_cb(skb)->DW0;
++	struct dma_rx_desc_1 *desc_1 = (struct dma_rx_desc_1 *)&grx500_skb_cb(skb)->DW1;
++	struct dma_rx_desc_2 *desc_2 = (struct dma_rx_desc_2 *)&grx500_skb_cb(skb)->DW2;
++	struct dma_rx_desc_3 *desc_3 = (struct dma_rx_desc_3 *)&grx500_skb_cb(skb)->DW3;
+ 	struct pmac_rx_hdr *pmac;
+ 	unsigned char *parser = NULL;
+ 	int rx_tx_flag = 0;	/*0-rx, 1-tx */
+--- a/drivers/net/datapath/dpm/gswip30/datapath_tx.c
++++ b/drivers/net/datapath/dpm/gswip30/datapath_tx.c
+@@ -1,3 +1,4 @@
++#include <net/grx500_skb.h>
+ /*
+  * Copyright (C) Intel Corporation
+  * Author: Shao Guohua <guohua.shao@intel.com>
+@@ -92,10 +93,10 @@
+ 	 *since INSERT_PMAC will change skb if needed
+ 	 *********************************************/
+ #ifdef DP_SKB_HACK
+-	desc_0 = (struct dma_tx_desc_0 *)&skb->DW0;
+-	desc_1 = (struct dma_tx_desc_1 *)&skb->DW1;
+-	desc_2 = (struct dma_tx_desc_2 *)&skb->DW2;
+-	desc_3 = (struct dma_tx_desc_3 *)&skb->DW3;
++	desc_0 = (struct dma_tx_desc_0 *)&grx500_skb_cb(skb)->DW0;
++	desc_1 = (struct dma_tx_desc_1 *)&grx500_skb_cb(skb)->DW1;
++	desc_2 = (struct dma_tx_desc_2 *)&grx500_skb_cb(skb)->DW2;
++	desc_3 = (struct dma_tx_desc_3 *)&grx500_skb_cb(skb)->DW3;
+ #endif
+ 	if (flags & DP_TX_CAL_CHKSUM) {
+ 		int ret_flg;
+--- a/drivers/net/ethernet/lantiq/Makefile
++++ b/drivers/net/ethernet/lantiq/Makefile
+@@ -1,25 +1,2 @@
+-# SPDX-License-Identifier: GPL-2.0
+-#
+-# Copyright (C) 2019 Intel Corporation.
+-# Copyright (c) 2021 MaxLinear, Inc.
+-obj-$(CONFIG_LANTIQ_VRX318) += ltq_vrx318.o
+-obj-$(CONFIG_LANTIQ_ETH_FRAMEWORK) += lantiq_eth_framework.o
+-obj-$(CONFIG_INTEL_XPCS) += xpcs/
+-obj-$(CONFIG_INTEL_E160) += e160/
+-obj-$(CONFIG_LTQ_ETHSW_API) += switch-api/
+-obj-$(CONFIG_LTQ_DATAPATH) += ../../datapath/dpm/
+-obj-$(CONFIG_INTEL_UMT) += ../../datapath/umt/
+-obj-$(CONFIG_LTQ_TMU) += tmu/
+-obj-$(CONFIG_LTQ_CBM) += cqm/
+-obj-$(CONFIG_LTQ_ETH_XRX500) += ltq_eth_drv_xrx500.o
+-obj-$(CONFIG_INTEL_PON_HGU_VUNI) += intel_pon_hgu_vuni.o
+-obj-$(CONFIG_INTEL_GINT_ETH) += intel_gint_eth_drv.o
+-obj-$(CONFIG_XRX500_PHY_FW) += xrx500_phy_fw.o
+-obj-$(CONFIG_PPA) += ppa/
+-obj-$(CONFIG_QOS_MGR) += qos_mgr/
+-#obj-$(CONFIG_INTEL_UMT_CQEM_MODE) += umt/umt.o
+-obj-$(CONFIG_LTQ_TOE_DRIVER) += ltq_toe_drv.o
+-obj-$(CONFIG_INTEL_MIB_COUNTERS) += ../../datapath/mib_counters/
+-obj-$(CONFIG_PON_QOS) += ../../datapath/pon_qos/
+-obj-$(CONFIG_DP_ETH_REINSERT) += ../../datapath/dp_eth_reinsert/
+-obj-y += ../../datapath/bridge_filter/
++obj-y += switch-api/ cqm/ tmu/ ltq_eth_drv_xrx500.o xrx500_phy_fw.o
++obj-y += grx500-soc.o
+--- a/drivers/net/ethernet/lantiq/cqm/cbm_wrapper.c
++++ b/drivers/net/ethernet/lantiq/cqm/cbm_wrapper.c
+@@ -1,3 +1,4 @@
++#include <net/grx500_skb.h>
+ #include "cqm_common.h"
+ static const struct cbm_ops *g_cbm_ops;
+ void cbm_setup_DMA_p2p(void)
+@@ -122,7 +123,7 @@
+ {
+ 	if (g_cbm_ops && g_cbm_ops->cbm_setup_desc)
+ 		return g_cbm_ops->cbm_setup_desc(
+-		desc, data_ptr, data_len, skb->DW0, skb->DW1);
++		desc, data_ptr, data_len, grx500_skb_cb(skb)->DW0, grx500_skb_cb(skb)->DW1);
+ 	else
+ 		return CBM_FAILURE;
+ }
+--- a/drivers/net/ethernet/lantiq/cqm/cqm_common.c
++++ b/drivers/net/ethernet/lantiq/cqm/cqm_common.c
+@@ -41,50 +41,16 @@
+ }
+ 
+ int cbm_linearise_buf(struct sk_buff *skb, struct cbm_tx_data *data,
+-		      int buf_size, u32 new_buf)
++                      int buf_size, u32 new_buf)
+ {
+-	u32 tmp_buf;
+-	void *frag_addr;
+-	const skb_frag_t *frag;
+-	int i, len = 0, copy_len = 0;
++	unsigned int prefix = data && data->pmac ? data->pmac_len : 0;
++	u8 *dst = (u8 *)new_buf;
+ 
+-	SKB_FRAG_ASSERT(skb);
+-
+-	if (new_buf) {
+-		tmp_buf = (u32)new_buf;
+-		if (skb_is_nonlinear(skb))
+-			copy_len = skb_headlen(skb);
+-		else
+-			copy_len = skb->len;
+-		if (data && data->pmac) {
+-			memcpy((u8 *)tmp_buf, data->pmac, data->pmac_len);
+-			tmp_buf += data->pmac_len;
+-		}
+-
+-		memcpy((u8 *)tmp_buf, skb->data, copy_len);
+-		tmp_buf += copy_len;
+-		/* If the packet has fragments, copy that also */
+-		for (i = 0; i < (skb_shinfo(skb)->nr_frags); i++) {
+-			frag = &skb_shinfo(skb)->frags[i];
+-			len = skb_frag_size(frag);
+-			frag_addr = skb_frag_address(frag);
+-			if (len <= (buf_size - copy_len)) {
+-				memcpy((u8 *)tmp_buf, (u8 *)frag_addr, len);
+-				tmp_buf += len;
+-				copy_len += len;
+-			} else {
+-				pr_err("%s:22:copied = %d\n",
+-				       __func__, copy_len);
+-				pr_err("remaining = %d and skb->head is %x\n",
+-				       len, (u32)(skb->head));
+-				return CBM_FAILURE;
+-			}
+-		}
+-	} else {
+-		pr_err("%s:33:Cannot alloc CBM Buffer !\n", __func__);
+-		return CBM_FAILURE;
+-	}
+-	return CBM_SUCCESS;
++	if (!dst || prefix > buf_size || skb->len > buf_size - prefix)
++		return -EMSGSIZE;
++	if (prefix)
++		memcpy(dst, data->pmac, prefix);
++	return skb_copy_bits(skb, 0, dst + prefix, skb->len);
+ }
+ 
+ /*Load Spreader Initialization*/
+--- a/drivers/net/ethernet/lantiq/cqm/cqm_dev.c
++++ b/drivers/net/ethernet/lantiq/cqm/cqm_dev.c
+@@ -26,8 +26,6 @@
+ 	struct cqm_data *cqm_pdata = NULL;
+ 	unsigned int intr[MAX_NUM_INTR];
+ 	struct resource resource[MAX_NUM_BASE_ADDR];
+-	struct property *prop;
+-	const __be32 *p;
+ 	unsigned int buf_num, split_num, split;
+ 	unsigned int pool_size = 0;
+ 	u8 count = 0;
+@@ -90,7 +88,7 @@
+ 	cqm_pdata->force_xpcs = of_property_read_bool(node, "intel,force-xpcs");
+ 	/*checking split shared pools for US and DS*/
+ 	split_num = 0;
+-	of_property_for_each_u32(node, "intel,bm-buff-split", prop, p,
++	of_property_for_each_u32(node, "intel,bm-buff-split",
+ 				 split) {
+ 		if (split_num < 2) {
+ 			cqm_pdata->bm_buff_split[split_num++] = split;
+@@ -101,8 +99,7 @@
+ 		}
+ 	}
+ 
+-	of_property_for_each_u32(node, "intel,bm-buff-num",
+-				 prop, p, buf_num) {
++	of_property_for_each_u32(node, "intel,bm-buff-num", buf_num) {
+ 		if (cqm_pdata->num_pools < MAX_NUM_POOLS) {
+ 			cqm_pdata->pool_ptrs[cqm_pdata->num_pools++] =
+ 				buf_num;
+@@ -113,8 +110,7 @@
+ 		}
+ 	}
+ 
+-	of_property_for_each_u32(node, "intel,bm-buff-size",
+-				 prop, p, buf_num) {
++	of_property_for_each_u32(node, "intel,bm-buff-size", buf_num) {
+ 		if (pool_size < MAX_NUM_POOLS) {
+ 			cqm_pdata->pool_size[pool_size++] = buf_num;
+ 		} else {
+@@ -130,7 +126,7 @@
+ 	}
+ 
+ 	pool_size = 0;
+-	of_property_for_each_u32(node, "intel,bm-buff-num-a1", prop, p,
++	of_property_for_each_u32(node, "intel,bm-buff-num-a1",
+ 				 buf_num) {
+ 		if (cqm_pdata->num_pools_a1 < MAX_NUM_POOLS) {
+ 			cqm_pdata->pool_ptrs_a1[cqm_pdata->num_pools_a1++] =
+@@ -142,7 +138,7 @@
+ 		}
+ 	}
+ 
+-	of_property_for_each_u32(node, "intel,bm-buff-size-a1", prop, p,
++	of_property_for_each_u32(node, "intel,bm-buff-size-a1",
+ 				 buf_num) {
+ 		if (pool_size < MAX_NUM_POOLS) {
+ 			cqm_pdata->pool_size_a1[pool_size++] = buf_num;
+@@ -165,8 +161,7 @@
+ 			continue;
+ 		}
+ 
+-		of_property_for_each_u32(cpu_deq_port, "intel,deq-port", prop,
+-					 p, cqm_pdata->dq_port[count]) {
++		of_property_for_each_u32(cpu_deq_port, "intel,deq-port", cqm_pdata->dq_port[count]) {
+ 			count++;
+ 		}
+ 
+--- a/drivers/net/ethernet/lantiq/cqm/grx500/cbm.c
++++ b/drivers/net/ethernet/lantiq/cqm/grx500/cbm.c
+@@ -1,3 +1,5 @@
++#include <linux/of_device.h>
++#include <net/grx500_skb.h>
+ #include "cbm.h"
+ #include "../cqm_dev.h"
+ #include "../cqm_common.h"
+@@ -758,24 +760,28 @@
+ 	return CBM_SUCCESS;
+ }
+ 
+-static struct sk_buff *build_skb_grx500(
+-void *data, u32 frag_size, gfp_t priority)
+-{
+-	unsigned int buf_size;
+-	u32 std_buff_end;
+-
+-	std_buff_end = (g_cbm_buff.std_buf_addr + g_cbm_buff.std_buf_size);
+-	buf_size = (((u32)data >= g_cbm_buff.std_buf_addr) &&
+-				((u32)data <= std_buff_end)) ?
+-				CBM_STD_BUF_SIZE : CONFIG_CBM_JBO_PKT_SIZE;
+-	if (frag_size > buf_size) {
+-		LOGF_KLOG_ERROR("frag_size = %d received in buffer = %x \n",
+-				frag_size, (unsigned int)data);
+-		LOGF_KLOG_ERROR("packet length exceeds the buffer size\n");
++/* Hardware buffers must never escape into the ordinary skb allocator.
++ * Copy into Linux-owned memory and return the CBM buffer on success. On
++ * allocation/validation failure ownership remains with the caller.
++ */
++static struct sk_buff *build_skb_grx500(void *data, u32 frag_size, gfp_t priority)
++{
++	struct sk_buff *skb;
++	u32 overhead = SKB_DATA_ALIGN(sizeof(struct skb_shared_info));
++	u32 capacity;
++	int type = check_ptr_valid_type((u32)data);
++
++	if (type != SBA0_STD && type != SBA0_JBO)
+ 		return NULL;
+-	}
+-
+-	return __build_skb(data, frag_size);
++	capacity = type == SBA0_STD ? CBM_STD_BUF_SIZE : CONFIG_CBM_JBO_PKT_SIZE;
++	if (frag_size <= overhead || frag_size > capacity)
++		return NULL;
++	skb = alloc_skb(frag_size - overhead, priority);
++	if (!skb)
++		return NULL;
++	memcpy(skb->data, data, frag_size - overhead);
++	cbm_buffer_free_grx500(smp_processor_id(), data, 0);
++	return skb;
+ }
+ 
+ /*FSQM initialization
+@@ -1611,51 +1617,21 @@
+ 	cbm_cntr_func[1].reg = CBM_DQM_BASE + CBM_DQM_CTRL;
+ }
+ 
+-static struct sk_buff *cbm_alloc_skb_grx500(
+-	unsigned int size,
+-	gfp_t priority
+-	)
+-{
+-	u32 flag = CBM_PORT_F_STANDARD_BUF;
+-	void *buf = NULL;
+-	struct sk_buff *skbuf = NULL;
+-
+-	size = SKB_DATA_ALIGN(size + CBM_GRX550_DMA_DATA_OFFSET + NET_SKB_PAD)
+-			 + SKB_DATA_ALIGN(sizeof(struct skb_shared_info));
+-	if (size > CBM_STD_BUF_SIZE)
+-		flag = CBM_PORT_F_JUMBO_BUF;
+-	buf = cbm_buffer_alloc_grx500(smp_processor_id(), flag);
+-	if (buf) {
+-		skbuf = build_skb_grx500((void *)buf,
+-					 size,
+-					 priority);
+-		if (skbuf)
+-			skb_reserve(skbuf, CBM_GRX550_DMA_DATA_OFFSET);
+-		else
+-			cbm_buffer_free_grx500(smp_processor_id(), buf, 0);
+-	}
+-	return skbuf;
+-}
+-
+-struct sk_buff *copy_skb(const struct sk_buff *skb, gfp_t gfp_mask)
+-{
+-	int headerlen = skb_headroom(skb);
+-	unsigned int size = skb_end_offset(skb) + skb->data_len;
+-	struct sk_buff *n = cbm_alloc_skb_grx500(size, gfp_mask);
+-
+-	if (!n)
++static struct sk_buff *cbm_alloc_skb_grx500(unsigned int size, gfp_t priority)
++{
++	struct sk_buff *skb;
++
++	if (size > CONFIG_CBM_JBO_PKT_SIZE - CBM_GRX550_DMA_DATA_OFFSET)
+ 		return NULL;
+-
+-	/* Set the data pointer */
+-	skb_reserve(n, headerlen);
+-	/* Set the tail pointer and length */
+-	skb_put(n, skb->len);
+-
+-	if (skb_copy_bits(skb, -headerlen, n->head, headerlen + skb->len))
+-		BUG();
+-
+-	ltq_copy_skb_header(n, skb);
+-	return n;
++	skb = alloc_skb(size + CBM_GRX550_DMA_DATA_OFFSET, priority);
++	if (skb)
++		skb_reserve(skb, CBM_GRX550_DMA_DATA_OFFSET);
++	return skb;
++}
++
++struct sk_buff *copy_skb(const struct sk_buff *skb, gfp_t priority)
++{
++	return skb_copy(skb, priority);
+ }
+ 
+ #ifdef CONFIG_CBM_LS_ENABLE
+@@ -1767,7 +1743,7 @@
+ {
+ 	struct cbm_desc desc;
+ 	u32 tmp_data_ptr;
+-	struct dma_tx_desc_2 *desc_2 = (struct dma_tx_desc_2 *)&skb->DW2;
++	struct dma_tx_desc_2 *desc_2 = (struct dma_tx_desc_2 *)&grx500_skb_cb(skb)->DW2;
+ 	u32 new_buf;
+ 	s32 tot_len, buf_size;
+ 	s32 clone_f, no_hdr_room_f = 0;
+@@ -1831,14 +1807,14 @@
+ 
+ 	if (setup_desc((struct cbm_desc *)&desc, tmp_data_ptr,
+ 		       skb->len,
+-		       skb->DW1, skb->DW0)){
++		       grx500_skb_cb(skb)->DW1, grx500_skb_cb(skb)->DW0)){
+ 		pr_err("cbm setup desc failed..\n");
+ 		dev_kfree_skb_any(skb);
+ 		cbm_buffer_free_grx500(smp_processor_id(), (void *)tmp_data_ptr, 0);
+ 		return CBM_FAILURE;
+ 	}
+ 	/*copy the pdu type bit for DSL*/
+-	if (skb->DW3 & BIT(CBM_PDU_TYPE))
++	if (grx500_skb_cb(skb)->DW3 & BIT(CBM_PDU_TYPE))
+ 		desc.desc3 |= BIT(CBM_PDU_TYPE);
+ 	dev_kfree_skb_any(skb);
+ 	if (cbm_cpu_enqueue(smp_processor_id(), &desc) == CBM_FAILURE) {
+@@ -2204,16 +2180,16 @@
+ 			temp_len = data_len + new_offset + data_offset;
+ 			real_len = SKB_DATA_ALIGN(temp_len)
+ 			+ SKB_DATA_ALIGN(sizeof(struct skb_shared_info));
+-			skb = build_skb_grx500(real_buf_start,
++			skb = build_skb_grx500((void *)real_buf_start,
+ 					       real_len,
+ 					       GFP_ATOMIC);
+ 			if (skb) {
+ 				skb_reserve(skb, new_offset + data_offset);
+ 				/* Call the datapath library Rx function */
+-				skb->DW0 = desc_list->desc.desc0;
+-				skb->DW1 = desc_list->desc.desc1;
+-				skb->DW2 = data_ptr;
+-				skb->DW3 = desc_list->desc.desc3;
++				grx500_skb_cb(skb)->DW0 = desc_list->desc.desc0;
++				grx500_skb_cb(skb)->DW1 = desc_list->desc.desc1;
++				grx500_skb_cb(skb)->DW2 = (u32)skb->data;
++				grx500_skb_cb(skb)->DW3 = desc_list->desc.desc3;
+ 				skb_put(skb, data_len);
+ 				dp_rx(skb, 0);
+ 				LOGF_KLOG_DEBUG("%s: rx to datapath library\n", __func__);
+@@ -2337,10 +2313,10 @@
+ 			if (skb) {
+ 				skb_reserve(skb, new_offset + data_offset);
+ 				/* Call the datapath library Rx function */
+-				skb->DW0 = desc_list->desc.desc0;
+-				skb->DW1 = desc_list->desc.desc1;
+-				skb->DW2 = data_ptr;
+-				skb->DW3 = desc_list->desc.desc3;
++				grx500_skb_cb(skb)->DW0 = desc_list->desc.desc0;
++				grx500_skb_cb(skb)->DW1 = desc_list->desc.desc1;
++				grx500_skb_cb(skb)->DW2 = (u32)skb->data;
++				grx500_skb_cb(skb)->DW3 = desc_list->desc.desc3;
+ 				skb_put(skb, data_len);
+ 				dp_rx(skb, 0);
+ 				LOGF_KLOG_DEBUG("%s: rx to datapath library\n", __func__);
+@@ -4166,7 +4142,7 @@
+ 	if (type & DQM_DMA) {
+ 		/* For CBM */
+ 		if (
+-		(ltq_dma_chan_desc_cfg(chan, RPHYSADDR(
++		(ltq_dma_chan_desc_cfg(chan, CPHYSADDR(
+ 		(u32)(CBM_DMADESC_BASE + CBM_DQM_DMA_DESC(cbm_port, 0))),
+ 		2)) < 0) {
+ 			LOGF_KLOG_ERROR(" %s failed to setup chan\
+@@ -4179,7 +4155,7 @@
+ 				CBM_EQM_DMA_DESC(cbm_port,
+ 						 0, (buf_type >> 1))));
+ 		if (
+-		(ltq_dma_chan_desc_cfg(chan, RPHYSADDR(
++		(ltq_dma_chan_desc_cfg(chan, CPHYSADDR(
+ 		   (u32)(CBM_DMADESC_BASE + CBM_EQM_DMA_DESC(cbm_port,
+ 		   0,
+ 		   (buf_type >> 1)))), 2)) < 0) {
+@@ -5194,10 +5170,9 @@
+ 		LOGF_KLOG_DEV_ERROR(&pdev->dev, "failed to request and remap io ranges\n");
+ 		return -ENOMEM;
+ 	}
+-	std_buf_base = dma_alloc_attrs(&pdev->dev,
++	std_buf_base = dma_alloc_noncoherent(&pdev->dev,
+ 				       CONFIG_CBM_STD_BUF_POOL_SIZE,
+-				       &g_cbm_ctrl.dma_handle_std, GFP_KERNEL,
+-				       DMA_ATTR_NON_CONSISTENT);
++				       &g_cbm_ctrl.dma_handle_std, DMA_BIDIRECTIONAL, GFP_KERNEL);
+ 	if (!std_buf_base)
+ 		panic("no memory for CBM standard buffers!!");
+ 	else
+@@ -5205,10 +5180,9 @@
+ 			CONFIG_CBM_STD_BUF_POOL_SIZE,
+ 			(unsigned int)std_buf_base);
+ 
+-	jbo_buf_base = dma_alloc_attrs(&pdev->dev,
++	jbo_buf_base = dma_alloc_noncoherent(&pdev->dev,
+ 				       CONFIG_CBM_JBO_BUF_SIZE,
+-				       &g_cbm_ctrl.dma_handle_jbo, GFP_KERNEL,
+-				       DMA_ATTR_NON_CONSISTENT);
++				       &g_cbm_ctrl.dma_handle_jbo, DMA_BIDIRECTIONAL, GFP_KERNEL);
+ 	if (!jbo_buf_base)
+ 		panic("no memory for CBM Jumbo buffers!!");
+ 	else
+@@ -5350,14 +5324,9 @@
+ 	return 0;
+ }
+ 
+-static int	cbm_xrx500_release(struct platform_device *pdev)
+-{
+-	return 0;
+-}
+ 
+ static struct platform_driver cbm_xrx500_driver = {
+ 	.probe = cbm_xrx500_probe,
+-	.remove = cbm_xrx500_release,
+ 	.driver = {
+ 				.name = GRX500_DEV_NAME,
+ 				.owner = THIS_MODULE,
+--- a/drivers/net/ethernet/lantiq/cqm/prx300/cqm.c
++++ b/drivers/net/ethernet/lantiq/cqm/prx300/cqm.c
+@@ -1,3 +1,4 @@
++#include <net/grx500_skb.h>
+ #include "cqm.h"
+ #include "cqm_debugfs.h"
+ #include "../cqm_dev.h"
+@@ -1884,7 +1885,7 @@
+ {
+ 	struct cbm_desc desc = {0};
+ 	u32 tmp_data_ptr;
+-	struct dma_tx_desc_2 *desc_2 = (struct dma_tx_desc_2 *)&skb->DW2;
++	struct dma_tx_desc_2 *desc_2 = (struct dma_tx_desc_2 *)&grx500_skb_cb(skb)->DW2;
+ 	u32 new_buf = 0;
+ 	s32 clone_f, shared_f, no_hdr_room_f = 0;
+ 	int pool = 0, policy = 0, tot_len, buf_size, cpu_buf;
+@@ -1935,8 +1936,8 @@
+ 		/* Detach the skb */
+ 		skb->head = NULL;
+ 	}
+-	setup_desc((struct cbm_desc *)&desc, tmp_data_ptr, tot_len, skb->DW1,
+-		   skb->DW0, skb->DW3, pool, policy);
++	setup_desc((struct cbm_desc *)&desc, tmp_data_ptr, tot_len, grx500_skb_cb(skb)->DW1,
++		   grx500_skb_cb(skb)->DW0, grx500_skb_cb(skb)->DW3, pool, policy);
+ 	dev_kfree_skb_any(skb);
+ 
+ 	cqm_cpu_enqueue(smp_processor_id(), &desc);
+@@ -3483,10 +3484,10 @@
+ 				    GFP_ATOMIC);
+ 		if (skb) {
+ 			skb_reserve(skb, new_offset + data_offset);
+-			skb->DW0 = desc_list->desc.desc0;
+-			skb->DW1 = desc_list->desc.desc1;
+-			skb->DW2 = data_ptr;
+-			skb->DW3 = desc_list->desc.desc3;
++			grx500_skb_cb(skb)->DW0 = desc_list->desc.desc0;
++			grx500_skb_cb(skb)->DW1 = desc_list->desc.desc1;
++			grx500_skb_cb(skb)->DW2 = data_ptr;
++			grx500_skb_cb(skb)->DW3 = desc_list->desc.desc3;
+ 			skb_put(skb, data_len);
+ 			dev_dbg(cqm_ctrl->dev, "dp_rx:head=%#x\n",
+ 				(u32)skb->head);
+--- /dev/null
++++ b/drivers/net/ethernet/lantiq/grx500-soc.c
+@@ -0,0 +1,32 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* GRX500 chip ID layout from Intel's drivers/arch support (2014-2018). */
++#include <linux/export.h>
++#include <linux/init.h>
++#include <linux/io.h>
++#include <linux/kernel.h>
++#include <lantiq.h>
++
++#define GRX500_CHIP_ID 0x1f107344
++static unsigned int grx500_revision;
++
++unsigned int ltq_get_soc_rev(void)
++{
++	return grx500_revision;
++}
++EXPORT_SYMBOL_GPL(ltq_get_soc_rev);
++
++static int __init grx500_read_revision(void)
++{
++	void __iomem *base;
++	u32 id;
++
++	base = ioremap(GRX500_CHIP_ID, sizeof(id));
++	if (!base)
++		panic("GRX500: cannot map chip ID register");
++	id = __raw_readl(base);
++	iounmap(base);
++	grx500_revision = (id >> 28) & 7;
++	pr_info("GRX500: chip ID %#08x, revision %u\n", id, grx500_revision);
++	return 0;
++}
++core_initcall(grx500_read_revision);
+--- a/drivers/net/ethernet/lantiq/ltq_eth_drv_xrx500.c
++++ b/drivers/net/ethernet/lantiq/ltq_eth_drv_xrx500.c
+@@ -1,3 +1,6 @@
++#include <linux/of_platform.h>
++#include <linux/linkmode.h>
++#include <net/grx500_skb.h>
+ // SPDX-License-Identifier: GPL-2.0
+ /* Copyright (C) 2009~2015 Lantiq Deutschland GmbH
+  * Copyright (C) 2016~2018 Intel Corporation.
+@@ -77,15 +80,14 @@
+ /* Transmit packet from Tx Queue to MAC */
+ static int ltq_start_xmit(struct sk_buff *skb, struct net_device *dev);
+ /* Get the network device statistics */
+-static
+-struct rtnl_link_stats64 *ltq_get_stats(struct net_device *dev,
++static void ltq_get_stats(struct net_device *dev,
+ 					struct rtnl_link_stats64 *storage);
+ /* change MTU values */
+ static int ltq_change_mtu(struct net_device *dev, int new_mtu);
+ /*  Set mac address*/
+ static int ltq_set_mac_address(struct net_device *dev, void *p);
+ /* Transmit timeout*/
+-static void ltq_tx_timeout(struct net_device *dev);
++static void ltq_tx_timeout(struct net_device *dev, unsigned int txqueue);
+ 
+ /* interface change event handler */
+ static int phy_netdevice_event(struct notifier_block *nb, unsigned long action,
+@@ -119,8 +121,8 @@
+ 	.ndo_change_mtu		= ltq_change_mtu,
+ 	.ndo_get_stats64	= ltq_get_stats,
+ 	.ndo_tx_timeout		= ltq_tx_timeout,
+-	.ndo_bridge_setlink	= switchdev_port_bridge_setlink,
+-	.ndo_bridge_getlink	= switchdev_port_bridge_getlink,
++
++
+ };
+ 
+ static struct notifier_block netdevice_notifier = {
+@@ -161,91 +163,15 @@
+ 	strcpy(info->version, DRV_MODULE_VERSION);
+ }
+ 
+-/* Get the network device settings  */
+-static int get_settings(struct net_device *dev, struct ethtool_cmd *cmd)
+-{
+-	struct ltq_eth_priv *priv;
+-	int i;
+-
+-	priv = netdev_priv(dev);
+-
+-	pr_debug("in ethtool get setting for num %d\n", priv->num_port);
+-	for (i = 0; i < priv->num_port; i++)
+-		if (priv->port[i].phydev)
+-			return phy_ethtool_gset(priv->port[i].phydev, cmd);
+-
+-	return -ENODEV;
+-}
+-
+-/* Set the network device settings */
+-static int set_settings(struct net_device *dev, struct ethtool_cmd *cmd)
+-{
+-	struct ltq_eth_priv *priv;
+-	int i;
+-
+-	priv = netdev_priv(dev);
+-	pr_info("%s: called\n", __func__);
+-
+-	for (i = 0; i < priv->num_port; i++)
+-		if (priv->port[i].phydev)
+-			return phy_ethtool_sset(priv->port[i].phydev, cmd);
+-
+-	return -ENODEV;
+-}
+-
+ static int get_link_ksettings(struct net_device *dev,
+-			      struct ethtool_link_ksettings *cmd)
+-{
+-	int ret;
+-
+-	ret = phy_ethtool_get_link_ksettings(dev, cmd);
+-	if (ret)
+-		return ret;
+-
+-	/* Linux PHY framework does not yet support 2500baseT,
+-	 * so we need to configure manually here.
+-	 */
+-	if (test_bit(ETHTOOL_LINK_MODE_2500baseT_Full_BIT,
+-		     dev->phydev->extended_supported))
+-		__set_bit(ETHTOOL_LINK_MODE_2500baseT_Full_BIT,
+-			  cmd->link_modes.supported);
+-	else
+-		__clear_bit(ETHTOOL_LINK_MODE_2500baseT_Full_BIT,
+-			    cmd->link_modes.supported);
+-
+-	if (test_bit(ETHTOOL_LINK_MODE_2500baseT_Full_BIT,
+-		     dev->phydev->extended_advertising))
+-		__set_bit(ETHTOOL_LINK_MODE_2500baseT_Full_BIT,
+-			  cmd->link_modes.advertising);
+-	else
+-		__clear_bit(ETHTOOL_LINK_MODE_2500baseT_Full_BIT,
+-			    cmd->link_modes.advertising);
+-
+-	if (test_bit(ETHTOOL_LINK_MODE_2500baseT_Full_BIT,
+-		     dev->phydev->extended_lp_advertising))
+-		__set_bit(ETHTOOL_LINK_MODE_2500baseT_Full_BIT,
+-			  cmd->link_modes.lp_advertising);
+-	else
+-		__clear_bit(ETHTOOL_LINK_MODE_2500baseT_Full_BIT,
+-			    cmd->link_modes.lp_advertising);
+-
+-	return 0;
++                              struct ethtool_link_ksettings *cmd)
++{
++	return phy_ethtool_get_link_ksettings(dev, cmd);
+ }
+ 
+ static int set_link_ksettings(struct net_device *dev,
+-			      const struct ethtool_link_ksettings *cmd)
+-{
+-	/* Linux PHY framework does not yet support 2500baseT,
+-	 * so we need to configure manually here.
+-	 */
+-	if (test_bit(ETHTOOL_LINK_MODE_2500baseT_Full_BIT,
+-		     cmd->link_modes.advertising))
+-		__set_bit(ETHTOOL_LINK_MODE_2500baseT_Full_BIT,
+-			  dev->phydev->extended_advertising);
+-	else
+-		__clear_bit(ETHTOOL_LINK_MODE_2500baseT_Full_BIT,
+-			    dev->phydev->extended_advertising);
+-
++                              const struct ethtool_link_ksettings *cmd)
++{
+ 	return phy_ethtool_set_link_ksettings(dev, cmd);
+ }
+ 
+@@ -341,7 +267,7 @@
+ }
+ 
+ static int  ethtool_eee_get(struct net_device *dev,
+-			    struct ethtool_eee *eee_data)
++			    struct ethtool_keee *eee_data)
+ {
+ 	struct ltq_eth_priv *priv = netdev_priv(dev);
+ 
+@@ -384,7 +310,7 @@
+ }
+ 
+ static int  ethtool_eee_set(struct net_device *dev,
+-			    struct ethtool_eee *eee_data)
++			    struct ethtool_keee *eee_data)
+ {
+ 	struct ltq_eth_priv *priv = netdev_priv(dev);
+ 	int retval = -EOPNOTSUPP;
+@@ -552,8 +478,8 @@
+ /* Structure of the ether tool operation in Phy case  */
+ static const struct ethtool_ops ethtool_ops = {
+ 	.get_drvinfo		= get_drvinfo,
+-	.get_settings		= get_settings,
+-	.set_settings		= set_settings,
++
++
+ 	.nway_reset		= nway_reset,
+ 	.get_link		= ethtool_op_get_link,
+ 	.get_link_ksettings	= get_link_ksettings,
+@@ -848,8 +774,7 @@
+ }
+ 
+ /* Get the network device stats information */
+-static struct
+-rtnl_link_stats64 *ltq_get_stats(struct net_device *dev,
++static void ltq_get_stats(struct net_device *dev,
+ 				 struct rtnl_link_stats64 *storage)
+ {
+ #ifndef CONFIG_INTEL_DATAPATH_MIB
+@@ -858,11 +783,10 @@
+ #else
+ 	dp_get_netif_stats(dev, NULL, storage, 0);
+ #endif
+-	return storage;
+ }
+ 
+ /* Trasmit timeout */
+-static void ltq_tx_timeout(struct net_device *dev)
++static void ltq_tx_timeout(struct net_device *dev, unsigned int txqueue)
+ {
+ }
+ 
+@@ -1129,14 +1053,16 @@
+ 	/* pad packet to avoid stuck in traffic queues
+ 	 *  as ethernet expects min of ETH_ZLEN bytes
+ 	 */
++	memset(grx500_skb_cb(skb), 0, sizeof(struct grx500_skb_cb));
++
+ 	if (skb_put_padto(skb, ETH_ZLEN)) {
+ 		priv->stats.tx_dropped++;
+ 		return 0;
+ 	}
+ 
+ 	/* Call the Datapath Library's TX function */
+-	((struct dma_tx_desc_1 *)&skb->DW1)->field.ep = priv->dp_subif.port_id;
+-	((struct dma_tx_desc_0 *)&skb->DW0)->field.dest_sub_if_id =
++	((struct dma_tx_desc_1 *)&grx500_skb_cb(skb)->DW1)->field.ep = priv->dp_subif.port_id;
++	((struct dma_tx_desc_0 *)&grx500_skb_cb(skb)->DW0)->field.dest_sub_if_id =
+ 		priv->dp_subif.subif;
+ 
+ 	len = skb->len;
+@@ -1582,7 +1508,7 @@
+ 
+ /* VRX318 TC message genelink family */
+ static struct genl_family eth_gnl_family = {
+-	.id = GENL_ID_GENERATE, /* To generate an id for the family*/
++
+ 	.hdrsize = 0,
+ 	.name = "eth_drv_notify", /*family name, used by userspace application*/
+ 	.version = 1, /*version number  */
+@@ -1902,7 +1828,8 @@
+ 
+ 	memset(p, 0, sizeof(struct xrx500_port));
+ 	p->phy_node = of_parse_phandle(port, "phy-handle", 0);
+-	p->phy_if = of_get_phy_mode(port);
++	if (of_get_phy_mode(port, &p->phy_if))
++		p->phy_if = PHY_INTERFACE_MODE_NA;
+ 
+ 	if (!p->phy_node) {
+ 		/* check if a fixed-link is defined in device-tree */
+@@ -2584,7 +2511,7 @@
+ 		return -ENODEV;
+ 	}
+ 
+-	phydev->advertising = phydev->supported;
++	linkmode_copy(phydev->advertising, phydev->supported);
+ 	port->phydev = phydev;
+ 
+ 	/* restart xgmac */
+@@ -2637,16 +2564,8 @@
+ 		return PTR_ERR(phydev);
+ 	}
+ 
+-	phydev->supported &= (SUPPORTED_10baseT_Half
+-			      | SUPPORTED_10baseT_Full
+-			      | SUPPORTED_100baseT_Half
+-			      | SUPPORTED_100baseT_Full
+-			      | SUPPORTED_1000baseT_Half
+-			      | SUPPORTED_1000baseT_Full
+-			      | SUPPORTED_Autoneg
+-			      | SUPPORTED_MII
+-			      | SUPPORTED_TP);
+-	phydev->advertising = phydev->supported;
++	phy_set_max_speed(phydev, SPEED_1000);
++	linkmode_copy(phydev->advertising, phydev->supported);
+ 	port->phydev = phydev;
+ 
+ 	pr_info("%s: attached PHY [%s] (phy_addr=%s, irq=%d)\n",
+@@ -2843,17 +2762,16 @@
+ 	return 0;
+ }
+ 
+-static int ltq_eth_drv_remove(struct platform_device *pdev)
++static void ltq_eth_drv_remove(struct platform_device *pdev)
+ {
+ 	/* Just do the exit */
+ 	unregister_netdevice_notifier(&netdevice_notifier);
+ 	ltq_eth_drv_exit(pdev);
+-	return 0;
+ }
+ 
+ static const struct ltq_net_soc_data xrx500_net_data = {
+ 	.need_defer = true,
+-	.hw_checksum = true,
++	.hw_checksum = false,
+ 	.queue_num = 1,
+ 	.phy_connect_func = &xrx500_phy_connect,
+ };
+--- a/drivers/net/ethernet/lantiq/switch-api/Makefile
++++ b/drivers/net/ethernet/lantiq/switch-api/Makefile
+@@ -1,7 +1,7 @@
+ #
+ # Makefile for the Switch API
+ #
+-#EXTRA_CFLAGS := -I./arch/mips/include/asm/mach-lantiq/switch-api
++#ccflags-y := -I./arch/mips/include/asm/mach-lantiq/switch-api
+ obj-$(CONFIG_LTQ_ETHSW_API)	+= mac/
+ obj-$(CONFIG_LTQ_ETHSW_API)	+= gswip_dev/
+ obj-$(CONFIG_LTQ_ETHSW_API)	+= drv_switch_api.o
+@@ -19,7 +19,7 @@
+ endif
+ 
+ ifeq ($(CONFIG_SOC_GRX500),y)
+-EXTRA_CFLAGS += -I$(src)/ -I$(src)/mac/
++ccflags-y += -I$(src)/ -I$(src)/mac/
+ 	drv_switch_api-objs	:= gsw_ioctl_wrapper.o
+ 	drv_switch_api-objs	+= gsw_init.o
+ 	#drv_switch_api-objs += gsw_gphy_fw.o
+@@ -37,7 +37,7 @@
+ endif
+ 
+ ifeq ($(CONFIG_X86_INTEL_CE2700),y)
+-EXTRA_CFLAGS := -I./arch/mips/include/asm/mach-lantiq/
++ccflags-y := -I./arch/mips/include/asm/mach-lantiq/
+ 
+ 	drv_switch_api-objs	:= gsw_ioctl_wrapper.o
+ 	drv_switch_api-objs	+= gsw_init.o
+--- a/drivers/net/ethernet/lantiq/switch-api/gsw_init.c
++++ b/drivers/net/ethernet/lantiq/switch-api/gsw_init.c
+@@ -1207,10 +1207,9 @@
+ 	return 0;
+ }
+ 
+-static int ltq_switch_api_remove(struct platform_device *pdev)
++static void ltq_switch_api_remove(struct platform_device *pdev)
+ {
+ 	ltq_etshw_api_exit();
+-	return 0;
+ }
+ 
+ #if defined(CONFIG_SOC_GRX500) && CONFIG_SOC_GRX500
+--- a/drivers/net/ethernet/lantiq/switch-api/gsw_ioctl_wrapper.c
++++ b/drivers/net/ethernet/lantiq/switch-api/gsw_ioctl_wrapper.c
+@@ -304,7 +304,7 @@
+ 	}
+ 
+ 	/* Register the device class */
+-	gswss_class = class_create(THIS_MODULE, ETHSW_API_DEV_NAME);
++	gswss_class = class_create( ETHSW_API_DEV_NAME);
+ 	if (IS_ERR(gswss_class)) {
+ 		result = -EEXIST;
+ 		pr_err("SWAPI: failed to create class %d\n", result);
+--- a/drivers/net/ethernet/lantiq/switch-api/gswip_dev/Makefile
++++ b/drivers/net/ethernet/lantiq/switch-api/gswip_dev/Makefile
+@@ -2,5 +2,5 @@
+ # Makefile for GSWIP Framework
+ #
+ 
+-EXTRA_CFLAGS += -I$(src)/ -I$(src)/../ -I$(src)/../mac/
++ccflags-y += -I$(src)/ -I$(src)/../ -I$(src)/../mac/
+ obj-$(CONFIG_LTQ_ETHSW_API) += gsw_dev.o
+--- a/drivers/net/ethernet/lantiq/switch-api/mac/Makefile
++++ b/drivers/net/ethernet/lantiq/switch-api/mac/Makefile
+@@ -2,7 +2,7 @@
+ # Makefile for MAC
+ #
+ 
+-EXTRA_CFLAGS += -I$(src)
++ccflags-y += -I$(src)
+ obj-$(CONFIG_LTQ_ETHSW_API) += mac_driver.o
+ 
+ mac_driver-objs = macsec_drv.o 
+--- a/drivers/net/ethernet/lantiq/switch-api/mac/mac_drv.c
++++ b/drivers/net/ethernet/lantiq/switch-api/mac/mac_drv.c
+@@ -282,7 +282,7 @@
+ 	return 0;
+ }
+ 
+-static int mac_remove(struct platform_device *pdev)
++static void mac_remove(struct platform_device *pdev)
+ {
+ 	struct mac_prv_data *pdata = GET_MAC_PDATA(platform_get_drvdata(pdev));
+ 
+@@ -290,7 +290,6 @@
+ 
+ 	clk_disable_unprepare(pdata->ker_ptp_clk);
+ 
+-	return 0;
+ }
+ 
+ static const struct of_device_id gsw_mac_match[] = {
+--- a/drivers/net/ethernet/lantiq/switch-api/mac/mac_tx_fifo.c
++++ b/drivers/net/ethernet/lantiq/switch-api/mac/mac_tx_fifo.c
+@@ -12,7 +12,7 @@
+ #include <mac_tx_fifo.h>
+ 
+ static int fifo_freeid_get(void *pdev, u8 ttse);
+-void fifo_entry_timeout(unsigned long data);
++static void fifo_entry_timeout(struct timer_list *timer);
+ static void fifo_update_hw_clrsts(void *pdev,
+ 				  struct mac_fifo_entry *f_entry);
+ 
+@@ -26,7 +26,7 @@
+ 	for (i = START_FIFO; i < MAX_FIFO_ENTRY; i++) {
+ 		pdata->ts_fifo[i].rec_id = i;
+ #ifdef __KERNEL__
+-		init_timer(&pdata->ts_fifo[i].timer);
++		timer_setup(&pdata->ts_fifo[i].timer, fifo_entry_timeout, 0);
+ #endif
+ 	}
+ 
+@@ -51,7 +51,7 @@
+ 
+ 	if (f_entry->ttse || f_entry->ostc || f_entry->ostpa || f_entry->cic) {
+ 		/* if previously there was a timer running, and timeout */
+-		del_timer_sync(&f_entry->timer);
++		timer_delete_sync(&f_entry->timer);
+ 	}
+ 
+ #endif
+@@ -66,8 +66,6 @@
+ 	f_entry->ptp_tx_skb_loc = ptp_tx_skb_loc;
+ 
+ #ifdef __KERNEL__
+-	setup_timer(&f_entry->timer, fifo_entry_timeout,
+-		    (unsigned long)f_entry);
+ 	f_entry->timer.expires = jiffies + (f_entry->timeout * HZ) - 1;
+ 	add_timer(&f_entry->timer);
+ 	f_entry->jiffies = jiffies;
+@@ -85,7 +83,7 @@
+ 
+ #ifdef __KERNEL__
+ 	/* Delete timer */
+-	del_timer_sync(&f_entry->timer);
++	timer_delete_sync(&f_entry->timer);
+ 	f_entry->timer.expires = 0;
+ #endif
+ 	f_entry->ttse = 0;
+@@ -197,9 +195,9 @@
+ /* Timeout handler, Called when Fifo entry timeout
+  * This happens when packet is dropped by cqem or some other reason packet lost
+  */
+-void fifo_entry_timeout(unsigned long data)
+-{
+-	struct mac_fifo_entry *f_entry  = (struct mac_fifo_entry *)data;
++static void fifo_entry_timeout(struct timer_list *timer)
++{
++	struct mac_fifo_entry *f_entry = container_of(timer, struct mac_fifo_entry, timer);
+ 
+ 	/* Mark this Fifo entry can be used again */
+ 	if (f_entry->ptp_tx_skb_loc) {
+--- a/drivers/net/ethernet/lantiq/switch-api/mac/macsec_drv.c
++++ b/drivers/net/ethernet/lantiq/switch-api/mac/macsec_drv.c
+@@ -95,9 +95,8 @@
+ 	return 0;
+ }
+ 
+-static int e160_macsec_release(struct platform_device *pdev)
++static void e160_macsec_release(struct platform_device *pdev)
+ {
+-	return 0;
+ }
+ 
+ static const struct of_device_id e160_macsec_match[] = {
+--- a/drivers/net/ethernet/lantiq/switch-api/mac/xgmac_mdio.c
++++ b/drivers/net/ethernet/lantiq/switch-api/mac/xgmac_mdio.c
+@@ -437,57 +437,29 @@
+  *
+  * \return 0 on success and -ve number on failure.
+  */
+-static int xgmac_mdio_read(struct mii_bus *bus, int phyadr, int phyreg)
+-{
+-	struct mac_ops *pdev = bus->priv;
+-	struct mac_prv_data *pdata = GET_MAC_PDATA(pdev);
+-	int phydata;
+-	u32 clause = (phyreg & MII_ADDR_C45) ? 0 : 1;
+-
+-	mac_dbg("XGMAC %d: MDIO Read phyadr = %d, phyreg = %d\n",
+-		pdata->mac_idx, phyadr, phyreg);
+-
+-	mdio_set_clause(pdev, clause, phyadr);
+-
+-	phydata = xgmac_mdio_single_rd(pdev, (phyreg >> 16) & 0x1F, phyadr,
+-			     phyreg & 0xFFFF);
+-
+-	mac_dbg("XGMAC %d: MDIO Read phydata = %#x\n",
+-		pdata->mac_idx, phydata);
+-
+-	return phydata;
+-}
+-
+-/* API to write MII PHY register
+- * \details This API is expected to write MII registers with the value being
+- * passed as the last argument which is done in write_phy_regs API
+- * called by this function.
+- *
+- * \param[in] bus - points to the mii_bus structure
+- * \param[in] phyadr - the phy address to write
+- * \param[in] phyreg - the phy register offset to write
+- * \param[in] phydata - the register value to write with
+- *
+- * \return 0 on success and -ve number on failure.
+- */
+-static int xgmac_mdio_write(struct mii_bus *bus, int phyadr, int phyreg,
+-			    u16 phydata)
+-{
+-	struct mac_ops *pdev = bus->priv;
+-	struct mac_prv_data *pdata = GET_MAC_PDATA(pdev);
+-	int ret = 0;
+-	u32 clause = (phyreg & MII_ADDR_C45) ? 0 : 1;
+-
+-	mdio_set_clause(pdev, clause, phyadr);
+-
+-	xgmac_mdio_single_wr(pdev, (phyreg >> 16) & 0x1F, phyadr,
+-			     phyreg & 0xFFFF, phydata);
+-
+-	mac_dbg("XGMAC %d: MDIO Write"
+-		"phyadr %x phyreg %x phydata %x Completed\n",
+-		pdata->mac_idx, phyadr, phyreg, phydata);
+-
+-	return ret;
++static int xgmac_mdio_read(struct mii_bus *bus, int addr, int reg)
++{
++	mdio_set_clause(bus->priv, 1, addr);
++	return xgmac_mdio_single_rd(bus->priv, 0, addr, reg);
++}
++
++static int xgmac_mdio_write(struct mii_bus *bus, int addr, int reg, u16 val)
++{
++	mdio_set_clause(bus->priv, 1, addr);
++	return xgmac_mdio_single_wr(bus->priv, 0, addr, reg, val);
++}
++
++static int xgmac_mdio_read_c45(struct mii_bus *bus, int addr, int devad, int reg)
++{
++	mdio_set_clause(bus->priv, 0, addr);
++	return xgmac_mdio_single_rd(bus->priv, devad, addr, reg);
++}
++
++static int xgmac_mdio_write_c45(struct mii_bus *bus, int addr, int devad,
++			      int reg, u16 val)
++{
++	mdio_set_clause(bus->priv, 0, addr);
++	return xgmac_mdio_single_wr(bus->priv, devad, addr, reg, val);
+ }
+ 
+ int xgmac_mdio_reset(struct mii_bus *bus)
+@@ -547,6 +519,8 @@
+ 	new_bus->name = "xgmac_phy";
+ 	new_bus->read = xgmac_mdio_read;
+ 	new_bus->write = xgmac_mdio_write;
++	new_bus->read_c45 = xgmac_mdio_read_c45;
++	new_bus->write_c45 = xgmac_mdio_write_c45;
+ 	new_bus->reset = xgmac_mdio_reset;
+ 	snprintf(new_bus->id, MII_BUS_ID_SIZE, "%s-%x", new_bus->name,
+ 		 pdata->mac_idx);
+--- a/drivers/net/ethernet/lantiq/switch-api/mac/xgmac_ptp.c
++++ b/drivers/net/ethernet/lantiq/switch-api/mac/xgmac_ptp.c
+@@ -46,7 +46,7 @@
+ #define AUX_TRIG_0 1
+ #define AUX_TRIG_1 2
+ 
+-static int xgmac_adj_freq(struct ptp_clock_info *ptp, s32 ppb);
++static int xgmac_adj_freq(struct ptp_clock_info *ptp, long scaled_ppm);
+ static int xgmac_adj_time(struct ptp_clock_info *ptp, s64 delta);
+ static int xgmac_get_time(struct ptp_clock_info *ptp,
+ 			  struct timespec64 *ts);
+@@ -88,7 +88,7 @@
+ 		hw_if->config_addend(pdev, pdata->def_addend);
+ 
+ 		/* initialize system time */
+-		getnstimeofday64(&now);
++		ktime_get_real_ts64(&now);
+ 		hw_if->init_systime(pdev, now.tv_sec, now.tv_nsec);
+ 		pdata->systime_initialized = 1;
+ 	}
+@@ -99,8 +99,9 @@
+ /* API to adjust the frequency of hardware clock.
+  * delta - desired period change.
+  */
+-static int xgmac_adj_freq(struct ptp_clock_info *ptp, s32 ppb)
+-{
++static int xgmac_adj_freq(struct ptp_clock_info *ptp, long scaled_ppm)
++{
++	s32 ppb = scaled_ppm_to_ppb(scaled_ppm);
+ 	struct mac_prv_data *pdata =
+ 		container_of(ptp, struct mac_prv_data, ptp_clk_info);
+ 	struct mac_ops *hw_if = &pdata->ops;
+@@ -333,7 +334,7 @@
+ 		return;
+ 
+ 	/* Marking Tx Timestamp complete */
+-	if (!shhwtstamp->hwtstamp.tv64)
++	if (!shhwtstamp->hwtstamp)
+ 		shhwtstamp->hwtstamp = ktime_get_real();
+ 
+ 	skb_complete_tx_timestamp(pdata->ptp_tx_skb, shhwtstamp);
+@@ -745,7 +746,7 @@
+ #endif
+ 
+ int xgmac_get_ts_info(void *pdev,
+-		      struct ethtool_ts_info *ts_info)
++		      struct kernel_ethtool_ts_info *ts_info)
+ {
+ #ifdef CONFIG_PTP_1588_CLOCK
+ 	struct mac_prv_data *pdata = GET_MAC_PDATA(pdev);
+@@ -798,7 +799,7 @@
+ 	info->owner = THIS_MODULE;
+ 	info->max_adj = MAX_FREQ_ADJUSTMENT;
+ 	info->n_ext_ts = N_EXT_TS;
+-	info->adjfreq = xgmac_adj_freq;
++	info->adjfine = xgmac_adj_freq;
+ 	info->adjtime = xgmac_adj_time;
+ 	info->gettime64 = xgmac_get_time;
+ 	info->settime64 = xgmac_set_time;
+--- a/drivers/net/ethernet/lantiq/switch-api/mac/xgmac_ptp.h
++++ b/drivers/net/ethernet/lantiq/switch-api/mac/xgmac_ptp.h
+@@ -1,3 +1,4 @@
++#include <linux/ethtool.h>
+ /******************************************************************************
+  *                Copyright (c) 2016, 2017 Intel Corporation
+  *
+@@ -87,7 +88,7 @@
+ int xgmac_config_timer_reg(void *pdev, u32 mac_tscr);
+ int xgmac_ptp_tx_work(struct work_struct *work);
+ int xgmac_get_ts_info(void *pdev,
+-		      struct ethtool_ts_info *ts_info);
++		      struct kernel_ethtool_ts_info *ts_info);
+ #endif
+ 
+ 
+--- a/drivers/net/ethernet/lantiq/xrx500_phy_fw.c
++++ b/drivers/net/ethernet/lantiq/xrx500_phy_fw.c
+@@ -1,3 +1,6 @@
++#include <linux/property.h>
++#include <linux/platform_device.h>
++#include <linux/of_device.h>
+ /*
+  *  This program is free software; you can redistribute it and/or modify it
+  *  under the terms of the GNU General Public License version 2 as published
+@@ -425,13 +428,14 @@
+ 		return -ENOMEM;
+ 
+ 	gphy_regmap_cfg.name = "gphy_cdb_pdi";
+-	if (IS_ENABLED(CONFIG_REGMAP_ICC))
++	#if IS_ENABLED(CONFIG_REGMAP_ICC)
+ 		priv->pdi_base = devm_regmap_init_icc(&pdev->dev, base,
+ 						      res->start,
+ 						      &gphy_regmap_cfg);
+-	else
++#else
+ 		priv->pdi_base = devm_regmap_init_mmio(&pdev->dev, base,
+ 					  &gphy_regmap_cfg);
++#endif
+ 
+ 	if (IS_ERR(priv->pdi_base)) {
+ 		ret = PTR_ERR(priv->pdi_base);
+@@ -451,13 +455,14 @@
+ 		return -ENOMEM;
+ 
+ 	gphy_regmap_cfg.name = "gphy_cdb_fcsi";
+-	if (IS_ENABLED(CONFIG_REGMAP_ICC))
++	#if IS_ENABLED(CONFIG_REGMAP_ICC)
+ 		priv->fcsi_base = devm_regmap_init_icc(&pdev->dev, base,
+ 						       res->start,
+ 						       &gphy_regmap_cfg);
+-	else
++#else
+ 		priv->fcsi_base = devm_regmap_init_mmio(&pdev->dev, base,
+ 					  &gphy_regmap_cfg);
++#endif
+ 
+ 	if (IS_ERR(priv->fcsi_base)) {
+ 		ret = PTR_ERR(priv->fcsi_base);
+@@ -627,7 +632,7 @@
+ 		return -ENOMEM;
+ 	}
+ 
+-	priv->soc_data = of_device_get_match_data(&pdev->dev);
++	priv->soc_data = device_get_match_data(&pdev->dev);
+ 	if (!priv->soc_data) {
+ 		dev_err(&pdev->dev, "Failed to find soc data!\n");
+ 		return -ENODEV;
+--- /dev/null
++++ b/include/dt-bindings/net/lantiq,prx300-eth.h
+@@ -0,0 +1,19 @@
++ /* SPDX-License-Identifier: GPL-2.0 */
++ /*
++  *  Copyright (C) 2021 MAXLINEAR Corporation.
++  */
++#ifndef __LTQ_PRX300_ETH_H
++#define __LTQ_PRX300_ETH_H
++
++/* Bridge domain: unicast */
++#define UNI_BR_DOMAIN_UC 0
++/* Bridge domain: multicast */
++#define UNI_BR_DOMAIN_MC 1
++/* Bridge domain: broadcast one */
++#define UNI_BR_DOMAIN_BC1 2
++/* Bridge domain: broadcast two */
++#define UNI_BR_DOMAIN_BC2 3
++/* Bridge domain: upstream */
++#define UNI_BR_DOMAIN_US 4
++
++#endif
+--- a/include/net/datapath_api.h
++++ b/include/net/datapath_api.h
+@@ -1,3 +1,4 @@
++#include <linux/ethtool.h>
+ // SPDX-License-Identifier: GPL-2.0
+ /*******************************************************************************
+  * Copyright (c) 2020 - 2021, MaxLinear, Inc.
+--- /dev/null
++++ b/include/net/grx500_skb.h
+@@ -0,0 +1,14 @@
++/* SPDX-License-Identifier: GPL-2.0-only */
++#ifndef _NET_GRX500_SKB_H
++#define _NET_GRX500_SKB_H
++#include <linux/skbuff.h>
++/* Owned only while the skb is in the GRX500 software datapath. */
++struct grx500_skb_cb {
++	u32 DW0, DW1, DW2, DW3;
++};
++static inline struct grx500_skb_cb *grx500_skb_cb(const struct sk_buff *skb)
++{
++	BUILD_BUG_ON(sizeof(struct grx500_skb_cb) > sizeof(skb->cb));
++	return (struct grx500_skb_cb *)skb->cb;
++}
++#endif
+--- a/include/net/switch_api/mac_ops.h
++++ b/include/net/switch_api/mac_ops.h
+@@ -1,3 +1,5 @@
++#include <linux/ethtool.h>
++#include <linux/ethtool.h>
+ /******************************************************************************
+  *                Copyright (c) 2016, 2017 Intel Corporation
+  *
+@@ -468,7 +470,7 @@
+ 	 *			010:	160 bit
+ 	 *			011:	192 bit
+ 	 *			100:	224 bit
+-	 *			101 – 111: Reserved
++	 *			101 Â– 111: Reserved
+ 	 * return	OUT  -1:	IPG Set Error
+ 	 */
+ 	int (*mac_config_ipg)(void *ops, u32 ipg);
+@@ -765,7 +767,7 @@
+ 	 * param[in/out]IN:	ops	MAC ops Struct registered for MAC 0/1/2.
+ 	 * return	OUT	-1: Initialize MAC Error
+ 	 */
+-	int (*mac_get_ts_info)(void *ops, struct ethtool_ts_info *ts_info);
++	int (*mac_get_ts_info)(void *ops, struct kernel_ethtool_ts_info *ts_info);
+ #endif
+ 
+ 	/* This sequence is to do soft restart of Xgmac

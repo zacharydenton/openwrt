@@ -1,0 +1,10 @@
+#!/bin/sh
+# AX3000's WPS/Wi-Fi key: short release starts WPS, >=2s toggles radios.
+. /lib/functions.sh
+[ "$(board_name)" = "tplink,archer-ax3000-v1" ] || exit 1
+# Suppress the generic five-second WPS-client timeout on this combined key.
+[ "$ACTION" = "released" ] || exit 0
+case "$SEEN" in ''|*[!0-9]*) exit 0;; esac
+[ "$SEEN" -ge 2 ] || exit 1
+/etc/rc.button/rfkill
+exit 0

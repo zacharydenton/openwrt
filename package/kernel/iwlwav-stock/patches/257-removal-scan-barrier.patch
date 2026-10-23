@@ -1,0 +1,155 @@
+--- a/wireless/driver/linux/core.c
++++ b/wireless/driver/linux/core.c
+@@ -22,6 +22,7 @@
+ #include <linux/scatterlist.h>
+ #include <crypto/algapi.h>
+ #include <linux/unaligned.h>
++#include <linux/completion.h>
+ 
+ #include "core_priv.h"
+ #include "mtlk_df.h"
+@@ -518,6 +519,68 @@
+                                      _MTLK_CORE_PRIORITY_INTERNAL, NULL, issuer_slid);
+ }
+ 
++struct mtlk_scan_quiesce {
++  struct completion done;
++  mtlk_core_t *core;
++  BOOL executed;
++};
++
++static void
++_mtlk_core_remove_scan(mtlk_handle_t context)
++{
++  struct mtlk_scan_quiesce *quiesce = (struct mtlk_scan_quiesce *)context;
++
++  /* Removal cleanup must run even if recovery cancelled user commands or
++   * disabled the ALTER_SCAN ability. removal_pending suppresses FW restore. */
++  abort_scan_sync(quiesce->core);
++  pause_or_prevent_scan(quiesce->core);
++  quiesce->executed = TRUE;
++}
++
++static void
++_mtlk_core_remove_scan_done(serializer_result_t result, mtlk_command_t *command,
++                           mtlk_handle_t context)
++{
++  struct mtlk_scan_quiesce *quiesce = (struct mtlk_scan_quiesce *)context;
++
++  complete(&quiesce->done);
++}
++
++void __MTLK_IFUNC
++mtlk_core_scan_quiesce(mtlk_core_t *core)
++{
++  struct mtlk_scan_quiesce quiesce;
++  mtlk_command_t command;
++  int res;
++
++  /* The card removal owner calls this after closing channel admission, while
++   * the master serializer is alive and before VAP stop. No concurrent master
++   * start/stop is allowed. A stack command needs no clipboard/heap allocation. */
++  init_completion(&quiesce.done);
++  quiesce.core = core;
++  quiesce.executed = FALSE;
++  res = mtlk_command_init(&command, _mtlk_core_remove_scan, HANDLE_T(&quiesce), MTLK_SLID);
++  if (res == MTLK_ERR_OK) {
++    /* Same FIFO priority as SET_CHAN and CAC_TIMEOUT: never overtake them. */
++    res = mtlk_serializer_enqueue(&core->slow_ctx->serializer,
++                                 _MTLK_CORE_PRIORITY_USER, &command,
++                                 _mtlk_core_remove_scan_done, HANDLE_T(&quiesce));
++    if (res == MTLK_ERR_OK)
++      wait_for_completion(&quiesce.done);
++    mtlk_command_cleanup(&command);
++  }
++
++  if (!quiesce.executed) {
++    /* A stopped/rejecting serializer is exceptional for an initialized radio.
++     * Finish its stop (including the worker join) before local scan cleanup;
++     * never let failure of the barrier leave callbacks behind unregister.
++     * The lifecycle owner will later call the idempotent serializer stop again. */
++    ELOG_D("Removal scan barrier unavailable (%d), draining serializer", res);
++    mtlk_serializer_stop(&core->slow_ctx->serializer);
++    _mtlk_core_remove_scan(HANDLE_T(&quiesce));
++  }
++}
++
+ int __MTLK_IFUNC mtlk_core_schedule_user_task_ex (struct nic *nic,
+                                                   mtlk_handle_t object,
+                                                   mtlk_core_task_func_t func,
+--- a/wireless/driver/linux/wave_radio.c
++++ b/wireless/driver/linux/wave_radio.c
+@@ -1175,7 +1175,7 @@
+ 
+     if (radio->init_done) {
+       scan_support_prepare_remove(wave_radio_scan_support_get(radio));
+-      _wave_radio_abort_and_prevent_scan(radio);
++      mtlk_core_scan_quiesce(wave_radio_scan_support_get(radio)->master_core);
+       mtlk_df_user_quiesce_prop_dfs_wq(mtlk_df_get_user(wave_radio_df_get(radio)));
+     }
+   }
+--- a/wireless/driver/shared/mtlk_core_iface.h
++++ b/wireless/driver/shared/mtlk_core_iface.h
+@@ -26,6 +26,7 @@
+ /* Core "getters" */
+ struct _mtlk_eeprom_data_t* __MTLK_IFUNC mtlk_core_get_eeprom(struct nic* core);
+ struct scan_support*        __MTLK_IFUNC mtlk_core_get_scan_support(struct nic* core);
++void __MTLK_IFUNC mtlk_core_scan_quiesce(struct nic *core);
+ 
+ uint8   __MTLK_IFUNC mtlk_core_is_device_busy(mtlk_handle_t context);
+ BOOL    __MTLK_IFUNC mtlk_core_is_stopping(struct nic *core);
+--- a/wireless/driver/shared/mtlk_serializer.c
++++ b/wireless/driver/shared/mtlk_serializer.c
+@@ -52,6 +52,8 @@
+   szr->num_priorities = num_priorities;
+   szr->is_running = FALSE;
+ 
++  szr->stop_done = TRUE;
++
+   MTLK_INIT_TRY(serializer, MTLK_OBJ_PTR(szr))
+     MTLK_INIT_STEP_EX(serializer, LISTS_ALLOC, MTLK_OBJ_PTR(szr), mtlk_osal_mem_alloc,
+                       (sizeof(*szr->commands)*num_priorities, MTLK_MEM_TAG_SERIALIZER),
+@@ -137,6 +139,8 @@
+ {
+   MTLK_ASSERT(NULL != szr);
+ 
++  szr->stop_done = FALSE;
++
+   MTLK_START_TRY(serializer, MTLK_OBJ_PTR(szr))
+     MTLK_START_STEP(serializer, TASKS_PENDING_LOCK, MTLK_OBJ_PTR(szr), 
+                     mtlk_rmlock_init, (&szr->tasks_pending_lock));
+@@ -154,6 +158,11 @@
+ {
+   MTLK_ASSERT(NULL != szr);
+ 
++  /* Removal may already have drained a rejecting serializer. Start/stop
++   * belong to the lifecycle owner; this is not a concurrent-stop lock. */
++  if (szr->stop_done)
++    return;
++
+   MTLK_STOP_BEGIN(serializer, MTLK_OBJ_PTR(szr))
+     MTLK_STOP_STEP(serializer, START_PROCESSING, MTLK_OBJ_PTR(szr),
+                    _mtlk_serializer_stop_processing, (szr));
+@@ -162,6 +171,7 @@
+     MTLK_STOP_STEP(serializer, TASKS_PENDING_LOCK, MTLK_OBJ_PTR(szr), 
+                    mtlk_rmlock_cleanup, (&szr->tasks_pending_lock));
+   MTLK_STOP_END(serializer, MTLK_OBJ_PTR(szr));
++  szr->stop_done = TRUE;
+ }
+ 
+ MTLK_INIT_STEPS_LIST_BEGIN(command)
+@@ -456,4 +466,3 @@
+   }
+   mtlk_osal_lock_release(&szr->lock);
+ }
+-
+--- a/wireless/driver/shared/mtlk_serializer.h
++++ b/wireless/driver/shared/mtlk_serializer.h
+@@ -73,6 +73,7 @@
+ 
+   mtlk_rmlock_t tasks_pending_lock;  /*!< \private Remove lock for stop operation synchronization */
+   BOOL          is_running;          /*!< \private Indicates whether serializer accepts new commands */
++  BOOL          stop_done;           /* Lifecycle-owner-only guard for repeated stop */
+ 
+   mtlk_command_t *current_command;          /*!< \private Command is being execuded */
+   char name[IFNAMSIZ + 8];

@@ -1,0 +1,56 @@
+--- a/wireless/driver/shared/hw_mmb.c
++++ b/wireless/driver/shared/hw_mmb.c
+@@ -11887,12 +11887,12 @@
+   vap_handle = _mtlk_mmb_get_vap_handle_from_vap_id(hw, radio_id, vap_id);
+   if (__UNLIKELY(!vap_handle)) {
+     ELOG_DD("Received bss frame cfm when VAP was removed radio_id:%d vap_id:%d", radio_id, vap_id);
+-    /* Removal may have timed out waiting for firmware. Its packet owner was
+-     * already released before unregister; leave the DMA mapping for reset.
++    /* Global shutdown owns these mappings until reset. During a normal VAP
++     * deletion, however, this descriptor has just been confirmed by firmware.
++     * Reclaim it without calling the deleted core or forcing a card reset.
+      */
+     if (READ_ONCE(hw->mac_events_stopped))
+       return MTLK_ERR_OK;
+-    goto the_trap;
+   }
+ 
+   ILOG3_DDHPDD("Confirmed bss_req: radio_id=%d, vap_id=%d, cookie=%llu, virt_addr=0x%p, size=%u, dma_addr=0x%08x",
+@@ -11901,7 +11901,7 @@
+ 
+   wave_bss_tx_unmap(hw, bss_req);
+ 
+-  if (!READ_ONCE(hw->mac_events_stopped)) {
++  if (vap_handle && !READ_ONCE(hw->mac_events_stopped)) {
+     df = mtlk_vap_get_df(vap_handle); /* the interface is still registered */
+     df_user = mtlk_df_get_user(df);
+     ndev = mtlk_df_user_get_ndev(df_user);
+@@ -11925,7 +11925,7 @@
+   /* Cookie zero means no requested ACK report, not no packet ownership.
+    * Consume every accepted station skb before the descriptor is reused. */
+   if (bss_req->skb) {
+-    if (!mtlk_vap_is_ap(vap_handle)) {
++    if (vap_handle && !mtlk_vap_is_ap(vap_handle)) {
+       struct ieee80211_hw *mac80211_hw = wave_radio_ieee80211_hw_get(radio);
+       MTLK_ASSERT(NULL != mac80211_hw);
+       wv_ieee80211_tx_status(mac80211_hw, bss_req->skb, status);
+@@ -12016,7 +12016,8 @@
+ 
+     /* vap_handle from cfm frame we need to decrease it only after new frame
+        is sent for not having rase condition with waiting of unconf_bss */
+-    mtlk_core_on_bss_cfm(mtlk_vap_get_core(vap_handle), &bss_req->dst_addr, bss_req->extra_processing, bss_req->subtype, bss_req->is_broadcast);
++    if (vap_handle)
++      mtlk_core_on_bss_cfm(mtlk_vap_get_core(vap_handle), &bss_req->dst_addr, bss_req->extra_processing, bss_req->subtype, bss_req->is_broadcast);
+     return MTLK_ERR_OK;
+   }
+ 
+@@ -12024,7 +12025,8 @@
+   mtlk_dlist_remove(&bss_mgmt->tx_bdr.used_list, &bss_req->hdr.list_entry);
+   mtlk_dlist_push_back(&bss_mgmt->tx_bdr.free_list, &bss_req->hdr.list_entry);
+   mtlk_osal_lock_release(&bss_mgmt->tx_bdr.lock);
+-  mtlk_core_on_bss_cfm(mtlk_vap_get_core(vap_handle), &bss_req->dst_addr, bss_req->extra_processing, bss_req->subtype, bss_req->is_broadcast);
++  if (vap_handle)
++    mtlk_core_on_bss_cfm(mtlk_vap_get_core(vap_handle), &bss_req->dst_addr, bss_req->extra_processing, bss_req->subtype, bss_req->is_broadcast);
+   return MTLK_ERR_OK;
+ 
+ the_trap:

@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "status": "Data TX mapping ownership and rejected-send cleanup corrected; concurrent recovery/unregister and hardware operation still unverified",
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "new_factory_container": false,
+  "changes": [
+    "Track successful data TX mapping independently of DMA address, including address zero",
+    "Unmap rejected submissions and balance CPU statistics before reset request and return",
+    "Use idempotent unmap in normal/stopped/missing-VAP completion and unconfirmed cleanup",
+    "Clear consumed recovery skb references and borrowed skb references before returning unsent descriptors"
+  ],
+  "tests": {
+    "submission_recovery_cases_per_execution": 170,
+    "completion_cases_per_execution": 48,
+    "native_asan_ubsan": "pass",
+    "mips_userspace": "pass",
+    "before_failures": [
+      "Rejected TX leaves maps=1, unmaps=0",
+      "Recovery frees skb with active mapping at address zero",
+      "Completion frees skb with active mapping at address zero"
+    ],
+    "scope": "Actual selected C functions and vendor mirror/bitfields; modeled DMA, ring, reset and list leaves. Completion fixture uses simplified descriptor fields. No concurrent kernel, full recovery, hardware DMA or RF execution."
+  },
+  "build": {
+    "clean_wireless_package": "pass",
+    "full_integrated_build": "pass; existing vendor warnings remain",
+    "prepared_source_exact_before_plus_patch": true
+  },
+  "inputs": {
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/patches/160-data-tx-dma-ownership.patch": "64067a43a41ca79737968ba0978ea0f066f5fe83b376e1ee1f5fd29d30f1f0ba",
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/tests/data-tx-ownership.py": "0a8bbe0e82116a3e38ae2e841034ccf487c63c7f002b35292f6a52633470b55c",
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/tests/tx-completion.py": "191de11c14f2eb04b05f5432f4e518758729682e5bf0a8f968c95d93be3fa584",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/shared/hw_mmb.c": "6dfeba7285938ea2d0901a5f8b31ebb901647bb40353479ef75811bb39e7a1bd",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/shared/hw_hal.h": "22e4d520c587b0ef9f7d88645f92a8ee023f0758444b8d90e55d03299f489708",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/data-tx-before/wireless/driver/shared/hw_mmb.c": "980042af08a21d80540ba237b8ae914bdad4e65c7adb227138e31ad7ed1c6954",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/data-tx-before/wireless/driver/shared/hw_hal.h": "9260bc884ab64809126b24aa904e1a79236afa4633db817bcc3b1c020b9c0006",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/core.c": "aac2dcf6c4607774091885d1aca63bd3fdbe7d4d433c2416e21272ae486006be",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/mtlk_df_nbuf_impl.h": "228be77d738ab6d5a91a9ef504caecedf1ad53aeee5446d3bab1e5e6f67ecd11",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/shared/mtlkbfield.h": "c22f7e6c467a16ef0ecb090369bbbf6f3261fba0cd537325d3e5755834d36946",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/shared_mbss_mac/mhi_umi.h": "e69e44131566fce4c077628cd4ab43ac8086d0f8b165bc736669f767bf518054"
+  },
+  "logs": {
+    "data-tx-after.log": "43d046c715da410b983978afc081ddaeb62f03bda8caa6f0a2ef839a5e7fc3a8",
+    "data-tx-before-completion.log": "cba43680e5442b0868dc05e843fc92db998ce0ec92eedd255622e49a6186249f",
+    "data-tx-before-reject.log": "30eee27d97e0f70f2298a8a7640724ac1f1509ffc605b056261cd2a2c4dac8ea",
+    "data-tx-before-zero.log": "7b7ee7ec623b2a0df22ab186161721476fee9d479707384a419036b8149c1cc0",
+    "data-tx-completion-after.log": "4339c7293f6945f0a88d1e5171ac3f05bf939066cc556759bff91e48b19d1037",
+    "data-tx-completion-mips.log": "b0eca216cb3e71db4621046dfbf4bee8b22c348681c0860659cc229edb3dbca9",
+    "data-tx-integrated-build.log": "06707946a8d7c5bb6850fe23f2e9bd69db07000c12ca7758819e8419a4eeba62",
+    "data-tx-mips.log": "4a6b4088054b868c508d5f2db06f99645729a992002609a9ffd0d6a39f46753b",
+    "data-tx-package-build.log": "7628cdda28214b68373059f05b7a607d965258c5427fe7d4f6f2d11b7b97df20",
+    "data-tx-package-clean.log": "591d175b25f667b9bfafd7a56b85450f9a15d0b2c2c52acaf1966fbc9572a31d"
+  },
+  "image_checks": {
+    "integrated-safety-content.json": "a4955c7ed45eccc36584f8697bf5c8572972dbd33ffc5472470fa1a019522fd0",
+    "integrated-safety-initramfs.json": "9d46e445f8286caf33c64df924312f44cc22aa1b1778ae59ad77d03b63af99b5",
+    "integrated-safety-sysupgrade.json": "f3ce14043c9594424b94108ff5bea87de423a69d37e3ab1dce45237c3684615f"
+  },
+  "compiled_evidence": {
+    "_mtlk_hw_release_msg_to_send.disassembly": "1f0285019e3a3d0e59b922d959a5ed3da54a715907efbcd7dd64c347e4e77bbe",
+    "_mtlk_hw_send_data.disassembly": "275824b90953f85823a353befb4600e08453ebeb17eddb0f407e18718911b2f0",
+    "_mtlk_mmb_free_unconfirmed_tx_buffers.disassembly": "48b7041c2196b767f9807b6d470dbedc4cf5deca2ea600e8d521c164e8be6537"
+  },
+  "artifact_path": "/home/zach/code/archer-ax3000-bringup/artifacts/development-data-tx",
+  "remaining": [
+    "Complete asynchronous callback exclusion before mac80211 unregister",
+    "Synchronize recovery with active transmit/completion producers before releasing and rebuilding rings",
+    "Arbitrary mirror aliasing or descriptor-pool corruption recovery is not established by the used-bit rejection fixture",
+    "Physical boot, Ethernet, both Wi-Fi radios, full peripherals/persistence and throughput",
+    "NAND writes, power-loss behavior and reliable serial-free early-hang reset/fallback"
+  ]
+}

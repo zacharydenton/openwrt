@@ -1,0 +1,15 @@
+#!/bin/sh
+
+grx500_factory_mac_preinit() {
+	[ "$(board_name)" = "tplink,archer-ax3000-v1" ] || return 0
+	. /lib/functions/grx500-factory.sh
+	local mac
+	rm -f /tmp/grx500-factory-mac
+	if mac="$(grx500_factory_read_mac)"; then
+		(umask 077; printf 'MAC:%s\n' "$mac" > /tmp/grx500-factory-mac)
+	else
+		echo "AX3000: factory Ethernet MAC unavailable; retaining generated addresses" > /dev/console
+	fi
+}
+
+boot_hook_add preinit_main grx500_factory_mac_preinit

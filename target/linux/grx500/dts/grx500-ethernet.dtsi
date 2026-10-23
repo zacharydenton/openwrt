@@ -1,0 +1,314 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/* Intel GRX500 bindings, adapted to AX3000 stock wiring and modern GIC cells. */
+/ {
+	aliases {
+		dma0 = &dma0;
+		dma1 = &dma1tx;
+		dma2 = &dma1rx;
+		dma3 = &dma2tx;
+		dma4 = &dma2rx;
+		dma5 = &dma3;
+		dma6 = &dma4;
+	};
+
+	dma0: dma@16e00000 {
+		compatible = "lantiq,dma0-grx500";
+		reg = <0x16e00000 0x100000>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SHARED 64 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&cgu GCLK_DMA0>;
+		lantiq,desc-num = <16>;
+		lantiq,dma-burst = <2>;
+		lantiq,dma-polling-cnt = <4>;
+		lantiq,dma-drb = <1>;
+		lantiq,budget = <20>;
+	};
+
+	cbm: cbm@1e700000 {
+		compatible = "lantiq,cbm-xrx500";
+		reg = <0x1e700000 0x1000>, <0x1e710000 0x10000>,
+		      <0x1e720000 0x4000>, <0x1e730000 0x14000>,
+		      <0x1e750000 0x400>, <0x1e750800 0x400>,
+		      <0x1e760000 0x10000>, <0x1e780000 0x20000>,
+		      <0x1e7c0000 0x30000>, <0x1e800000 0x100000>,
+		      <0x1e900000 0x100000>, <0x1e500000 0x100000>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SHARED 174 IRQ_TYPE_LEVEL_HIGH>,
+			<GIC_SHARED 178 IRQ_TYPE_LEVEL_HIGH>,
+			<GIC_SHARED 179 IRQ_TYPE_LEVEL_HIGH>,
+			<GIC_SHARED 180 IRQ_TYPE_LEVEL_HIGH>,
+			<GIC_SHARED 181 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&cgu CLK_CBM>, <&cgu GCLK_CBM>;
+		clock-names = "freq", "cbm";
+		intel,highprio-lan = <1>;
+	};
+
+	gphy_fw: phy@1c003c00 {
+		compatible = "lantiq,phy-xrx500";
+		reg = <0x1c003c00 0x400>;
+		resets = <&rcu 0x10 29>, <&rcu 0x10 28>, <&rcu 0x10 26>,
+			 <&rcu 0x10 25>, <&rcu 0x10 31>;
+		reset-names = "phy0", "phy1", "phy2", "phy3", "phy4";
+	};
+
+	dma1tx: dma@1a100000 {
+		compatible = "lantiq,dma-grx500";
+		reg = <0x1a100000 0x100000>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SHARED 65 IRQ_TYPE_LEVEL_HIGH>;
+		lantiq,dma-pkt-arb = <2>;
+		lantiq,dma-burst = <16>;
+		lantiq,dma-polling-cnt = <108>;
+		lantiq,dma-chan-fc = <1>;
+		lantiq,dma-desc-fod = <1>;
+		lantiq,dma-desc-in-sram = <1>;
+		lantiq,dma-lab-cnt = <2>;
+		lantiq,dma-drb = <0>;
+		lantiq,dma-byte-en = <1>;
+		lantiq,dma-txendi = <3>;
+		lantiq,dma-rxendi = <3>;
+		lantiq,budget = <20>;
+	};
+
+	dma1rx: dma@1a200000 {
+		compatible = "lantiq,dma-grx500";
+		reg = <0x1a200000 0x100000>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SHARED 66 IRQ_TYPE_LEVEL_HIGH>;
+		lantiq,dma-pkt-arb = <2>;
+		lantiq,dma-burst = <16>;
+		lantiq,dma-polling-cnt = <24>;
+		lantiq,dma-chan-fc = <0>;
+		lantiq,dma-desc-fod = <1>;
+		lantiq,dma-desc-in-sram = <0>;
+		lantiq,dma-drb = <0>;
+		lantiq,dma-byte-en = <0>;
+		lantiq,dma-txendi = <3>;
+		lantiq,dma-rxendi = <3>;
+		lantiq,budget = <20>;
+	};
+
+	dma2tx: dma@1c100000 {
+		compatible = "lantiq,dma-grx500";
+		reg = <0x1c100000 0x100000>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SHARED 67 IRQ_TYPE_LEVEL_HIGH>;
+		lantiq,dma-pkt-arb = <2>;
+		lantiq,dma-burst = <16>;
+		lantiq,dma-polling-cnt = <24>;
+		lantiq,dma-chan-fc = <1>;
+		lantiq,dma-desc-fod = <1>;
+		lantiq,dma-desc-in-sram = <0>;
+		lantiq,dma-drb = <0>;
+		lantiq,dma-byte-en = <1>;
+		lantiq,dma-txendi = <3>;
+		lantiq,dma-rxendi = <3>;
+		lantiq,budget = <20>;
+	};
+
+	dma2rx: dma@1c200000 {
+		compatible = "lantiq,dma-grx500";
+		reg = <0x1c200000 0x100000>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SHARED 68 IRQ_TYPE_LEVEL_HIGH>;
+		lantiq,dma-pkt-arb = <2>;
+		lantiq,dma-burst = <16>;
+		lantiq,dma-polling-cnt = <24>;
+		lantiq,dma-chan-fc = <0>;
+		lantiq,dma-desc-fod = <1>;
+		lantiq,dma-desc-in-sram = <1>;
+		lantiq,dma-drb = <0>;
+		lantiq,dma-byte-en = <1>;
+		lantiq,dma-txendi = <3>;
+		lantiq,dma-rxendi = <3>;
+		lantiq,budget = <20>;
+	};
+
+	dma3: dma@1e300000 {
+		compatible = "lantiq,dma-grx500";
+		reg = <0x1e300000 0x100000>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SHARED 69 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&cgu GCLK_TOE>;
+		lantiq,dma-pkt-arb = <2>;
+		lantiq,dma-burst = <16>;
+		lantiq,dma-polling-cnt = <24>;
+		lantiq,dma-chan-fc = <0>;
+		lantiq,dma-desc-fod = <0>;
+		lantiq,dma-desc-in-sram = <1>;
+		lantiq,dma-drb = <0>;
+		lantiq,dma-byte-en = <1>;
+		lantiq,budget = <20>;
+	};
+
+	dma4: dma@1e400000 {
+		compatible = "lantiq,dma-grx500";
+		reg = <0x1e400000 0x100000>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SHARED 70 IRQ_TYPE_LEVEL_HIGH>;
+		lantiq,dma-pkt-arb = <2>;
+		lantiq,dma-burst = <16>;
+		lantiq,dma-polling-cnt = <24>;
+		lantiq,dma-chan-fc = <0>;
+		lantiq,dma-desc-fod = <0>;
+		lantiq,dma-desc-in-sram = <0>;
+		lantiq,dma-drb = <0>;
+		status = "disabled";
+	};
+
+	gswl: switch@1c000000 {
+		compatible = "intel,gswdev";
+		reg = <0x1c000000 0x3000>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges = <0 0x1c000000 0x3000>;
+		intel,gsw-devid = <0>;
+		gsw_core@0 {
+			compatible = "intel,gswl-gswdev";
+			reg = <0 0x3000>;
+			num_resources = <1>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 48 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cgu CLK_GSWIP>, <&cgu GCLK_GSWIP>;
+			clock-names = "freq", "gate";
+			intel,gsw-globalpce-rules = <512>;
+			intel,gsw-devid = <0>;
+			gsw_mdio {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				gphy2: ethernet-phy@2 {
+					reg = <2>;
+					compatible = "ethernet-phy-idd565.a408", "ethernet-phy-ieee802.3-c22";
+				};
+				gphy3: ethernet-phy@3 {
+					reg = <3>;
+					compatible = "ethernet-phy-idd565.a408", "ethernet-phy-ieee802.3-c22";
+				};
+				gphy4: ethernet-phy@4 {
+					reg = <4>;
+					compatible = "ethernet-phy-idd565.a408", "ethernet-phy-ieee802.3-c22";
+				};
+				gphy5: ethernet-phy@5 {
+					reg = <5>;
+					compatible = "ethernet-phy-idd565.a408", "ethernet-phy-ieee802.3-c22";
+				};
+			};
+		};
+	};
+
+	gswr: switch@1a000000 {
+		compatible = "intel,gswdev";
+		reg = <0x1a000000 0x3000>;
+		#address-cells = <1>;
+		#size-cells = <1>;
+		ranges = <0 0x1a000000 0x3000>;
+		intel,gsw-devid = <1>;
+		gsw_core@0 {
+			compatible = "intel,gswr-gswdev";
+			reg = <0 0x3000>;
+			num_resources = <1>;
+			interrupt-parent = <&gic>;
+			interrupts = <GIC_SHARED 45 IRQ_TYPE_LEVEL_HIGH>;
+			clocks = <&cgu CLK_PAE>, <&cgu GCLK_PAE>;
+			clock-names = "freq", "gate";
+			intel,gsw-globalpce-rules = <512>;
+			intel,gsw-devid = <1>;
+			gsw_mdio {
+				#address-cells = <1>;
+				#size-cells = <0>;
+				gphy1: ethernet-phy@1 {
+					reg = <1>;
+					compatible = "ethernet-phy-idd565.a408", "ethernet-phy-ieee802.3-c22";
+				};
+			};
+		};
+	};
+
+	ethernet {
+		compatible = "lantiq,xrx500-eth";
+		#address-cells = <1>;
+		#size-cells = <0>;
+		lantiq,eth-switch-mode = <2>;
+		lantiq,eth-rx-csum-offload = <0>;
+		interface@5 {
+			compatible = "lantiq,xrx500-pdi";
+			reg = <5>;
+			label = "lan1";
+			intel,dp-dev-port = <5>;
+			intel,dp-port-id = <5>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			ethernet@5 {
+				compatible = "lantiq,xrx500-pdi-port";
+				reg = <5>;
+				phy-mode = "rgmii";
+				phy-handle = <&gphy5>;
+			};
+		};
+		interface@4 {
+			compatible = "lantiq,xrx500-pdi";
+			reg = <4>;
+			label = "lan2";
+			intel,dp-dev-port = <4>;
+			intel,dp-port-id = <4>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			ethernet@4 {
+				compatible = "lantiq,xrx500-pdi-port";
+				reg = <4>;
+				phy-mode = "rgmii";
+				phy-handle = <&gphy4>;
+			};
+		};
+		interface@3 {
+			compatible = "lantiq,xrx500-pdi";
+			reg = <3>;
+			label = "lan3";
+			intel,dp-dev-port = <3>;
+			intel,dp-port-id = <3>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			ethernet@3 {
+				compatible = "lantiq,xrx500-pdi-port";
+				reg = <3>;
+				phy-mode = "rgmii";
+				phy-handle = <&gphy3>;
+			};
+		};
+		interface@2 {
+			compatible = "lantiq,xrx500-pdi";
+			reg = <2>;
+			label = "lan4";
+			intel,dp-dev-port = <2>;
+			intel,dp-port-id = <2>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			ethernet@2 {
+				compatible = "lantiq,xrx500-pdi-port";
+				reg = <2>;
+				phy-mode = "rgmii";
+				phy-handle = <&gphy2>;
+			};
+		};
+		interface@f {
+			compatible = "lantiq,xrx500-pdi";
+			reg = <15>;
+			label = "wan";
+			intel,dp-dev-port = <15>;
+			intel,dp-port-id = <15>;
+			#address-cells = <1>;
+			#size-cells = <0>;
+			lantiq,wan = <1>;
+			ethernet@1 {
+				compatible = "lantiq,xrx500-pdi-port";
+				reg = <1>;
+				phy-mode = "rgmii";
+				phy-handle = <&gphy1>;
+			};
+		};
+	};
+};
+
+&rcu {
+	#reset-cells = <2>;
+};

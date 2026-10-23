@@ -1,0 +1,108 @@
+{
+  "schema": 1,
+  "status": "Data/management TX admission and drain implemented; reset initiation deferred and cancelled on removal. Full lifecycle and hardware support remain unverified.",
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "new_factory_container": false,
+  "changes": [
+    "Gate complete data and public management submission transactions before recovery ring cleanup",
+    "Keep admission closed on failed restore; reopen after READY and initial calibration",
+    "Latch permanent stop and drain accepted submissions before teardown",
+    "Queue reset initiation outside TX/IRQ context; serialize enqueue with permanent stop; cancel work before recovery-context cleanup"
+  ],
+  "tests": {
+    "concurrent_tx_gate_scenarios": 72,
+    "reset_work_cases": [
+      "deferred from accepted TX",
+      "pending coalescing",
+      "halted request rejection",
+      "halt before dispatch",
+      "cancel pending",
+      "drain running and cancel follow-up"
+    ],
+    "native_asan_ubsan": "pass",
+    "mips_userspace": "pass",
+    "recovery_irq_cases_per_variant": 164,
+    "restore_failure_retry_cases_per_variant": 168,
+    "registration_order_variants": [
+      0,
+      1
+    ],
+    "teardown_cases": 556,
+    "recovery_teardown_native_and_mips": "pass",
+    "scope": "Actual helpers/wrappers and restore control flow with pthread synchronization and modeled workqueue/resource leaves; no running kernel, real recovery scheduler, firmware or hardware."
+  },
+  "build": {
+    "clean_wireless_package": "pass",
+    "integrated_build": "pass; existing vendor warnings remain",
+    "prepared_source_exact_before_plus_patch": true,
+    "rebuilt_source_matches_tested_snapshots": true,
+    "weak_ordering_config_and_compiled_msi_fence": "pass",
+    "image_elf_binding_and_packaged_contents": "pass",
+    "content_check_note": "First invocation ran before prerequisite image reports existed and failed with FileNotFoundError; sequential rerun after reports passed."
+  },
+  "inputs": {
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/tx-gate-before/wireless/driver/linux/core.c": "aac2dcf6c4607774091885d1aca63bd3fdbe7d4d433c2416e21272ae486006be",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/tx-gate-before/wireless/driver/linux/mtlk_mmb_drv.c": "6ce983c83b3c38b79940d13068b002b4c7454442e98072e5782ad037e010f66c",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/tx-gate-before/wireless/driver/shared/hw_mmb.c": "3142cf1934966e9954ba9a4598964e86029e547daa0757c2494875b26648ada2",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/tx-gate-before/wireless/driver/shared/hw_mmb.h": "940ab1baf97ef6485cf0fc66dbc8b8596e3a3042c47de5928c686c3a31d8b451",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/tx-gate-prepared/wireless/driver/linux/core.c": "e7dab318d240f3dae1451c0c61b46b9acd3115ad8b6f8ed94cbc6140859b8b18",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/tx-gate-prepared/wireless/driver/linux/mtlk_mmb_drv.c": "74f371c99d48c13225ca035fc9bf6bf92b6e06c61c7efc9dae2d80bfce5acf47",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/tx-gate-prepared/wireless/driver/shared/hw_mmb.c": "af91d7ae9c8d5c755082412ec1c6f819909ea35e6d78db9e923f03cc584088d7",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/tx-gate-prepared/wireless/driver/shared/hw_mmb.h": "a80e5663e2c3a0166672dd94794c8c8edcab97fda4af557c84b42eb5dc5f69a9",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/mtlk.ko": "9cc6ddc78e46e2fd66e618c2d1369154aadf002078bd9d43fee9deab399a2312",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/shared/fw_recovery.c": "a89d7a7567777f46c9086c1e9ff80b1aa074b46551ef5ab9c8fd9e0b9b7e2856",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/.config": "8a7db47d826ce756da5d343508358b60013bfe223fd8bb6f2f3589b0fce34be2",
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/patches/180-tx-producer-gate.patch": "76f7a757d76b1ab612d95c3a153e16a0c982aded4e846b85712d0efdc4dbd098",
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/tests/recovery-irq.py": "166567bba15b2923023397b8e4c0dd032400775e39e90ace9e650abb2bc0c0b4",
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/tests/teardown-order.py": "121dc21646fcce2e50d172386278c269d41a5530f6f7ca6e20a150b60074d1c5",
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/tests/tx-producer-gate.py": "3c8d7869ef94639a5be11bbd6e406567d364e32bec4163d52dd758f61725d92a"
+  },
+  "logs": {
+    "tx-gate-after.log": "a1c8281b739b2477968e9ed825f7fd40cf054148c9115ed4e3469fcb76dea33d",
+    "tx-gate-integrated-build.log": "24ef62f87350e480dc1fe6bfb9d61993ac1a69e5707364179ad7a738b7dceea5",
+    "tx-gate-mips.log": "8e71a94c484a4e78e51c5b4120e2b9aa22b3298724e94ff4ea13e45eb4601595",
+    "tx-gate-package-build.log": "6099b03732a672e3074c5dfa038261b1603643a85d4560b63f7e3706c64d78ba",
+    "tx-gate-package-clean.log": "ef7032c9aed32d519916840dbce636c89d5bb9a53d7422afbab6c59bc57c1662",
+    "tx-gate-recovery-irq-mips.log": "463c9b3f09a6cbfe18eae1096ab4ec7a99da58dc6d2eccda2f4d69f610014fe7",
+    "tx-gate-recovery-irq-native.log": "b1619698479fb5d166cb527b8df81bcaed4788c675aca7ee239d63f043b0e451",
+    "tx-gate-recovery.log": "b1619698479fb5d166cb527b8df81bcaed4788c675aca7ee239d63f043b0e451",
+    "tx-gate-teardown-order-mips.log": "83ffb00adfc108250b9c217de530e81122f0d7c0055d28f1ca98ba945bad7be0",
+    "tx-gate-teardown-order-native.log": "a018d661942e2d1812116af280378c27c6f7acde2617168c8b2830f734f7b80d",
+    "tx-gate-teardown.log": "a018d661942e2d1812116af280378c27c6f7acde2617168c8b2830f734f7b80d"
+  },
+  "image_checks": {
+    "content-before-reports.log": "204b037882f2c1809b366480a0eef7f3961fd77ad74220c13c426bf3b613e302",
+    "content.log": "ba06978797f5ac0d2c1b0e912b58417bfac5698fb7bb6c66341420ee8e00df51",
+    "initramfs.log": "3b568c5978e465fb4cdce4f28706e1f127fe98305c64e81b9a3613c0112d88a7",
+    "integrated-safety-content.json": "2b2eb67938e624474b4b2ac50aaabcb88545e212eeea2df0330974001d452c60",
+    "integrated-safety-initramfs.json": "eef1f7bca6caa3201c72663c45c14a35ecebee180804872525f93dfbf7b83014",
+    "integrated-safety-sysupgrade.json": "ab708473b4e711ec84c056dac21e5bc1ad6abeddeb3e67d79cf246a662e6926b",
+    "ordering.log": "1e8833b63e370540818146cc154a8f369e70ff1b8b6617591f68db266bad715b",
+    "sysupgrade.log": "9dc2129d9e5471d3f3e83ac4f4c3aebe5d4debd73209285a99b2ff8071639ac4",
+    "verify-integrated-safety.py": "9e04e426c8379cdc4b0642d4e9fb0b01cbe6b765941b51805b8f868f4248314d"
+  },
+  "ordering_check": {
+    "path": "/home/zach/code/archer-ax3000-bringup/one-shot-audit/tx-gate-ordering.json",
+    "sha256": "72fddbe4a21d56b3dc1cc4a6e2eef4211c6468810074a5a580e4fd1c397cf09e"
+  },
+  "compiled_evidence": {
+    "_mmb_drv_cleanup.disassembly": "2ba49e2810f6eedd08429fc8dfaa3cdc880389f7ba3f824d4b0005ebb4b1e5f2",
+    "_mtlk_core_handle_tx_data.disassembly": "b3d4eb23db5c70cc4db00246b953b5527318cc1e23b712498d95490b0d72730d",
+    "mtlk_hw_mmb_restore.disassembly": "1ae65aece5d704cfacbd37a7a6c4b00e1219bc6277f33c693940da408bb9e17c",
+    "mtlk_mmb_bss_mgmt_tx.disassembly": "3d18d747753f0b8915b50680fce296f50eaf87c780567855626753e743cfb0af",
+    "wave_hw_reset_worker.disassembly": "ca81559a47bc911bf0a8dab23431756d0263ba3a46adf12de1b15ce5535c3a40",
+    "wave_hw_tx_enter.disassembly": "b2a8710135efd8cda1c57d36c35ce930f2706116079905f993d99b93d6ae98ac",
+    "wave_hw_tx_exit.disassembly": "2dfeb42f7d02b68d96aafd4300f956df7a685097e9204215f56c25eecaf22203",
+    "wave_hw_tx_resume.disassembly": "03160d436aa1ad1773c4f4c892b67d2f779bff898997943b01fe09814ef9919e",
+    "wave_hw_tx_stop.disassembly": "cabb28ae3a7a5d97eddea59b13a1c25c9f7610139b9df8e266b988384efd2001"
+  },
+  "artifact_path": "/home/zach/code/archer-ax3000-bringup/artifacts/development-tx-gate",
+  "remaining": [
+    "Full asynchronous core/scan/recovery-task draining and recovery/removal serialization",
+    "Frame/status callback exclusion across mac80211 unregister and VAP/core lifetimes before wrapper admission",
+    "Independently owned accelerator producers and stock acceleration/throughput remain unverified",
+    "Physical boot, SMP/coherency, Ethernet, both radios, full peripheral/persistence behavior",
+    "NAND writes, power-loss behavior and reliable serial-free early-hang reset/fallback"
+  ]
+}

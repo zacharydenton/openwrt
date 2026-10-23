@@ -1,0 +1,49 @@
+#!/bin/sh
+. /lib/functions.sh
+. /lib/upgrade/nand.sh
+. /lib/functions/grx500-factory.sh
+. /lib/functions/grx500-trial.sh
+
+if [ -e /tmp/grx500-trial-commit-started ]; then
+	logger -t grx500-trial 'Boot environment save was attempted; keeping trial running for inspection'
+	exit 1
+fi
+# Keep the decision lock inode for the whole boot, including worker restarts.
+# Only reuse the directory if it is still a private, root-owned directory.
+mkdir -m 0700 /tmp/grx500-trial-lock 2>/dev/null || [ -d /tmp/grx500-trial-lock ] || exit 1
+[ "$(find /tmp/grx500-trial-lock -maxdepth 0 -type d -user "$(id -u)" -perm 0700)" = /tmp/grx500-trial-lock ] || exit 1
+# A restarted service must not run a second timeout/commit loop concurrently.
+exec 8<>/tmp/grx500-trial-lock/worker.lock || exit 1
+flock -n 8 || exit 1
+GRX500_TRIAL_CONFIG="$(mktemp /tmp/grx500-env.XXXXXX)" || exit 1
+trap 'rm -f "$GRX500_TRIAL_CONFIG"' EXIT
+grx500_trial_config > "$GRX500_TRIAL_CONFIG" || {
+	logger -t grx500-trial 'Environment geometry unavailable; requesting reboot without writes'
+	sync
+	reboot
+	exit 1
+}
+remaining=1800
+while [ "$remaining" -gt 0 ] && [ ! -f /tmp/grx500-trial-failed ]; do
+	# Give a tester time to verify the full device. No acceptance is inferred
+	# from carrier, process startup or wiphy enumeration.
+	if grx500_trial_context && grx500_trial_volume_context &&
+	   grx500_trial_health && grx500_trial_acceptance; then
+		if grx500_trial_commit; then
+			logger -t grx500-trial 'OpenWrt bank committed after explicit acceptance'
+			exit 0
+		fi
+		logger -t grx500-trial 'Bank not committed: acceptance transaction failed'
+		break
+	fi
+	sleep 5
+	remaining=$((remaining - 5))
+done
+if [ -e /tmp/grx500-trial-commit-started ]; then
+	logger -t grx500-trial 'Boot environment save is uncertain; keeping trial running for inspection'
+	exit 1
+fi
+logger -t grx500-trial 'Trial failed; requesting reboot without another environment write'
+sync
+reboot
+exit 1

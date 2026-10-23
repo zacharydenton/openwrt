@@ -1,0 +1,57 @@
+{
+  "schema": 2,
+  "openwrt_base_commit": "d014acb494001606ce78720e240892e840302a9d",
+  "rea_base_commit": "28a33cae8f8d4de8e11f7a266ff0d756432ab092",
+  "kernel": "6.18.55",
+  "patch_sha256": {
+    "246-serializable-caller-rtnl.patch": "5a55a0a9221ae5c3e1bdfedc27e3ec6df4618761ca114d75da5e0ffe26ef2693",
+    "247-vap-tasklet-lifetime.patch": "9309e08871fb694807eb048dd62760bcdfec96b610a44398d6ed0b8e767caaa3",
+    "248-cfg80211-netdev-lock-owner.patch": "2a19ee2cc7de49aea40524433ea0ef2f705c4b2a4f67b6cd7820c10eb034b6c5",
+    "249-vap-create-rollback-cleanup.patch": "ee9e667b9fcf01f4a282efd8b55d1807677e7930cd2409118f49193c4ee556e3"
+  },
+  "prepared_driver_source_sha256": {
+    "mtlk_df_linux.c": "362264ad00517635f97dd5ec67697e110d0f2b5a89976cda98b4619b14e5b9e2",
+    "core.c": "4cdac959b1132d71cd1616c452c855dc98bc341b370a65b98d58cab728af253b",
+    "mtlk_vap_manager.c": "2457682f73c7284f40bd22beca361dca037e1efc1277203ab012642ae5cda507",
+    "mtlk_mmb_drv.c": "c838068950184eb26e4aa0c651543d045f925e651d60264eebd4e9997e648235",
+    "cfg80211.c": "ea30483282e8843ee95196a54e60b71250365089f02bfeb3340f9f4183fe186a",
+    "mtlk_df_user.c": "cd8d951f487a25f1f5004c6b7de11fca32df9e9310a945b9aedb25f0af60573c"
+  },
+  "checks": {
+    "package_builds": [
+      "software",
+      "factory",
+      "directconnect"
+    ],
+    "native_handoff": true,
+    "mips_handoff": true,
+    "native_vap_tasklet_lifetime": true,
+    "mips_vap_tasklet_lifetime": true,
+    "cfg80211_lock_contract": true,
+    "native_vap_create_rollback": true,
+    "mips_vap_create_rollback": true,
+    "image_and_sysupgrade_audits": true,
+    "factory_source_parity": true,
+    "stock_checker_writer_cases_passed": 16,
+    "stock_web_route": true
+  },
+  "audit_report_sha256": {
+    "factory-lock249-image-audit.json": "880c38089d62fa0ff6b045187223b86e7649d057f37049800fce5b3a5308a9d9",
+    "directconnect-lock249-image-audit.json": "e1470dbea77b4f41eddf878543123b0ff7b852ef2e35cfaf9762c058dc46a5ac",
+    "factory-lock249-sysupgrade-audit.json": "773ab7bf8c2af27af720c1dc21e696690e1c1993b00521f953a0ddccf140b52c",
+    "directconnect-lock249-sysupgrade-audit.json": "0fa3d9019ab3a43ebd14ea9a7f774cb1d2d2211aa0d22952bfd5848da23e310b",
+    "factory-lock249-prerequisites.json": "7e7602431577b6fc988909ddd3c4b6a12df892b0673c18a83b796731f1d2dbb4",
+    "lock249-factory-source-parity.json": "8d00fbfc717c422b7b79a5a4a72b2fa7fd2353fa07c493e85ed3308e1aa82aa2",
+    "lock249-stock-writer-summary.json": "8fa1add360973b8ca755e26e7fa0eb6070a8617300c51e4d82f0a9f8fffe5646",
+    "lock249-stock-web-route.json": "139fa55f2343015ae8b760a65af6e5d1b38894c16cd5e11bde679ddf239c9d9d"
+  },
+  "factory_candidate_sha256": "cca6ef45931a24765f3a93dd1332ac2acc17eae1483043fa90dc3ba809b9f33d",
+  "factory_candidate_bytes": 9040227,
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "limitations": [
+    "No physical boot or Ethernet/Wi-Fi acceptance test.",
+    "The stock web writer, flash operations, fallback and NAND geometry were not exercised on the user router.",
+    "No enabled hardware watchdog in the factory kernel; an early kernel hang cannot be assumed to recover."
+  ]
+}

@@ -1,0 +1,564 @@
+--- a/wireless/driver/linux/mac80211.c
++++ b/wireless/driver/linux/mac80211.c
+@@ -15,8 +15,10 @@
+ #include <../net/wireless/core.h>
+ #endif
+ #include <linux/netdevice.h>
++#include <linux/mutex.h>
+ #include <linux/spinlock.h>
+ #include <linux/wait.h>
++#include <linux/workqueue.h>
+ 
+ #include "mtlk_clipboard.h"
+ #include "mtlk_vap_manager.h"
+@@ -85,6 +87,11 @@
+ struct _wv_mac80211_t
+ {
+   struct wave_sta_tx_lifetime tx_lifetime;
++  struct mutex vif_mutex;
++  struct mutex vap_delete_mutex;
++  struct delayed_work vap_delete_work;
++  mtlk_vap_handle_t *pending_vap_delete;
++  bool vap_delete_stopping;
+   BOOL registered;
+   /* mtlk_vap_manager_t *vap_manager; */
+   wave_radio_t        *radio;
+@@ -323,7 +330,7 @@
+ {
+   struct ieee80211_vif *ieee80211_vif = NULL;
+ 
+-  MTLK_ASSERT(NULL != mac80211->vif_array);
++  lockdep_assert_held(&mac80211->vif_mutex);
+   if (NULL != mac80211->vif_array) {
+     ieee80211_vif = mac80211->vif_array[vap_index];
+   }
+@@ -425,6 +432,100 @@
+     return MTLK_ERR_NOT_READY;
+ }
+ 
++static int
++wave_sta_vap_delete_one (wv_mac80211_t *mac80211,
++                         mtlk_vap_handle_t vap_handle)
++{
++  mtlk_mbss_cfg_t mbss_cfg;
++  mtlk_clpb_t *clpb = NULL;
++  mtlk_df_t *master_df = _wv_mac80211_master_df_get(mac80211);
++  int res;
++
++  if (!master_df)
++    return MTLK_ERR_NOT_READY;
++
++  memset(&mbss_cfg, 0, sizeof(mbss_cfg));
++  mbss_cfg.vap_handle = vap_handle;
++  res = _mtlk_df_user_invoke_core(master_df,
++      WAVE_RADIO_REQ_MBSS_DEL_VAP_NAME, &clpb,
++      &mbss_cfg, sizeof(mbss_cfg));
++  return _mtlk_df_user_process_core_retval(res, clpb,
++      WAVE_RADIO_REQ_MBSS_DEL_VAP_NAME, TRUE);
++}
++
++static bool
++wave_sta_vap_delete_pending (wv_mac80211_t *mac80211)
++{
++  int i, max_vaps_count = __wv_mac80211_max_vaps_count_get(mac80211);
++  bool pending = false;
++
++  mutex_lock(&mac80211->vap_delete_mutex);
++  for (i = 0; i < max_vaps_count; i++) {
++    if (mac80211->pending_vap_delete[i]) {
++      pending = true;
++      break;
++    }
++  }
++  mutex_unlock(&mac80211->vap_delete_mutex);
++  return pending;
++}
++
++static void
++wave_sta_vap_delete_work (struct work_struct *work)
++{
++  wv_mac80211_t *mac80211 = container_of(to_delayed_work(work),
++      wv_mac80211_t, vap_delete_work);
++  int i, max_vaps_count = __wv_mac80211_max_vaps_count_get(mac80211);
++  bool retry = false;
++
++  mutex_lock(&mac80211->vap_delete_mutex);
++  for (i = 0; i < max_vaps_count; i++) {
++    mtlk_vap_handle_t vap_handle = mac80211->pending_vap_delete[i];
++
++    if (!vap_handle)
++      continue;
++    if (MTLK_ERR_OK == wave_sta_vap_delete_one(mac80211, vap_handle))
++      mac80211->pending_vap_delete[i] = NULL;
++    else
++      retry = true;
++  }
++  if (retry && !mac80211->vap_delete_stopping)
++    schedule_delayed_work(&mac80211->vap_delete_work,
++                          msecs_to_jiffies(1000));
++  mutex_unlock(&mac80211->vap_delete_mutex);
++}
++
++static void
++wave_sta_vap_delete_defer (wv_mac80211_t *mac80211,
++                           mtlk_vap_handle_t vap_handle)
++{
++  unsigned int vap_index = mtlk_vap_get_id(vap_handle);
++  unsigned int max_vaps_count = __wv_mac80211_max_vaps_count_get(mac80211);
++
++  mutex_lock(&mac80211->vap_delete_mutex);
++  if (vap_index >= max_vaps_count) {
++    ELOG_D("Invalid deferred station VAP index %d", vap_index);
++  } else if (mac80211->pending_vap_delete[vap_index] &&
++             mac80211->pending_vap_delete[vap_index] != vap_handle) {
++    ELOG_D("Deferred station VAP slot %d is already occupied", vap_index);
++  } else {
++    mac80211->pending_vap_delete[vap_index] = vap_handle;
++    if (!mac80211->vap_delete_stopping)
++      schedule_delayed_work(&mac80211->vap_delete_work,
++                            msecs_to_jiffies(1000));
++  }
++  mutex_unlock(&mac80211->vap_delete_mutex);
++}
++
++static void
++wave_sta_vap_delete_stop (wv_mac80211_t *mac80211)
++{
++  mutex_lock(&mac80211->vap_delete_mutex);
++  mac80211->vap_delete_stopping = true;
++  mutex_unlock(&mac80211->vap_delete_mutex);
++  cancel_delayed_work_sync(&mac80211->vap_delete_work);
++}
++
+ static bool wv_ieee80211_is_radar_chan(struct ieee80211_channel *chan)
+ {
+   return (chan->flags & IEEE80211_CHAN_RADAR);
+@@ -446,34 +547,39 @@
+ void __MTLK_IFUNC
+ wv_mac80211_iface_set_beacon_interval (wv_mac80211_t *mac80211, u8 vap_index, u16 beacon_interval)
+ {
+-  struct wv_vif_priv *wv_iface_inf = _wv_mac80211_get_vif_priv(mac80211, vap_index);
++  struct wv_vif_priv *wv_iface_inf;
+ 
+-  if (__UNLIKELY(NULL == wv_iface_inf)) {
+-    return;
+-  }
+-  wv_iface_inf->beacon_int = beacon_interval;
++  mutex_lock(&mac80211->vif_mutex);
++  wv_iface_inf = _wv_mac80211_get_vif_priv(mac80211, vap_index);
++  if (wv_iface_inf)
++    wv_iface_inf->beacon_int = beacon_interval;
++  mutex_unlock(&mac80211->vif_mutex);
+ }
+ 
+ void __MTLK_IFUNC
+ wv_mac80211_iface_set_initialized (wv_mac80211_t *mac80211, u8 vap_index)
+ {
+-  struct wv_vif_priv *wv_iface_inf = _wv_mac80211_get_vif_priv(mac80211, vap_index);
++  struct wv_vif_priv *wv_iface_inf;
+ 
+-  if (__UNLIKELY(NULL == wv_iface_inf)) {
+-    return;
+-  }
+-  wv_iface_inf->is_initialized = TRUE;
++  mutex_lock(&mac80211->vif_mutex);
++  wv_iface_inf = _wv_mac80211_get_vif_priv(mac80211, vap_index);
++  if (wv_iface_inf)
++    wv_iface_inf->is_initialized = TRUE;
++  mutex_unlock(&mac80211->vif_mutex);
+ }
+ 
+ BOOL __MTLK_IFUNC
+ wv_mac80211_iface_get_is_initialized (wv_mac80211_t *mac80211, u8 vap_index)
+ {
+-  struct wv_vif_priv *wv_iface_inf = _wv_mac80211_get_vif_priv(mac80211, vap_index);
++  struct wv_vif_priv *wv_iface_inf;
++  BOOL initialized = FALSE;
+ 
+-  if (__UNLIKELY(NULL == wv_iface_inf)) {
+-    return FALSE;
+-  }
+-  return wv_iface_inf->is_initialized;
++  mutex_lock(&mac80211->vif_mutex);
++  wv_iface_inf = _wv_mac80211_get_vif_priv(mac80211, vap_index);
++  if (wv_iface_inf)
++    initialized = wv_iface_inf->is_initialized;
++  mutex_unlock(&mac80211->vif_mutex);
++  return initialized;
+ }
+ 
+ BOOL __MTLK_IFUNC
+@@ -487,6 +593,7 @@
+   if (!__wv_mac80211_get_sta_vifs_exist(mac80211))
+     return FALSE;
+ 
++  mutex_lock(&mac80211->vif_mutex);
+   max_vaps_count = __wv_mac80211_max_vaps_count_get(mac80211);
+   for (vap_index = 0; vap_index < max_vaps_count; vap_index++) {
+     struct wv_vif_priv *curr_vif_priv = _wv_mac80211_get_vif_priv(mac80211, vap_index);
+@@ -507,10 +614,12 @@
+ 
+     if (IEEE80211_STA_AUTHORIZED == curr_vif_priv->current_state) {
+       /* found sta connected to peer ap */
++      mutex_unlock(&mac80211->vif_mutex);
+       return TRUE;
+     }
+   }
+ 
++  mutex_unlock(&mac80211->vif_mutex);
+   return FALSE;
+ }
+ 
+@@ -627,10 +736,12 @@
+   WAVE_WV_CHECK_PTR_VOID(mac80211);
+ 
+   wave_radio_set_sta_vifs_exist(mac80211->radio, FALSE);
++  mutex_lock(&mac80211->vif_mutex);
+   if (mac80211->vif_array){
+     mtlk_osal_mem_free(mac80211->vif_array);
+     mac80211->vif_array = NULL;
+   }
++  mutex_unlock(&mac80211->vif_mutex);
+ }
+ 
+ static int
+@@ -825,6 +936,7 @@
+   /* TODO: when multiple sta role vifs exist need to check which vif got the CSA
+    * and set up a general policy regarding master sta role interface */
+   max_vaps_count = __wv_mac80211_max_vaps_count_get(mac80211);
++  mutex_lock(&mac80211->vif_mutex);
+   for (vap_index = 0; vap_index < max_vaps_count; vap_index++) {
+     struct wv_vif_priv *curr_vif_priv = _wv_mac80211_get_vif_priv(mac80211, vap_index);
+     mtlk_vap_handle_t curr_vap_handle;
+@@ -851,6 +963,7 @@
+       break;
+     }
+   }
++  mutex_unlock(&mac80211->vif_mutex);
+ 
+   scan_support =
+       mtlk_core_get_scan_support(mtlk_vap_get_core(master_vap_handle));
+@@ -929,8 +1042,8 @@
+ 
+ end:
+   /* Notify mac80211 that peer AP initiated ch switch (via CSA) is done */
++  mutex_lock(&mac80211->vif_mutex);
+   for (vap_index = max_vaps_count - 1; vap_index >= 0; vap_index--) {
+-    /*MAC80211 TODO: disable removing an interface while we call chswitch_done for this interface*/
+     struct wv_vif_priv *curr_vif_priv = _wv_mac80211_get_vif_priv(mac80211, vap_index);
+     if (curr_vif_priv == NULL) {
+       continue;
+@@ -938,6 +1051,7 @@
+ 
+     ieee80211_chswitch_done(curr_vif_priv->vif, res == MTLK_ERR_OK, 0);
+   }
++  mutex_unlock(&mac80211->vif_mutex);
+ }
+ 
+ static int _wv_ieee80211_op_start (struct ieee80211_hw *hw)
+@@ -954,11 +1068,14 @@
+   WAVE_WV_CHECK_PTR_RES(master_df);
+ 
+   max_vaps_count = __wv_mac80211_max_vaps_count_get(mac80211);
++  mutex_lock(&mac80211->vif_mutex);
+   mac80211->vif_array = (struct ieee80211_vif **)mtlk_osal_mem_alloc((sizeof(struct ieee80211_vif *) * max_vaps_count), MTLK_MEM_TAG_MAC80211);
+   if (NULL == mac80211->vif_array) {
++    mutex_unlock(&mac80211->vif_mutex);
+     return -ENOMEM;
+   }
+   memset(mac80211->vif_array, 0, sizeof(struct ieee80211_vif *) * max_vaps_count);
++  mutex_unlock(&mac80211->vif_mutex);
+ 
+   /* Publish STA mode only after its per-VIF table exists. On an allocation
+    * failure mac80211 does not call our stop callback to undo this state. */
+@@ -1148,6 +1265,11 @@
+   master_df = _wv_mac80211_master_df_get(mac80211);
+   WAVE_WV_CHECK_PTR_RES(master_df);
+ 
++  /* A detached VAP still occupies its manager slot and external netdev.
++   * Do not let mac80211 publish a replacement until retry deletion wins. */
++  if (wave_sta_vap_delete_pending(mac80211))
++    return -EBUSY;
++
+   master_core = mtlk_vap_get_core(mtlk_df_get_vap_handle(master_df));
+   if (wait_rcvry_completion_if_needed(master_core) != MTLK_ERR_OK){
+     ELOG_V("Recovery is running, can't change configuration");
+@@ -1210,9 +1332,11 @@
+     wv_iface_inf->mac80211_netdev_ops = netdev_p->netdev_ops;
+     netdev_p->netdev_ops = ops;
+ 
++    mutex_lock(&mac80211->vif_mutex);
+     ASSERT(mac80211->vif_array != NULL);
+     wv_iface_inf->vif = vif;
+     mac80211->vif_array[wv_iface_inf->vap_index] = vif;
++    mutex_unlock(&mac80211->vif_mutex);
+ 
+     /* A failed MAC write must not be treated as a usable station VAP. */
+     res = wv_set_mac_addr_pdb(wv_iface_inf->df_user, vif->addr);
+@@ -1244,7 +1368,9 @@
+ 
+     if (MTLK_ERR_OK == rollback_res) {
+       netdev_p->netdev_ops = wv_iface_inf->mac80211_netdev_ops;
++      mutex_lock(&mac80211->vif_mutex);
+       mac80211->vif_array[wv_iface_inf->vap_index] = NULL;
++      mutex_unlock(&mac80211->vif_mutex);
+       wv_iface_inf->vif = NULL;
+       wv_iface_inf->df_user = NULL;
+     } else {
+@@ -1263,13 +1389,13 @@
+ {
+   struct wv_vif_priv* wv_iface_inf;
+   int res = 0;
+-  mtlk_clpb_t *clpb = NULL;
+-  mtlk_mbss_cfg_t mbss_cfg;
+   wv_mac80211_t *mac80211;
+   mtlk_df_t *master_df;
++  mtlk_df_user_t *df_user;
+   mtlk_vap_handle_t _vap_to_be_removed;
+   struct net_device *netdev_p = NULL;
+   mtlk_core_t *core;
++  bool recovery_ready;
+ 
+   ILOG0_SY("Removing sta interface %s, mac addr: %Y. ",
+       ieee80211_vif_to_name(vif), vif->addr);
+@@ -1278,76 +1404,73 @@
+   WAVE_WV_CHECK_PTR_VOID(mac80211);
+ 
+   master_df = _wv_mac80211_master_df_get(mac80211);
+-  WAVE_WV_CHECK_PTR_VOID(master_df);
+ 
+   wv_iface_inf = (struct wv_vif_priv*)vif->drv_priv;
+   WAVE_WV_CHECK_PTR_VOID(wv_iface_inf);
+   WAVE_WV_CHECK_PTR_VOID(wv_iface_inf->df_user);
++  df_user = wv_iface_inf->df_user;
+ 
+   _vap_to_be_removed =
+-      mtlk_df_get_vap_handle(mtlk_df_user_get_df(wv_iface_inf->df_user));
++      mtlk_df_get_vap_handle(mtlk_df_user_get_df(df_user));
+   MTLK_ASSERT(_vap_to_be_removed != NULL);
+   if (_vap_to_be_removed == NULL) {
+     ELOG_V("Station mode interface removal error, _vap_handle == NULL");
+     return;
+   }
+   core = mtlk_vap_get_core(_vap_to_be_removed);
+-  if (wait_rcvry_completion_if_needed(core) != MTLK_ERR_OK){
+-    ELOG_V("Recovery is running, can't remove interface!");
+-    return;
+-  }
+ 
+   /* Just before we remove VAP set original mac80211 net_device operations back
+    * since even when device is down it may still exist and ops may still be called */
+-  netdev_p = dev_get_by_name(&init_net,  ieee80211_vif_to_name(vif));
+-  netdev_p->netdev_ops = wv_iface_inf->mac80211_netdev_ops;
++  netdev_p = mtlk_df_user_get_ndev(df_user);
++  if (netdev_p)
++    netdev_p->netdev_ops = wv_iface_inf->mac80211_netdev_ops;
++
++  /* Stop every VIF-table reader and prevent new readers before mac80211 is
++   * allowed to clear its private VIF storage. The VAP and its own netdev
++   * reference remain independently owned until deletion succeeds. */
++  mutex_lock(&mac80211->vif_mutex);
++  if (mac80211->vif_array &&
++      mac80211->vif_array[wv_iface_inf->vap_index] == vif)
++    mac80211->vif_array[wv_iface_inf->vap_index] = NULL;
++  mutex_unlock(&mac80211->vif_mutex);
++
++  recovery_ready = wait_rcvry_completion_if_needed(core) == MTLK_ERR_OK;
+ 
+   /* Release FW allocated SID */
+-  if (wv_iface_inf->is_set_sid) {
+-    res = wv_release_sid(wv_iface_inf->df_user, wv_iface_inf->vif_sid);
++  if (wv_iface_inf->is_set_sid && recovery_ready) {
++    res = wv_release_sid(df_user, wv_iface_inf->vif_sid);
+     if (res) {
+       ELOG_D("wv_release_sid failed, error code: %d", res);
+     }
+-    wv_iface_inf->is_set_sid = FALSE;
+   }
+ 
++  wv_iface_inf->is_set_sid = FALSE;
+   wv_iface_inf->is_initialized = FALSE;
+   wv_iface_inf->latest_rx_and_tx_packets = 0;
+-
+-  /* Remove VAP */
+-  mbss_cfg.vap_handle = _vap_to_be_removed;
+-
++  wv_iface_inf->vif = NULL;
+   wv_iface_inf->df_user = NULL;
+ 
+-  /* Keep trying in case scan is in progress for the current radio */
+-  {
++  if (recovery_ready) {
++    /* Keep trying in case scan is in progress for the current radio. */
+     int retry_counter = 0;
+     do {
+-
+-      res = _mtlk_df_user_invoke_core(master_df,
+-                WAVE_RADIO_REQ_MBSS_DEL_VAP_NAME, &clpb, &mbss_cfg, sizeof(mbss_cfg));
+-      res = _mtlk_df_user_process_core_retval(res, clpb,
+-                WAVE_RADIO_REQ_MBSS_DEL_VAP_NAME, TRUE);
+-
++      res = wave_sta_vap_delete_one(mac80211, _vap_to_be_removed);
+       if (MTLK_ERR_RETRY != res) break;
+       mtlk_osal_msleep(50);
+       retry_counter++;
+     } while ((MTLK_ERR_RETRY == res) && (retry_counter < MAX_VAP_WAIT_RETRIES));
+ 
+-    if (retry_counter > 0)
++    if (retry_counter > 0 && master_df)
+       ILOG0_SD("%s: Scan waited, number of retries %d",
+                mtlk_df_user_get_name(mtlk_df_get_user(master_df)), retry_counter);
++  } else {
++    res = MTLK_ERR_NOT_READY;
+   }
+ 
+-  if (res != MTLK_ERR_OK)
++  if (res != MTLK_ERR_OK) {
+     ELOG_D("Station mode interface removal error %d", res);
+-
+-  ASSERT (mac80211->vif_array != NULL);
+-  mac80211->vif_array[wv_iface_inf->vap_index] = NULL;
+-
+-  /* Decrement ref-counted netdev aquired in this function */
+-  dev_put(netdev_p);
+-  return;
++    wave_sta_vap_delete_defer(mac80211, _vap_to_be_removed);
++  }
+ }
+ 
+ static void _wv_ieee80211_op_configure_filter (struct ieee80211_hw *hw,
+@@ -2274,6 +2397,7 @@
+     ILOG0_V("Unregistering mac80211 HW");
+     ieee80211_unregister_hw(mac80211->mac80211_hw);
+   }
++  wave_sta_vap_delete_stop(mac80211);
+   mac80211->registered = FALSE;
+ }
+ 
+@@ -2456,6 +2580,12 @@
+   struct ieee80211_iface_combination *if_comb;
+   if_comb = (struct ieee80211_iface_combination*) mac80211->mac80211_hw->wiphy->iface_combinations;
+ 
++  wave_sta_vap_delete_stop(mac80211);
++  if (mac80211->pending_vap_delete) {
++    mtlk_osal_mem_free(mac80211->pending_vap_delete);
++    mac80211->pending_vap_delete = NULL;
++  }
++
+   mac80211_if_comb_cleanup(if_comb);
+ 
+   if (bands[NL80211_BAND_5GHZ]) {
+@@ -2732,6 +2862,7 @@
+ 
+     max_vaps_count = __wv_mac80211_max_vaps_count_get(mac80211);
+ 
++    mutex_lock(&mac80211->vif_mutex);
+     for (vap_index = 0; vap_index < max_vaps_count; vap_index++) {
+       struct wv_vif_priv *curr_vif_priv = _wv_mac80211_get_vif_priv(mac80211, vap_index);
+ 
+@@ -2740,6 +2871,7 @@
+         curr_vif_priv->is_initialized = FALSE;
+       }
+     }
++    mutex_unlock(&mac80211->vif_mutex);
+   }
+ 
+   return;
+@@ -2821,6 +2953,19 @@
+   /* link mac80211 with radio module */
+   mac80211->radio = radio;
+   mac80211->mac80211_hw = hw;
++  mutex_init(&mac80211->vif_mutex);
++  mutex_init(&mac80211->vap_delete_mutex);
++  INIT_DELAYED_WORK(&mac80211->vap_delete_work, wave_sta_vap_delete_work);
++  mac80211->pending_vap_delete = mtlk_osal_mem_alloc(
++      sizeof(*mac80211->pending_vap_delete) *
++      __wv_mac80211_max_vaps_count_get(mac80211), MTLK_MEM_TAG_MAC80211);
++  if (!mac80211->pending_vap_delete) {
++    ieee80211_free_hw(hw);
++    return NULL;
++  }
++  memset(mac80211->pending_vap_delete, 0,
++      sizeof(*mac80211->pending_vap_delete) *
++      __wv_mac80211_max_vaps_count_get(mac80211));
+ 
+   wave_radio_set_sta_vifs_exist(mac80211->radio, FALSE);
+ 
+@@ -2846,6 +2991,7 @@
+ 
+   wifi_header = (frame_head_t *) nbuf_ndp->data;
+   max_vaps_count = __wv_mac80211_max_vaps_count_get(mac80211);
++  mutex_lock(&mac80211->vif_mutex);
+   for (vap_index = 0; vap_index < max_vaps_count; vap_index++) {
+     struct wv_vif_priv *curr_vif_priv = _wv_mac80211_get_vif_priv(mac80211, vap_index);
+     mtlk_vap_handle_t curr_vap_handle;
+@@ -2888,6 +3034,7 @@
+                mtlk_vap_get_oid(curr_vap_handle),
+                res, mtlk_get_error_text(res));
+       curr_core->waiting_for_ndp_ack = FALSE;
++      mutex_unlock(&mac80211->vif_mutex);
+       return res;
+     }
+     if (wait_for_ack) {
+@@ -2898,6 +3045,7 @@
+         break;
+     }
+   }
++  mutex_unlock(&mac80211->vif_mutex);
+   return res;
+ }
+ 
+@@ -2911,6 +3059,7 @@
+     return;
+ 
+   max_vaps_count = __wv_mac80211_max_vaps_count_get(mac80211);
++  mutex_lock(&mac80211->vif_mutex);
+   for (vap_index = 0; vap_index < max_vaps_count; vap_index++) {
+     struct wv_vif_priv *wv_iface_inf = _wv_mac80211_get_vif_priv(mac80211, vap_index);
+ 
+@@ -2923,6 +3072,7 @@
+     lockdep_assert_wiphy(ndev->ieee80211_ptr->wiphy);
+     cfg80211_ch_switch_notify(ndev, chandef, 0);
+   }
++  mutex_unlock(&mac80211->vif_mutex);
+ }
+ 
+ static void wv_ieee80211_csa_received(struct wiphy *wiphy, void *data,
+--- a/wireless/driver/linux/mtlk_df_user.c
++++ b/wireless/driver/linux/mtlk_df_user.c
+@@ -9549,6 +9549,16 @@
+ 
+   /* link DF User with Linux network device */
+   df_user->ndev = ndev;
++  /* mac80211 owns station netdev allocation, but a failed synchronous VAP
++   * deletion can outlive remove_interface. Keep the object valid until the
++   * independently owned VAP/DF is finally destroyed. */
++  if (!is_ap) {
++    if (!ndev) {
++      mtlk_osal_mem_free(df_user);
++      return NULL;
++    }
++    dev_hold(ndev);
++  }
+ 
+   if (MTLK_ERR_OK != _mtlk_df_user_init(df_user, ctx, name)) {
+     if (is_ap && df_user->ndev) {
+@@ -9560,6 +9570,8 @@
+         return NULL;
+       }
+     }
++    if (!is_ap)
++      dev_put(ndev);
+     mtlk_osal_mem_free(df_user);
+     return NULL;
+   }
+@@ -9585,7 +9597,8 @@
+       ILOG2_V("netdev already unlinked; private data deleted");
+     }
+   } else {
+-    /* For the STA interface, we just need to release memory allocated for df_user  */
++    /* Drop the station netdev ownership acquired with this external DF. */
++    dev_put(ndev);
+     mtlk_osal_mem_free(df_user);
+   }
+ }

@@ -1,0 +1,44 @@
+{
+  "passed": true,
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "stock_uhttpd_executed": true,
+  "stock_ubusd_executed": true,
+  "stock_uhttpd_sha256": "41368afb8ce60875d8da841dc96158f07a1cc19d666fc7d20e1b909491875fb1",
+  "stock_ubusd_sha256": "7616442b0c7d5c8ca1e18a3491b9bfb19b78661c07edda6a8a69cb1cb42332d3",
+  "stock_firmware_sha256": "96a9a7a6bd82ea5340a70181c687136eeeba3320c46e923b00ac9acfabcbc10b",
+  "qemu_sha256": "8d02f418b92f4ddf984ed8352954b0067d1a5cd810d38247aaf5f0fddc31c42e",
+  "factory_sha256": "d917a62080d3c179f79241066a6fe515c31ce21f9551441d259a06042cd95169",
+  "multipart_bytes": 9038490,
+  "multipart_sha256": "0714489d0e6437af066df4373dbbc6f1a8604b6c363ab73cd94cc51fe37aa630",
+  "route_report_sha256": "e2eba662a3c8f3c373dc5769b747cb02f84492294698e8aac783b4c5a3dbdcf5",
+  "harness_sha256": "d92bbc23e9f617bf89a579c489d0faef19b2858c6b1de58eb595731747fa736f",
+  "cgi_source_sha256": "7328525ac62491ef8e0a9209a0b156f0e5c18d5c4fa05847337d993614c9380e",
+  "results": [
+    {
+      "mode": "browser-style",
+      "curl_exit_code": 0,
+      "http_status": "200",
+      "curl_stderr": "",
+      "response_sha256": "a12b7cb43c9d9134b5bb1b35e9096b66775d9e92e7611d1cc92b02edd6782a87",
+      "captured_bytes": 9038490,
+      "captured_sha256": "0714489d0e6437af066df4373dbbc6f1a8604b6c363ab73cd94cc51fe37aa630",
+      "passed": true
+    },
+    {
+      "mode": "expect-continue",
+      "curl_exit_code": 0,
+      "http_status": "200",
+      "curl_stderr": "",
+      "response_sha256": "a12b7cb43c9d9134b5bb1b35e9096b66775d9e92e7611d1cc92b02edd6782a87",
+      "captured_bytes": 9038490,
+      "captured_sha256": "0714489d0e6437af066df4373dbbc6f1a8604b6c363ab73cd94cc51fe37aa630",
+      "passed": true
+    }
+  ],
+  "limitations": [
+    "A synthetic CGI captured the request; stock LuCI authentication and dispatch were not reached over HTTP.",
+    "The stock daemons ran in emulated userspace with a generated sysmode config and temporary ubus socket.",
+    "No physical router upload, flash write, boot, Ethernet, Wi-Fi, or fallback was tested."
+  ]
+}

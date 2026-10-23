@@ -1,0 +1,71 @@
+{
+  "schema": 1,
+  "status": "Management TX DMA ownership fixed; recovery/teardown still incomplete",
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "new_factory_container": false,
+  "changes": [
+    "Explicit management-TX dma_mapped flag, including valid DMA address zero",
+    "Map failure/duplicate-map handling, idempotent unmap, unmap before backing-buffer free",
+    "Unmap both TX controllers during restore STOP phase after reset and before firmware restart",
+    "Clear STA management/null completion skb pointer after ownership handoff"
+  ],
+  "tests": {
+    "bss_cases_per_execution": 26,
+    "native_asan_ubsan": "pass",
+    "mips_userspace": "pass",
+    "data_completion_regression_cases": 24,
+    "data_completion_asan_ubsan": "pass",
+    "before_free": "fails: backing buffer freed with active DMA mapping",
+    "before_completion": "fails: descriptor retains consumed skb pointer",
+    "scope": "Actual map/unmap, bulk cleanup, free helper and normal-completion block; current setup helpers also used in before tests. Mock DMA/status APIs; no complete firmware/IRQ/recovery flow."
+  },
+  "build": {
+    "clean_wireless_package": "pass",
+    "full_integrated_build": "pass; existing vendor warnings remain",
+    "prepared_source_exact_before_plus_patch": true,
+    "compiled_restore_calls_bulk_unmap": true,
+    "compiled_bulk_cleanup_calls_dma_unmap": true
+  },
+  "inputs": {
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/patches/140-bss-tx-dma-ownership.patch": "be63af39c493f99828425c77134a4b8e50f349042b2d70ead31df34e2842fcfe",
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/tests/bss-tx-ownership.py": "e02e36fc2384cfa8c364c9d04a97d72e1b9be44cae37084d8940298219701f26",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/bss-tx-before/hw_mmb.c": "1b56d432afadb6a98ea255809fcafe37fa8484e7b3fbf69b62f6ba4996ffc561",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/shared/hw_mmb.c": "84dc0d402865ec4d9bba9f388551606667ddef382321454ac5c5844e3ec4ba3f",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/mtlk_mmb_drv.c": "4a0c15c2a8f710327e35bd53d0b7345fc8361d65cb5a8cbc5f8afd5d28abbebc",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/wave_radio.c": "d6ed2af2beb210ea2e96986564ead85ace66691b382e1ad30d831e3354a3f7f0",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/mac80211.c": "4a3e1f19cae1ed98b8372be4f6179f421b4e2e7a2bf7f9cd586a2b920d45c1b2",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/core.c": "aac2dcf6c4607774091885d1aca63bd3fdbe7d4d433c2416e21272ae486006be",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/include/net/mac80211.h": "43b4be700a0aa3d5b4e5ac3483db02d2506ba637e2686343b053a1d05949067f",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/net/mac80211/status.c": "228d0a3d27f98e0f1a8f7c7f520fe280eb3303bb461287f20f254a2bc79ccf66"
+  },
+  "logs": {
+    "bss-tx-after.log": "05a1fcf80e2b237d88694675d2ca039ab68b47feeae8a349625caf1a9b012189",
+    "bss-tx-before-completion.log": "f29c2c99c1d7e56c2965d9b9acdc9ea765c496a86ae6325449c9306a142aa480",
+    "bss-tx-before-free.log": "10276a891168936e463fd904ce4e7ca7cbd7e354f458769b5473929584ffa1de",
+    "bss-tx-data-regression.log": "f0c5b7d3dfc54cd304e52975d0f2cb8ef16c6c85025b94271aaade9b9e530786",
+    "bss-tx-integrated-build.log": "0391b83188ca56a8bd78a3da6c5e2520023ddddf4cbed4bf8dcac00e924bc390",
+    "bss-tx-mips.log": "c9488912e641bec22a02e70df4ad0e2cd630024c7abe418c65f1f4abdce5603f",
+    "bss-tx-package-build.log": "bd217c251f18a1cc4502b1ca4107bc542dce5d295ce69ab5817df85362d42e1d",
+    "bss-tx-package-clean.log": "948fa14304c5d03da188ebb5871b2c173f019fe5064e44a08400471684f0ad00"
+  },
+  "image_checks": {
+    "integrated-safety-content.json": "acbbeabd40c4764a458f3636e59f800787e26f72b34f0c910febc6de9f1117de",
+    "integrated-safety-initramfs.json": "0b84fbecb978e1ff7e7e696923a8887a1652d9ca54a198318b6cc78f061f6380",
+    "integrated-safety-sysupgrade.json": "24cf8464fda0d6b4274b1577352638d1ed7e402e40ca2f21ea0b42a2fc8ac58c"
+  },
+  "compiled_evidence": {
+    "_mtlk_mmb_bss_mgmt_tx.disassembly": "bbcb1a03f99e12c76b945968b23bcb2560dc2d8ea6f39a3488eaf1f2ccf944d1",
+    "_mtlk_mmb_handle_bss_cfm.disassembly": "143de9c9c74eb29bd106774915c89d8c64dca55de6d29950c1b81f90cff7d971",
+    "_mtlk_mmb_unmap_bss_tx_buffers.disassembly": "285424339bd6d0f3980779c3928852e0f48d6c061f07064ca88c26f7527912f3",
+    "mtlk_hw_mmb_restore.disassembly": "be06464572670e044f0e36df6e4c6b0539f4b709183c0170ee790cb13df3fd25"
+  },
+  "artifact_path": "/home/zach/code/archer-ax3000-bringup/artifacts/development-bss-tx",
+  "remaining": [
+    "Pending management skbs need disposal before descriptor recycling and mac80211 state destruction",
+    "mac80211 teardown/free precedes IRQ/tasklet quiescence and lower-level cleanup; ordering needs redesign and tests",
+    "Data TX descriptor validation errors occur after DMA mapping and currently omit unmap",
+    "Physical boot, Ethernet, both radios and full peripheral/persistence behavior",
+    "Serial-free installation, NAND writes and reliable reset/power-loss fallback"
+  ]
+}

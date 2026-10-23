@@ -1,0 +1,26 @@
+{
+  "hardware_tested": false,
+  "passed": true,
+  "scenario_count": 28,
+  "native_shell_groups": 7,
+  "mips_shell_groups": 7,
+  "scope": "Actual first-boot shell policy in isolated native and packaged-MIPS shells; flash/network commands and files are fixtures; 28 scenarios per shell.",
+  "logs": {
+    "trial-tests.log": "7780e0b0df40183d3b594814c08fd397aca2710a0c1cfe713a99d50f164f285d",
+    "trial-tests-mips.log": "7f2d05222f848eb0a467e7900ecd6992346cce512a6006daf1de265db709a8bc",
+    "upgrade-bank-guard.log": "731f436ea28bfb09bd4cc8643bd868efb6a488b10e5cbe1392e0cf147935b009"
+  },
+  "source_sha256": {
+    "target/linux/grx500/base-files/lib/functions/grx500-trial.sh": "514edcc3b5aac821d2c87c952ad51feaace11782373e7eb24a4994a17747dce4",
+    "target/linux/grx500/base-files/lib/preinit/79_grx500_trial": "5cecf8130501b113f160f4791b048ef29491acc383f7528f1f1d8f7b854f1f0f",
+    "target/linux/grx500/base-files/usr/libexec/grx500-trial": "e36be521838573db516da3749816059b28bb6df3be350cbc414532c8ba027d5e",
+    "target/linux/grx500/base-files/lib/upgrade/platform.sh": "bd32ababdd3a7615f4c9b625cdbb9ce0a8f5391b648e3418944d5834d581a049",
+    "target/linux/grx500/tests/test-trial.py": "841699993b50a0a814fe818087a2481b7e7911cd8df5b5cd605f116f0fd632d9",
+    "target/linux/grx500/tests/test-upgrade.py": "b6c501d8e9a9d9a47d57bb1039e318277a5bfdbaa1572958bb418952410b9c40"
+  },
+  "limitations": [
+    "No real NAND writes or network traffic.",
+    "procd scheduling and physical reboot are not executed by these policy tests."
+  ],
+  "packaged_mips_busybox_sha256": "d57eafed62b524c529c1fc52b967a18acaa4071e145fd915ce0034fd9bfe30d3"
+}

@@ -1,0 +1,18 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/* PIO/BCH4 path in the AX3000 V1 stock DTB and product configuration. */
+/ {
+	calibration_nand: nand@16f00000 {
+		compatible = "tplink,archer-ax3000-v1-calibration-nand";
+		reg = <0x16f00000 0x1000>, <0x17c00000 0x100000>;
+		reg-names = "ebu", "nand-data";
+		clocks = <&cgu GCLK_EBU>;
+		nand-ecc-mode = "soft";
+		nand-ecc-algo = "bch";
+		nand-ecc-step-size = <512>;
+		nand-ecc-strength = <4>;
+		nand-bus-width = <8>;
+		/* Driver exports only calibration (0x1c0000 + 0x100000), read-only.
+		 * U-Boot supplies NAND pin mux; do not remux its reserved pads.
+		 */
+	};
+};

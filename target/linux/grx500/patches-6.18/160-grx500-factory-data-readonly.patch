@@ -1,0 +1,40 @@
+--- a/drivers/mtd/ubi/gluebi.c
++++ b/drivers/mtd/ubi/gluebi.c
+@@ -295,8 +295,8 @@
+ 	gluebi->vol_id = vi->vol_id;
+ 	gluebi->ubi_num = vi->ubi_num;
+ 	mtd->type = MTD_UBIVOLUME;
+-	if (!di->ro_mode)
+-		mtd->flags = MTD_WRITEABLE;
++	/* This target exposes only the factory data volume, always read-only. */
++	mtd->flags = 0;
+ 	mtd->owner      = THIS_MODULE;
+ 	mtd->writesize  = di->min_io_size;
+ 	mtd->erasesize  = vi->usable_leb_size;
+@@ -445,6 +445,26 @@
+ 			 void *ns_ptr)
+ {
+ 	struct ubi_notification *nt = ns_ptr;
++	bool tracked;
++
++	/* Do not expose rootfs/overlay bank volumes as MTD: fstools must see
++	 * their native UBI devices. Only the factory JFFS2 data needs gluebi.
++	 */
++	mutex_lock(&devices_mutex);
++	tracked = find_gluebi_nolock(nt->vi.ubi_num, nt->vi.vol_id) != NULL;
++	mutex_unlock(&devices_mutex);
++	if (l == UBI_VOLUME_ADDED) {
++		if (strcmp(nt->vi.name, "data"))
++			return NOTIFY_OK;
++	} else if (l == UBI_VOLUME_RENAMED) {
++		if (tracked && strcmp(nt->vi.name, "data"))
++			gluebi_remove(&nt->vi);
++		else if (!tracked && !strcmp(nt->vi.name, "data"))
++			gluebi_create(&nt->di, &nt->vi);
++		return NOTIFY_OK;
++	} else if (!tracked) {
++		return NOTIFY_OK;
++	}
+ 
+ 	switch (l) {
+ 	case UBI_VOLUME_ADDED:

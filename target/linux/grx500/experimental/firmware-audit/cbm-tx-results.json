@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "status": "CBM transmit byte-offset bounds and length truncation fixed; host/MIPS fixtures and integrated build pass",
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "new_factory_container": false,
+  "before_fix": {
+    "boundary": "2048-byte transfer plus byte offset 1 accepted in a 2048-byte pool buffer",
+    "boundary_reproduced": [
+      "native C",
+      "emulated big-endian MIPS C"
+    ],
+    "length": "MIPS constructor accepted 65536 and encoded length zero"
+  },
+  "after_fix": {
+    "cases_per_execution": 92178,
+    "native": "ASan/UBSan pass",
+    "mips": "Static big-endian MIPS userspace execution passes under QEMU",
+    "scope": "Actual descriptor functions/layouts with mock pool/DMA/MMIO; no real device execution"
+  },
+  "build": {
+    "integrated": "pass",
+    "prepared_source_matches": true,
+    "prepared_descriptor_header_matches": true,
+    "existing_vendor_warnings": true
+  },
+  "image_checks": {
+    "integrated-safety-content.json": "0d1875d7e53791d9ff5ac3ffeb8fd56650d23f3e40a651e7eb18feedbac6472d",
+    "integrated-safety-initramfs.json": "c5c46b2dea106d9dcaa82594813df0c2a1f4870c2df3d789d3c95239bf5ad643",
+    "integrated-safety-sysupgrade.json": "9ca2075057ae0d8d12c6183d66d11ad7ad0955e4f4b98bd88cbb0b78d37f691a"
+  },
+  "inputs": {
+    "target/linux/grx500/files/drivers/net/ethernet/lantiq/cqm/grx500/cbm.c": "b515e2ce62a81cc19c8f69dda534b970cae8d49543cebb726264529fffbd08ff",
+    "target/linux/grx500/files/drivers/net/ethernet/lantiq/cqm/grx500/cbm.h": "3c95c4c110253079626828f6bb30b70aac45baf3798cde5b260eb10edee8e91e",
+    "target/linux/grx500/tests/test-cbm-tx.py": "5ecadbf4752d3a06adb96b4e612b55742f098cdcc5c515ade2e38992d9333ebb",
+    "target/linux/grx500/files/drivers/net/ethernet/lantiq/ltq_eth_drv_xrx500.c": "62844c1739da901098c981f3cc23a7c2e52c8621a4ac1eadcb36491ac243458f",
+    "target/linux/grx500/files/drivers/net/datapath/dpm/datapath_api.c": "11ff142715fd4c8d5b2308dc146b89f0e350643f6c6606aec378b678e584aa13",
+    "build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/.config": "5dcaac903d75c33dd1929c034e10afbf364bf46d94533afbbf4c063b1ea7fd04"
+  },
+  "logs": {
+    "cbm-tx-after.log": "ca7d74274605e05c6177891e08674d77cf782e03f2e8eea8e23ac6ce21ebae18",
+    "cbm-tx-before.log": "1b966699f44673317ff57411b363cdf93c84bda9b5eeb453091e12fe5489f11c",
+    "cbm-tx-integrated-build.log": "f7fcb24c379ae82a302a966d0510b4e365073fd2fa80e6e8b64755419d3c3f8b",
+    "cbm-tx-mips-after.log": "1171c1ff60a60f4d8f54a609324a5cfbe872260ef1568519dd08f07193538718",
+    "cbm-tx-mips-before.log": "2740b2e95a3edbab24cc4fcf338237f2e90d87e22c4c2b34e6a7cfc98985663a",
+    "cbm-tx-oversized-before.log": "7359c24b5351200a5c8038ca15110cf63c060f6ebfcf59559736507eda7c4e2e",
+    "initramfs-audit.log": "7beafc946e310a98c0a716b88bfd917d2fca9aa90444ba5564a0d198a3ea176f",
+    "integrated-safety-content.log": "ba06978797f5ac0d2c1b0e912b58417bfac5698fb7bb6c66341420ee8e00df51",
+    "sysupgrade-audit.log": "9dc2129d9e5471d3f3e83ac4f4c3aebe5d4debd73209285a99b2ff8071639ac4"
+  },
+  "artifact_path": "/home/zach/code/archer-ax3000-bringup/artifacts/development-cbm-tx",
+  "remaining": [
+    "Jumbo MTU reporting exceeds the configured buffer capacity; reconcile RX/TX overhead and hardware envelope",
+    "Physical boot, Ethernet, both Wi-Fi radios, complete peripheral behavior and persistence",
+    "Automatic acceptance and reliable serial-free reset and power-loss fallback"
+  ]
+}

@@ -1,0 +1,802 @@
+{
+  "url": "https://gitlab.com/prpl-foundation/intel/linux.git",
+  "commit": "dc542d0ac6100123552c3a6ea12296061850e20b",
+  "files": [
+    {
+      "source": "arch/mips/include/asm/mach-lantiq/lantiq.h",
+      "destination": "arch/mips/include/asm/mach-intel-mips/lantiq.h"
+    },
+    {
+      "source": "arch/mips/include/asm/mach-lantiq/grx500/lantiq_soc.h",
+      "destination": "arch/mips/include/asm/mach-intel-mips/lantiq_soc.h"
+    },
+    {
+      "source": "drivers/dma/intel/Makefile",
+      "destination": "drivers/dma/intel/Makefile"
+    },
+    {
+      "source": "drivers/dma/intel/hdma.c",
+      "destination": "drivers/dma/intel/hdma.c"
+    },
+    {
+      "source": "drivers/dma/intel/hdma.h",
+      "destination": "drivers/dma/intel/hdma.h"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/Kconfig",
+      "destination": "drivers/net/datapath/dpm/Kconfig"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/Makefile",
+      "destination": "drivers/net/datapath/dpm/Makefile"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath.h",
+      "destination": "drivers/net/datapath/dpm/datapath.h"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_api.c",
+      "destination": "drivers/net/datapath/dpm/datapath_api.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_api_fn.c",
+      "destination": "drivers/net/datapath/dpm/datapath_api_fn.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_api_others.c",
+      "destination": "drivers/net/datapath/dpm/datapath_api_others.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_br_vlan.c",
+      "destination": "drivers/net/datapath/dpm/datapath_br_vlan.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_cqm.c",
+      "destination": "drivers/net/datapath/dpm/datapath_cqm.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_instance.c",
+      "destination": "drivers/net/datapath/dpm/datapath_instance.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_instance.h",
+      "destination": "drivers/net/datapath/dpm/datapath_instance.h"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_ioctl.c",
+      "destination": "drivers/net/datapath/dpm/datapath_ioctl.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_ioctl.h",
+      "destination": "drivers/net/datapath/dpm/datapath_ioctl.h"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_logical_dev.c",
+      "destination": "drivers/net/datapath/dpm/datapath_logical_dev.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_misc.c",
+      "destination": "drivers/net/datapath/dpm/datapath_misc.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_notifier.c",
+      "destination": "drivers/net/datapath/dpm/datapath_notifier.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_pce.c",
+      "destination": "drivers/net/datapath/dpm/datapath_pce.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_pce.h",
+      "destination": "drivers/net/datapath/dpm/datapath_pce.h"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_proc.c",
+      "destination": "drivers/net/datapath/dpm/datapath_proc.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_proc_api.c",
+      "destination": "drivers/net/datapath/dpm/datapath_proc_api.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_soc.c",
+      "destination": "drivers/net/datapath/dpm/datapath_soc.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_swdev.h",
+      "destination": "drivers/net/datapath/dpm/datapath_swdev.h"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_swdev_api.h",
+      "destination": "drivers/net/datapath/dpm/datapath_swdev_api.h"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_tx.c",
+      "destination": "drivers/net/datapath/dpm/datapath_tx.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/datapath_tx.h",
+      "destination": "drivers/net/datapath/dpm/datapath_tx.h"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/gswip30/Kconfig",
+      "destination": "drivers/net/datapath/dpm/gswip30/Kconfig"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/gswip30/Makefile",
+      "destination": "drivers/net/datapath/dpm/gswip30/Makefile"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/gswip30/datapath_coc.c",
+      "destination": "drivers/net/datapath/dpm/gswip30/datapath_coc.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/gswip30/datapath_gswip.c",
+      "destination": "drivers/net/datapath/dpm/gswip30/datapath_gswip.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/gswip30/datapath_lookup_proc.c",
+      "destination": "drivers/net/datapath/dpm/gswip30/datapath_lookup_proc.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/gswip30/datapath_mib.c",
+      "destination": "drivers/net/datapath/dpm/gswip30/datapath_mib.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/gswip30/datapath_mib.h",
+      "destination": "drivers/net/datapath/dpm/gswip30/datapath_mib.h"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/gswip30/datapath_misc.c",
+      "destination": "drivers/net/datapath/dpm/gswip30/datapath_misc.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/gswip30/datapath_misc.h",
+      "destination": "drivers/net/datapath/dpm/gswip30/datapath_misc.h"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/gswip30/datapath_proc.c",
+      "destination": "drivers/net/datapath/dpm/gswip30/datapath_proc.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/gswip30/datapath_proc.h",
+      "destination": "drivers/net/datapath/dpm/gswip30/datapath_proc.h"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/gswip30/datapath_rx.c",
+      "destination": "drivers/net/datapath/dpm/gswip30/datapath_rx.c"
+    },
+    {
+      "source": "drivers/net/datapath/dpm/gswip30/datapath_tx.c",
+      "destination": "drivers/net/datapath/dpm/gswip30/datapath_tx.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/Makefile",
+      "destination": "drivers/net/ethernet/lantiq/Makefile"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/Kconfig",
+      "destination": "drivers/net/ethernet/lantiq/cqm/Kconfig"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/Makefile",
+      "destination": "drivers/net/ethernet/lantiq/cqm/Makefile"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/cbm_wrapper.c",
+      "destination": "drivers/net/ethernet/lantiq/cqm/cbm_wrapper.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/cqm_common.c",
+      "destination": "drivers/net/ethernet/lantiq/cqm/cqm_common.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/cqm_common.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/cqm_common.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/cqm_dev.c",
+      "destination": "drivers/net/ethernet/lantiq/cqm/cqm_dev.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/cqm_dev.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/cqm_dev.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/grx500/Kconfig",
+      "destination": "drivers/net/ethernet/lantiq/cqm/grx500/Kconfig"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/grx500/Makefile",
+      "destination": "drivers/net/ethernet/lantiq/cqm/grx500/Makefile"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/grx500/cbm.c",
+      "destination": "drivers/net/ethernet/lantiq/cqm/grx500/cbm.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/grx500/cbm.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/grx500/cbm.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/grx500/cbm_config.c",
+      "destination": "drivers/net/ethernet/lantiq/cqm/grx500/cbm_config.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/grx500/cbm_config.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/grx500/cbm_config.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/grx500/cbm_proc.c",
+      "destination": "drivers/net/ethernet/lantiq/cqm/grx500/cbm_proc.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/grx500/cbm_proc.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/grx500/cbm_proc.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/grx500/reg/cbm.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/grx500/reg/cbm.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/grx500/reg/cbm_desc64b.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/grx500/reg/cbm_desc64b.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/grx500/reg/cbm_dqm.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/grx500/reg/cbm_dqm.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/grx500/reg/cbm_eqm.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/grx500/reg/cbm_eqm.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/grx500/reg/cbm_ls.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/grx500/reg/cbm_ls.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/grx500/reg/fsqm.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/grx500/reg/fsqm.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/prx300/Kconfig",
+      "destination": "drivers/net/ethernet/lantiq/cqm/prx300/Kconfig"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/prx300/Makefile",
+      "destination": "drivers/net/ethernet/lantiq/cqm/prx300/Makefile"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/prx300/cqm.c",
+      "destination": "drivers/net/ethernet/lantiq/cqm/prx300/cqm.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/prx300/cqm.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/prx300/cqm.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/prx300/cqm_config.c",
+      "destination": "drivers/net/ethernet/lantiq/cqm/prx300/cqm_config.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/prx300/cqm_config.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/prx300/cqm_config.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/prx300/cqm_debugfs.c",
+      "destination": "drivers/net/ethernet/lantiq/cqm/prx300/cqm_debugfs.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/prx300/cqm_debugfs.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/prx300/cqm_debugfs.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/prx300/reg/buffer_manager.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/prx300/reg/buffer_manager.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/prx300/reg/cbm_ls.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/prx300/reg/cbm_ls.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/prx300/reg/cqem.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/prx300/reg/cqem.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/prx300/reg/cqem_deq.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/prx300/reg/cqem_deq.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/prx300/reg/cqem_desc64b.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/prx300/reg/cqem_desc64b.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/prx300/reg/cqem_enq.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/prx300/reg/cqem_enq.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/prx300/reg/cqem_pon_ip_if.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/prx300/reg/cqem_pon_ip_if.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/prx300/reg/fsqm.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/prx300/reg/fsqm.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/prx300/reg/qos_wred.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/prx300/reg/qos_wred.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/prx300/reg/tx_manager.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/prx300/reg/tx_manager.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/cqm/prx300/reg/txpush_dqm.h",
+      "destination": "drivers/net/ethernet/lantiq/cqm/prx300/reg/txpush_dqm.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/ltq_eth_drv_xrx500.c",
+      "destination": "drivers/net/ethernet/lantiq/ltq_eth_drv_xrx500.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/ltq_eth_drv_xrx500.h",
+      "destination": "drivers/net/ethernet/lantiq/ltq_eth_drv_xrx500.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/Kconfig",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/Kconfig"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/LICENSE",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/LICENSE"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/Makefile",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/Makefile"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw30_reg_top.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw30_reg_top.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_debug.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_debug.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_defconf.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_defconf.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_defconf.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_defconf.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_flow_core.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_flow_core.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_flow_core.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_flow_core.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_flow_pce.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_flow_pce.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_gphy_fw.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_gphy_fw.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_init.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_init.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_init.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_init.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_ioctl_wrapper.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_ioctl_wrapper.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_ioctl_wrapper.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_ioctl_wrapper.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_irq.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_irq.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_ll_func.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_ll_func.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_ll_table.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_ll_table.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_mdio.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_mdio.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_pae.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_pae.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_pae.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_pae.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_reg.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_reg.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_reg_top.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_reg_top.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_swmcast.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_swmcast.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_swmcast.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_swmcast.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gsw_tbl_rw.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gsw_tbl_rw.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gswip_dev/Makefile",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gswip_dev/Makefile"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/gswip_dev/gsw_dev.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/gswip_dev/gsw_dev.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/Makefile",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/Makefile"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/gswss_api.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/gswss_api.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/gswss_api.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/gswss_api.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/gswss_mac_api.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/gswss_mac_api.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/gswss_mac_api.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/gswss_mac_api.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/lmac_api.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/lmac_api.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/lmac_api.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/lmac_api.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/mac_cfg.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/mac_cfg.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/mac_cfg.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/mac_cfg.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/mac_cli.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/mac_cli.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/mac_drv.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/mac_drv.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/mac_tx_fifo.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/mac_tx_fifo.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/mac_tx_fifo.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/mac_tx_fifo.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/macsec_drv.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/macsec_drv.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/macsec_drv.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/macsec_drv.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_cli.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_cli.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_cli.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_cli.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_common.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_common.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_debug.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_debug.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_mac_api.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_mac_api.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_main.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_main.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_mdio.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_mdio.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_mdio.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_mdio.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_mtl_api.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_mtl_api.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_ptp.c",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_ptp.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_ptp.h",
+      "destination": "drivers/net/ethernet/lantiq/switch-api/mac/xgmac_ptp.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/tmu/Kconfig",
+      "destination": "drivers/net/ethernet/lantiq/tmu/Kconfig"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/tmu/Makefile",
+      "destination": "drivers/net/ethernet/lantiq/tmu/Makefile"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/tmu/drv_tmu_api.h",
+      "destination": "drivers/net/ethernet/lantiq/tmu/drv_tmu_api.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/tmu/drv_tmu_ll.c",
+      "destination": "drivers/net/ethernet/lantiq/tmu/drv_tmu_ll.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/tmu/drv_tmu_ll_lookup_proc.c",
+      "destination": "drivers/net/ethernet/lantiq/tmu/drv_tmu_ll_lookup_proc.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/tmu/drv_tmu_ll_proc.c",
+      "destination": "drivers/net/ethernet/lantiq/tmu/drv_tmu_ll_proc.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/tmu/drv_tmu_reg.h",
+      "destination": "drivers/net/ethernet/lantiq/tmu/drv_tmu_reg.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/xpcs/xpcs.h",
+      "destination": "drivers/net/ethernet/lantiq/xpcs/xpcs.h"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/xrx500_phy_fw.c",
+      "destination": "drivers/net/ethernet/lantiq/xrx500_phy_fw.c"
+    },
+    {
+      "source": "drivers/net/ethernet/lantiq/xrx500_phy_fw.h",
+      "destination": "drivers/net/ethernet/lantiq/xrx500_phy_fw.h"
+    },
+    {
+      "source": "include/linux/dma/lantiq_dmax.h",
+      "destination": "include/linux/dma/lantiq_dmax.h"
+    },
+    {
+      "source": "include/linux/klogging.h",
+      "destination": "include/linux/klogging.h"
+    },
+    {
+      "source": "include/linux/ltq_hwmcpy.h",
+      "destination": "include/linux/ltq_hwmcpy.h"
+    },
+    {
+      "source": "include/linux/pp_buffer_mgr_api.h",
+      "destination": "include/linux/pp_buffer_mgr_api.h"
+    },
+    {
+      "source": "include/linux/pp_qos_api.h",
+      "destination": "include/linux/pp_qos_api.h"
+    },
+    {
+      "source": "include/net/datapath_api.h",
+      "destination": "include/net/datapath_api.h"
+    },
+    {
+      "source": "include/net/datapath_api_grx500.h",
+      "destination": "include/net/datapath_api_grx500.h"
+    },
+    {
+      "source": "include/net/datapath_api_gswip30.h",
+      "destination": "include/net/datapath_api_gswip30.h"
+    },
+    {
+      "source": "include/net/datapath_api_gswip31.h",
+      "destination": "include/net/datapath_api_gswip31.h"
+    },
+    {
+      "source": "include/net/datapath_api_gswip32.h",
+      "destination": "include/net/datapath_api_gswip32.h"
+    },
+    {
+      "source": "include/net/datapath_api_ppv4.h",
+      "destination": "include/net/datapath_api_ppv4.h"
+    },
+    {
+      "source": "include/net/datapath_api_qos.h",
+      "destination": "include/net/datapath_api_qos.h"
+    },
+    {
+      "source": "include/net/datapath_api_qos_grx500.h",
+      "destination": "include/net/datapath_api_qos_grx500.h"
+    },
+    {
+      "source": "include/net/datapath_api_tx.h",
+      "destination": "include/net/datapath_api_tx.h"
+    },
+    {
+      "source": "include/net/datapath_api_tx_grx500.h",
+      "destination": "include/net/datapath_api_tx_grx500.h"
+    },
+    {
+      "source": "include/net/datapath_api_umt.h",
+      "destination": "include/net/datapath_api_umt.h"
+    },
+    {
+      "source": "include/net/datapath_api_vlan.h",
+      "destination": "include/net/datapath_api_vlan.h"
+    },
+    {
+      "source": "include/net/datapath_api_vpn.h",
+      "destination": "include/net/datapath_api_vpn.h"
+    },
+    {
+      "source": "include/net/datapath_br_domain.h",
+      "destination": "include/net/datapath_br_domain.h"
+    },
+    {
+      "source": "include/net/datapath_dp_cqm.h",
+      "destination": "include/net/datapath_dp_cqm.h"
+    },
+    {
+      "source": "include/net/datapath_dp_cqm_grx500.h",
+      "destination": "include/net/datapath_dp_cqm_grx500.h"
+    },
+    {
+      "source": "include/net/datapath_inst.h",
+      "destination": "include/net/datapath_inst.h"
+    },
+    {
+      "source": "include/net/datapath_inst_grx500.h",
+      "destination": "include/net/datapath_inst_grx500.h"
+    },
+    {
+      "source": "include/net/datapath_proc_api.h",
+      "destination": "include/net/datapath_proc_api.h"
+    },
+    {
+      "source": "include/net/datapath_proc_api_grx500.h",
+      "destination": "include/net/datapath_proc_api_grx500.h"
+    },
+    {
+      "source": "include/net/drv_tmu_ll.h",
+      "destination": "include/net/drv_tmu_ll.h"
+    },
+    {
+      "source": "include/net/e160.h",
+      "destination": "include/net/e160.h"
+    },
+    {
+      "source": "include/net/lantiq_cbm_api.h",
+      "destination": "include/net/lantiq_cbm_api.h"
+    },
+    {
+      "source": "include/net/pon_qos_tc.h",
+      "destination": "include/net/pon_qos_tc.h"
+    },
+    {
+      "source": "include/net/ppa/ltq_mpe_hal.h",
+      "destination": "include/net/ppa/ltq_mpe_hal.h"
+    },
+    {
+      "source": "include/net/ppa/ltq_tmu_hal_api.h",
+      "destination": "include/net/ppa/ltq_tmu_hal_api.h"
+    },
+    {
+      "source": "include/net/ppa/ppa_api.h",
+      "destination": "include/net/ppa/ppa_api.h"
+    },
+    {
+      "source": "include/net/ppa/ppa_api_common.h",
+      "destination": "include/net/ppa/ppa_api_common.h"
+    },
+    {
+      "source": "include/net/ppa/ppa_api_directpath.h",
+      "destination": "include/net/ppa/ppa_api_directpath.h"
+    },
+    {
+      "source": "include/net/ppa/ppa_hook.h",
+      "destination": "include/net/ppa/ppa_hook.h"
+    },
+    {
+      "source": "include/net/ppa/ppa_stack_al.h",
+      "destination": "include/net/ppa/ppa_stack_al.h"
+    },
+    {
+      "source": "include/net/qos_mgr/qos_mgr_tc_hook.h",
+      "destination": "include/net/qos_mgr/qos_mgr_tc_hook.h"
+    },
+    {
+      "source": "include/net/switch_api/adap_ops.h",
+      "destination": "include/net/switch_api/adap_ops.h"
+    },
+    {
+      "source": "include/net/switch_api/gsw_dev.h",
+      "destination": "include/net/switch_api/gsw_dev.h"
+    },
+    {
+      "source": "include/net/switch_api/gsw_flow_ops.h",
+      "destination": "include/net/switch_api/gsw_flow_ops.h"
+    },
+    {
+      "source": "include/net/switch_api/gsw_ioctlcmd_type.h",
+      "destination": "include/net/switch_api/gsw_ioctlcmd_type.h"
+    },
+    {
+      "source": "include/net/switch_api/gsw_irq.h",
+      "destination": "include/net/switch_api/gsw_irq.h"
+    },
+    {
+      "source": "include/net/switch_api/gsw_tbl_rw.h",
+      "destination": "include/net/switch_api/gsw_tbl_rw.h"
+    },
+    {
+      "source": "include/net/switch_api/gsw_types.h",
+      "destination": "include/net/switch_api/gsw_types.h"
+    },
+    {
+      "source": "include/net/switch_api/lantiq_gsw.h",
+      "destination": "include/net/switch_api/lantiq_gsw.h"
+    },
+    {
+      "source": "include/net/switch_api/lantiq_gsw_api.h",
+      "destination": "include/net/switch_api/lantiq_gsw_api.h"
+    },
+    {
+      "source": "include/net/switch_api/lantiq_gsw_flow.h",
+      "destination": "include/net/switch_api/lantiq_gsw_flow.h"
+    },
+    {
+      "source": "include/net/switch_api/lantiq_gsw_routing.h",
+      "destination": "include/net/switch_api/lantiq_gsw_routing.h"
+    },
+    {
+      "source": "include/net/switch_api/mac_ops.h",
+      "destination": "include/net/switch_api/mac_ops.h"
+    }
+  ]
+}

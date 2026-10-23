@@ -1,0 +1,743 @@
+{
+  "schema": 1,
+  "rea_checkout": "/home/zach/code/rea",
+  "rea_version": "6.7.0",
+  "rea_package_evidence_id": "ev_74bf2b2e47c984f15870f141ab76ddfe4f41b59436fa0899d3520bbbae87a319",
+  "scope": "Initial REA archive Evidence and direct Ghidra ELF analysis are retained. A later GitHub-main checkout with a local read-only mips_be adapter produced REA load-image and function Evidence for the raw stock bootloader. Those REA analyses did not execute target code; separate QEMU tests below did.",
+  "retained_analysis": [
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/cal-cbr-main.json",
+      "sha256": "0a0750365cacb45a0d6878c27ff92d8d89e7957ff4cf3b16734dfc957417fb28",
+      "bytes": 2350
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/cal_cbr.direct-ghidra.c",
+      "sha256": "2c09937e5f7a7c6ed83c5bbd540a4c42f5953384f85c9c2640cfc5e3afacbfc6",
+      "bytes": 31396
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/cal_cbr.direct-ghidra.log",
+      "sha256": "fe7d6619582cb8a8540840125b6c71c1d119641aa22700ecd8c6a316e8a0cd2b",
+      "bytes": 10408
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/direct-ghidra-manifest.json",
+      "sha256": "936b035166af8f77d50bd53d29d50e2d0ec0a113d1aafe7272e5ceaab841de70",
+      "bytes": 2228
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/mtlk-chip-id.objdump.txt",
+      "sha256": "8ff98de91da43e946ffe77c7d811c2d13c6746d26eafe2056e5dbd4bef2920f7",
+      "bytes": 893
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/mtlk-firmware-loader.objdump.txt",
+      "sha256": "caf09662c2b4e6480f909af25c44bce6645d9653f14710249f30a2f74c0e18bc",
+      "bytes": 3826
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/mtlk-firmware.direct-ghidra.c",
+      "sha256": "9206e8e7f23b858a98d0de13ec92ec572e5feb2e6e684b31d925d5474c233c0f",
+      "bytes": 10358
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/mtlk-firmware.direct-ghidra.log",
+      "sha256": "e467717eecfbd241d850a4106fc364fd6c90f87650198ec4f702a92b4a35ba54",
+      "bytes": 14649
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/mtlk.direct-ghidra.c",
+      "sha256": "f6739345f884dc1ef7b21877d26125de8bcd0be28a1c083855264a691ab58631",
+      "bytes": 32206
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/mtlk.direct-ghidra.log",
+      "sha256": "a2d74b0a880bd901c307b678c735ce45c50be4b70f9396f9ef277b29c9470526",
+      "bytes": 14812
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/read-img-main.json",
+      "sha256": "0a0750365cacb45a0d6878c27ff92d8d89e7957ff4cf3b16734dfc957417fb28",
+      "bytes": 2350
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/read_img.direct-ghidra.c",
+      "sha256": "a5b6a4cac98c30e82b6daa17ef7ac662ad04b3145286a84f8ddedd15ef2501d6",
+      "bytes": 48009
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/read_img.direct-ghidra.log",
+      "sha256": "9de3d91dacf004a1c1e244b0e4944a849ff6da5caaf3464da8b1dc1219c61d2e",
+      "bytes": 12192
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/stock-package.json",
+      "sha256": "85bbe58a192c48e3af86b4f6e51c6e9cf3515a1bf3f68c5a1d0e897d681474fe",
+      "bytes": 9053
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/nvrammanager.direct-ghidra.c",
+      "sha256": "0cd8c1296780d53dc7369c721650ac0d4631176542a245e6707573f5fb97fb99",
+      "bytes": 216122
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/nvrammanager.direct-ghidra.log",
+      "sha256": "ec1e2d08e9cce827005937febe6d9a049f9d0df952c1c678b5a8ef4cc7cad029",
+      "bytes": 8184
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/dropbear.direct-ghidra.c",
+      "sha256": "8351b77e981806cac4a14f4205335774d7923fee38712bce0dc226e62e2270f6",
+      "bytes": 577747
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/dropbear.direct-ghidra.log",
+      "sha256": "27eb8e5ba6783a940a0ffe96abbaa5867b2707ae69e83a8bc3cd07e2ffeb302c",
+      "bytes": 8670
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/firmware.lua.disassembly.txt",
+      "sha256": "69f59382298ea75f6f482513c62c2aad30f2052ef993065eb4287149e869c768",
+      "bytes": 156835
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/firmware.lua.disassembly.strace",
+      "sha256": "c6d3262604c5d04fc145bb8ce5ed229e33378a544cda997d92b3cf9a538d2ddf",
+      "bytes": 7636
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/fmup.lua.disassembly.txt",
+      "sha256": "b39dcc2a8376c22d692e534c8611b69ff5d1dd0b6e71ba0ccc975f1f2e38c8d7",
+      "bytes": 20556
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/rea-evidence/fmup.lua.disassembly.strace",
+      "sha256": "08bf1aceca532a1b4793fa74bd88a509ad632f09ebaa292d965dc5ffbe9001e3",
+      "bytes": 4555
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/bootloader-audit/rea-latest-load-image.json",
+      "sha256": "4bd0f65d26684f3725445732fb28e6418bb8becb64bba7015bcb078426e95d0b",
+      "bytes": 9942
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/bootloader-audit/rea-bootm-function.json",
+      "sha256": "33955e78b69142ed55bb3e79bd681b4eba4ed5268f3f1c809d048bdc8f8d3b74",
+      "bytes": 482743
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/bootloader-audit/rea-mips-be.patch",
+      "sha256": "0af77662161fa3e3e51c821aed8f422c834b73ccf833f2af1790977729beaa68",
+      "bytes": 11184
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/bootloader-audit/rea-unaligned-control.json",
+      "sha256": "fb1070412330623533b1ea6f6e5e8d6268812c8e596fe9736509e81869f2c462",
+      "bytes": 574
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/bootloader-audit/rea-board-init-function.json",
+      "sha256": "56d1dff15aef6ec72e2ea168d350c4692fe63019ed88c64f527420870983e51a",
+      "bytes": 56255
+    },
+    {
+      "path": "/home/zach/code/archer-ax3000-bringup/bootloader-audit/rea-initdram-function.json",
+      "sha256": "38e878f6be243f0b03eb2bd6850fc8ea58f90b39a6c61ab9169c500888d57915",
+      "bytes": 21165
+    },
+    {
+      "path": "/home/zach/code/openwrt/target/linux/grx500/experimental/firmware-audit/stock-bootargs-layout-results.json",
+      "sha256": "083e75a00bd543ffca966b83c37077b31fd1ada3ef9af1e5578bd053f649d1e3",
+      "bytes": 3005
+    }
+  ],
+  "radio_firmware": [
+    {
+      "path": "lib/firmware/09a9/aca_fw.bin",
+      "sha256": "de074b1a70bc6a10729c986b4a28bbb8b380c38b4f74cf45225b877644303896",
+      "bytes": 2572
+    },
+    {
+      "path": "lib/firmware/PSD.bin",
+      "sha256": "f199f9bd898b99d819e08457d287f85dafa9f51457304a354aba072c6afcfe61",
+      "bytes": 87744
+    },
+    {
+      "path": "lib/firmware/ProgModel_gen5b_A.bin",
+      "sha256": "c9d9f6fd6ec1ef6a957be315d31431ac2b1228702ee3e5ac6c00cdae27796801",
+      "bytes": 96000
+    },
+    {
+      "path": "lib/firmware/ProgModel_gen5b_A_fpga.bin",
+      "sha256": "39bc78c1920854b90e757d074b7f7df700d4b23b0a6b184b34c2f13954f11cfd",
+      "bytes": 96000
+    },
+    {
+      "path": "lib/firmware/ProgModel_gen5b_BG.bin",
+      "sha256": "2e09bd8c7a1d2ad888a47aabb2e53d9d4d07d4f525dfadceea7bfe7a31290022",
+      "bytes": 96000
+    },
+    {
+      "path": "lib/firmware/ProgModel_gen5b_BG_fpga.bin",
+      "sha256": "3733b638e6bd1e7a7dab686c09ea825fcc3ce9f6b78b050d20240d14d1a6be75",
+      "bytes": 96000
+    },
+    {
+      "path": "lib/firmware/ProgModel_gen5b_BG_wrx5xx.bin",
+      "sha256": "e54182430887f6d681240a2a7c356c56dd810f8c45d8d685cd91038f3ec506a1",
+      "bytes": 104000
+    },
+    {
+      "path": "lib/firmware/ProgModel_gen6_Ant_Rx.bin",
+      "sha256": "0c08769ff66cce43591e710a6d6c93dfb89d36c931c8444a4d6bcfcc6bc806bc",
+      "bytes": 16000
+    },
+    {
+      "path": "lib/firmware/ProgModel_gen6_Ant_Rx_fpga.bin",
+      "sha256": "da39666aa754ae071338c9bdd5be84b2c0977c5afffa2d74dc50a09aeb5aa6f6",
+      "bytes": 16000
+    },
+    {
+      "path": "lib/firmware/ProgModel_gen6_Ant_Tx.bin",
+      "sha256": "af8d2f3ccab4499cea86938c27f8c454618372909ae254ffdc26cc5868d2c3ed",
+      "bytes": 8000
+    },
+    {
+      "path": "lib/firmware/ProgModel_gen6_Ant_Tx_fpga.bin",
+      "sha256": "8c37f242206130aab1e64f8ac71e72e5e85dbf11f8b96a27db08dfeee0bdf12d",
+      "bytes": 8000
+    },
+    {
+      "path": "lib/firmware/ProgModel_gen6_Common.bin",
+      "sha256": "e649c4f0cf8d20e7c35b0a5e616114158fb821fdea05f22b8fcbab8bf752e21a",
+      "bytes": 48000
+    },
+    {
+      "path": "lib/firmware/ProgModel_gen6_Common_fpga.bin",
+      "sha256": "b8dc676371162ff2040df8200b714ffeadf5900289eef280a2b2d4b07ef18814",
+      "bytes": 56000
+    },
+    {
+      "path": "lib/firmware/ProgModel_gen6b_Ant_Rx.bin",
+      "sha256": "150a01af39e496e8fbc2347b975bdfeaadbb57a96863210ff62eff1582384329",
+      "bytes": 8000
+    },
+    {
+      "path": "lib/firmware/ProgModel_gen6b_Ant_Rx_fpga.bin",
+      "sha256": "6bd6236a5c59f69bf1e920b216ae94c72b664e7bec7cdd5e3835f7ceedec25f6",
+      "bytes": 8000
+    },
+    {
+      "path": "lib/firmware/ProgModel_gen6b_Ant_Tx.bin",
+      "sha256": "1967aecd2bb883ec0bb64ee021f95186775b5c4e1eb07a2a75927e6e46711273",
+      "bytes": 8000
+    },
+    {
+      "path": "lib/firmware/ProgModel_gen6b_Ant_Tx_fpga.bin",
+      "sha256": "1aab2226907a2971762c20148cc58b5b700820b9fefa9a6388cee2336a4319fe",
+      "bytes": 8000
+    },
+    {
+      "path": "lib/firmware/ProgModel_gen6b_Common.bin",
+      "sha256": "49099bc5054a6ac28b4e0b604aa09d77cb876db7af45ce1b8bc95c6f5dc28036",
+      "bytes": 48000
+    },
+    {
+      "path": "lib/firmware/ProgModel_gen6b_Common_fpga.bin",
+      "sha256": "b5292ad626c487186d0ffc0edce2dd693591741e958933a9240e27145cfb52fb",
+      "bytes": 48000
+    },
+    {
+      "path": "lib/firmware/ap_ram_gen6_wrx_600_real_phy.bin",
+      "sha256": "1e4054dc053101048f85dc8d285f7bddb9ec4a847f6195ec319ed9521c215b7c",
+      "bytes": 1572864
+    },
+    {
+      "path": "lib/firmware/host_interface_gen5b.bin",
+      "sha256": "11d796033bb772273f72c9db847cf294c86ee88808270141c846475958e64e77",
+      "bytes": 4240
+    },
+    {
+      "path": "lib/firmware/host_interface_gen5b_dc_mode0.bin",
+      "sha256": "00e2db26e52c9e9736cd719c36d4370e07629d6c9140ae3d50b46b538a9af81c",
+      "bytes": 4272
+    },
+    {
+      "path": "lib/firmware/host_interface_gen5b_dc_mode1.bin",
+      "sha256": "ee8b7134450d2930a69436494365dcbe4a2b826a20a710d5b731274d50ed3600",
+      "bytes": 4680
+    },
+    {
+      "path": "lib/firmware/host_interface_gen6.bin",
+      "sha256": "e13c058d1b0ad6f75453c4535b2d38b2af15597cb1722f5423f66cd53d22365f",
+      "bytes": 4656
+    },
+    {
+      "path": "lib/firmware/host_interface_gen6_dc_mode0.bin",
+      "sha256": "999c8edf4f8c28c9004e74221ffff5761839b96ff9c2bc89241c1915be233ea9",
+      "bytes": 4968
+    },
+    {
+      "path": "lib/firmware/host_interface_gen6_dc_mode1.bin",
+      "sha256": "b617a517f9019bfc8cabeb25ae9d9b464a2a86e8e08d02e8d620c8211e0cd286",
+      "bytes": 5472
+    },
+    {
+      "path": "lib/firmware/host_interface_gen6b.bin",
+      "sha256": "67cae24aff27db2cf94007ee2e5e1a924c62988f4775748048715d3ca28d33b6",
+      "bytes": 4568
+    },
+    {
+      "path": "lib/firmware/host_interface_gen6b_dc_mode0.bin",
+      "sha256": "9fe73a4aa9d6972ec32ee089a4973670171a39c165b36099adf908f416fd359c",
+      "bytes": 4864
+    },
+    {
+      "path": "lib/firmware/host_interface_gen6b_dc_mode1.bin",
+      "sha256": "238eabe80c3c28f0cdeaa4ddba97ed05dc31a340e2cb11377b27c6184bc5129a",
+      "bytes": 5376
+    },
+    {
+      "path": "lib/firmware/ppe_fw.bin",
+      "sha256": "48919f4d422ae652d01b075839625e04bdff3386fedd01a8250717217f5529f8",
+      "bytes": 60628
+    },
+    {
+      "path": "lib/firmware/rx_handler_gen5b.bin",
+      "sha256": "d16ca611fda53d38a28d2ab68d6dea98432f03b523c77126f00ba886cf54a73d",
+      "bytes": 8168
+    },
+    {
+      "path": "lib/firmware/rx_handler_gen6.bin",
+      "sha256": "6e533eef0582264728b79dccfbaf676f80782fef7041091bc636309ebe94d3af",
+      "bytes": 9928
+    },
+    {
+      "path": "lib/firmware/rx_handler_gen6b.bin",
+      "sha256": "1409cd084465c60da9882c5045cb5302864e456a031c3e99b67961a669c22530",
+      "bytes": 8272
+    },
+    {
+      "path": "lib/firmware/tx_sender_gen5b.bin",
+      "sha256": "2cc8dc65a262f6f82b624f6f8f0965b4685c916584254e8c5a69e3b10346b92e",
+      "bytes": 36456
+    },
+    {
+      "path": "lib/firmware/tx_sender_gen6.bin",
+      "sha256": "dde5323d863a6a56dc02b223cfd9a2ec51d4ce1c73823a4c4bf942463260fc02",
+      "bytes": 30752
+    },
+    {
+      "path": "lib/firmware/tx_sender_gen6b.bin",
+      "sha256": "10ab57ecac5973c119313542247b85cc0d325ea48f922891240bf57e119e0338",
+      "bytes": 22608
+    }
+  ],
+  "rea_commit": "d0067ba34a39ea47dd7e11bb2e6169bc0938cc3f",
+  "runtime_verification": {
+    "authority": "observed isolated QEMU execution, separate from REA Evidence",
+    "stock_checker_report": {
+      "path": "web-checker-results.json",
+      "sha256": "33064962db6287eda2fc34910ed7806ef54eee9dd97563ec56222f9de5b0ffd1"
+    },
+    "mips_userspace_report": {
+      "path": "mips-userspace-results.json",
+      "sha256": "515c3fdded2dd05bfe22fb53aef4c6dcf12a45de7a55d47acc28bc9107d10484"
+    },
+    "static_writer_sources": {
+      "stock-rootfs/sbin/sysupgrade": "31c464a8e2c41179663c633e0635810fa06adaf2f268280c8174aac1b020f98c",
+      "stock-rootfs/lib/upgrade/platform.sh": "001ac1d91372601e3aad74e076e4417b47c719fd755f81363c9c3111bd7592fe",
+      "stock-rootfs/usr/sbin/vol_mgmt": "7ea7ec9dd7326b346d22909d1051de517d13d38f5778144c48168021265e8208",
+      "rea-evidence/nvrammanager.direct-ghidra.c": "0cd8c1296780d53dc7369c721650ac0d4631176542a245e6707573f5fb97fb99"
+    },
+    "hardware_tested": false,
+    "stock_web_upload_supported": false,
+    "factory_envelope_report": {
+      "path": "factory-envelope-results.json",
+      "sha256": "c787159a6dcd1640c4b7f211d11d3a4048d80cfc64f9c3ad67ebdad0f7871789",
+      "scope": "22 isolated checker/writer capture assertions; stock ubusd resolves teardown failure; no flash commands execute"
+    },
+    "boot_memory_report": {
+      "path": "boot-memory-results.json",
+      "sha256": "15d2485f937ef61d4851ff0349e3928265b9febf7615df35196374db194b94cd",
+      "scope": "22 assertions including four expected original-image failures at stock load address; host vendor decoder and isolated MIPS second-stage C execution; no hardware or startup assembly execution"
+    },
+    "stock_bank_switch_report": {
+      "path": "stock-bank-switch-results.json",
+      "sha256": "919612ca78f4a34358552c1df00fef7e2d33b8b504c8af6c16a98d22a64fef5b",
+      "scope": "10 cases running extracted stock shell function with mocked leaf operations"
+    },
+    "kernel_transport_report": {
+      "path": "kernel-transport-results.json",
+      "sha256": "54937a4b18b68b5f35969e26fcb25c3ce286ae8fdc806716142a9fd2d0bfef36",
+      "scope": "20 decoder binding and rejection assertions against real ELF/image bytes"
+    },
+    "factory_trial": {
+      "authority": "Static compiled-image audits plus isolated native/MIPS fixture execution, separate from REA Evidence",
+      "hardware_tested": false,
+      "upload_recommended": false,
+      "candidate_sha256": "abea552e78ba3adfe52323566a3d93c1cc587e56382e727429c754a6c41ecf29",
+      "reports": {
+        "factory-prerequisites.json": "1a59154e4f75ef2f25e4d060a1a837cfa8dd667b68344beb5c3ad74962adcd96",
+        "factory-trial-results.json": "e6f82e2dbb0d0c9d2705993f25909eb83cb3dd38b0157831fe3443ba0d361f6a",
+        "factory-envtools-results.json": "09e7cace0bdc94051b7443e8a5106dba80883f34a60d921144f92a0254fde311",
+        "factory-candidate-parser-results.json": "969e4887732b95cdeca5f986a47ea28ab87199ff47837e3d1842d305af9e99ba",
+        "factory-candidate-memory-results.json": "08d11a157b71a2559d178e07407d8ea6fa725473419504291595a75531ada8d8",
+        "factory-prerequisite-negative-results.json": "33e27cad28e69254c12a09b0f6fd0daeca595c7d16cb0ff6338cddbe143025dd",
+        "boot-contract-results.json": "f23bfa9f1c8c2a096a6d0ba0a2160aadc0ae18e05a47886ca3d386e2b3417e2a"
+      },
+      "status": "Historical candidate withdrawn; see network-acceptance-results.json"
+    }
+  },
+  "network_acceptance_audit": {
+    "path": "network-acceptance-results.json",
+    "sha256": "511cb6c7ef914f0c57613d5c0f23f73b2965c34dc22beb5e43b7222a21b2fba5",
+    "scope": "Real shell/C source with simulated environment/network leaves; no hardware, NAND, packets, RF or physical reset tests. Test harness alone substitutes acceptance for transaction coverage.",
+    "hardware_tested": false,
+    "candidate_withdrawn": true
+  },
+  "rx_buffer_audit": {
+    "path": "rx-buffer-results.json",
+    "sha256": "4fb4362af3b2ff1996798d1f1a7ba1df68e544e520f58eae0f0de5310c321a32",
+    "hardware_tested": false,
+    "scope": "Reproduced C receive bounds defects; sanitizer fixtures and MIPS object/module builds, no target execution"
+  },
+  "rx_recovery_audit": {
+    "path": "rx-recovery-results.json",
+    "sha256": "dd9c50d20705c89bd14dee3c88489910c6573bad52a1e49efc3649e98bfb0a3c",
+    "hardware_tested": false,
+    "scope": "Actual C functions with injected failures; full ordinary image build and static ELF/rootfs binding"
+  },
+  "reset_recovery_audit": {
+    "path": "reset-recovery-results.json",
+    "sha256": "aea195664d63eae4ab29cda646e7282ed1f5aa1c28b97bdb9444de765bb3e9e2",
+    "hardware_tested": false,
+    "scope": "Pinned stock kernel configuration extraction, independent Linux extractor comparison, current reset coverage review; no hardware reset execution"
+  },
+  "tx_completion_audit": {
+    "path": "tx-completion-results.json",
+    "sha256": "288e86dc3786394ce22613fef34d3e6d9a9394cda65b11f967007fbac00b3fed",
+    "hardware_tested": false,
+    "scope": "Actual data TX completion handler with simulated failure/ownership leaves; module/full builds and static ELF/rootfs binding"
+  },
+  "cbm_tx_audit": {
+    "path": "cbm-tx-results.json",
+    "sha256": "e59fab5caec59d5c36c2979949f286d50f99e9525395b8bc2d8f9e1305d98878",
+    "hardware_tested": false,
+    "scope": "Actual C descriptor functions, host sanitizers/MIPS userspace fixtures, full build and static image binding"
+  },
+  "mtu_audit": {
+    "path": "mtu-results.json",
+    "sha256": "f8c5e384d97f56da1b802caed7d930699ccddf47690d70002ca0b7132ac3b438",
+    "hardware_tested": false,
+    "scope": "MTU helper fault/boundary tests, 16 KiB RX/TX fixtures, compiled constants, full build and static image binding"
+  },
+  "mtu_switch_audit": {
+    "path": "mtu-switch-results.json",
+    "sha256": "0ac5377e7b8447395195fbb7f32fe52e633ecb25bb276d6624cbdfb3a8480049",
+    "hardware_tested": false,
+    "scope": "Actual switch register helpers with failure/boundary fixtures; host sanitizers and MIPS userspace, full build and static image binding"
+  },
+  "bss_tx_audit": {
+    "path": "bss-tx-results.json",
+    "sha256": "1da1298b7c51736866aa81a66d6cfb97cf6ae5de239d4b5e02fac33d7eab4a9b",
+    "hardware_tested": false,
+    "scope": "Management TX DMA helpers and completion block with fixtures; clean module/full builds and image-content checks; known remaining software recovery gaps"
+  },
+  "wifi_teardown_audit": {
+    "path": "wifi-teardown-results.json",
+    "sha256": "2cd6c8f633f409657269d8641133358c3d255e8b9cc60866c2de45321267f8de",
+    "hardware_tested": false,
+    "scope": "Actual selected lifecycle and management TX release code with modeled synchronization; clean driver/full build and static image binding. Concurrent unregister/recovery remains incomplete."
+  },
+  "data_tx_audit": {
+    "path": "data-tx-results.json",
+    "sha256": "510771fc3e091f255363ae891c9323e7c483c778591d9aa6470a048963d9100b",
+    "hardware_tested": false,
+    "scope": "Actual selected TX functions with modeled DMA/ring/list APIs, host sanitizers/MIPS userspace, clean driver/full builds and static image binding; no hardware or concurrent recovery proof."
+  },
+  "recovery_irq_audit": {
+    "path": "recovery-irq-results.json",
+    "sha256": "5c1bbfae500c4d11756eabcfd0408999a1bef7b95364fc693ba452656d8b6490",
+    "hardware_tested": false,
+    "scope": "Actual recovery IRQ helpers and restore control flow with modeled leaves; clean kernel/full build, stock/current weak-ordering comparison, compiled MSI fence and static image binding. Other lifecycle synchronization remains incomplete."
+  },
+  "tx_gate_audit": {
+    "path": "tx-gate-results.json",
+    "sha256": "fbaba6f539bfdfec41bc3b8eb1fea3e346b51f1f6de9c54594d8b939e400613b",
+    "hardware_tested": false,
+    "scope": "Actual TX admission/drain and deferred reset code with concurrent pthread fixtures, native sanitizers/MIPS userspace, clean driver/full builds and static image binding. Full lifecycle/hardware validation remains incomplete."
+  },
+  "async_management_audit": {
+    "path": "async-management-results.json",
+    "sha256": "f3ae6c8c88901dad8d7020c73ca11540cb204aa9879885f77d474ac56cd60f7f",
+    "hardware_tested": false,
+    "scope": "Reproduced expired cookie pointer and null-callback crashes, explicit async packet ownership and zero-cookie completion; native/MIPS fixtures, clean driver/full builds and static image binding. Full callback/removal and hardware validation remain incomplete."
+  },
+  "station_request_drain_audit": {
+    "path": "station-request-drain-results.json",
+    "sha256": "2e8856b14876631d8798f2aea39204ae66b10ca62f13d7f005e53d84221559b3",
+    "hardware_tested": false,
+    "scope": "Queued station TX lifetime through completion, concurrent unregister fixtures and teardown ordering; native/MIPS, clean builds and static image binding. Firmware completion/RX, recovery and hardware validation remain incomplete."
+  },
+  "factory_current_recovery_audit": {
+    "authority": "Rebuilt factory image/ELF/rootfs, native and packaged-MIPS policy/worker tests, and stock checker/intercepted-writer execution; separate from REA Evidence",
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "factory_sysupgrade_sha256": "102e2f0c8d0532831a7baa8d36ec4648aed0717b7519883f10d60084df87399e",
+    "reports": {
+      "factory-current-prerequisites.json": "2c29e39d3daf8b40fc0455d9ba9f58d2127d65af6d9206290d2e6de9621f313c",
+      "factory-current-trial-results.json": "ab0cae5dc19dc0ed15c0007e3354dbc71b5ad55d1de7f95309c0624122e47e2a",
+      "factory-current-stock-writer-results.json": "27ae27ed24c0ae6c0bf0b522731e70c10d59fc73170fe6e4c57f2cd7dbf63dcc",
+      "factory-source-parity-results.json": "9f62b1633f101bfcce87cb8effd486e7805af6c7ac1a8470798f0418c7bade98",
+      "manual-acceptance-results.json": "4f4e6af06b02bd582098fd1a21ce8ab59ca505a8311e0f86b357b27c45155f00",
+      "stock-web-route-results.json": "e2eba662a3c8f3c373dc5769b747cb02f84492294698e8aac783b4c5a3dbdcf5",
+      "stock-uhttpd-ingress-results.json": "11704780bdf7a2a01f28c76a87816278801be8e2491c960e737070786ad52a72"
+    },
+    "scope": "OpenWrt a25fb079b1 factory rebuild; 346 matching build inputs except explicit factory flags; 57 trial scenarios and eight worker groups per native/MIPS shell; 16 stock checker/intercepted-writer cases; stock MIPS uhttpd receives exact multipart bytes and stock LuCI parser/dispatch preserves them in separate isolated tests. No physical boot, packet/RF test, authenticated end-to-end HTTP upgrade or flash write.",
+    "lab_candidate_sha256": "d917a62080d3c179f79241066a6fe515c31ce21f9551441d259a06042cd95169"
+  },
+  "loader_handoff_audit": {
+    "authority": "Image-bound compiled MIPS ELF/argument-handoff instruction inspection, not execution",
+    "hardware_tested": false,
+    "kernel_booted": false,
+    "startup_assembly_executed": false,
+    "negative_controls_rejected_per_build": 2,
+    "reports": {
+      "loader-handoff-development-results.json": "8ff58d5baede7fc133dcdd2c58443841192fda7ee39ed9c88ea912af66308836",
+      "loader-handoff-factory-results.json": "7137eb091425dbfceed106e972d32841f1113308cf6b28439c1af158ea416706"
+    },
+    "limitations": "Actual cache state, shipped boot-argument placement and physical Linux boot remain unverified."
+  },
+  "rea_bootloader_checkout_commit": "9eb829aca34be36ff112826337996f6139f82eff",
+  "rea_bootloader_load_image_evidence_id": "ev_4ce015b96ea9a0293966d9c90bcc19e38b68fd1f27507b3ce9129084b711aa0f",
+  "rea_bootloader_function_evidence_id": "ev_5f175fe55b65b487128325c083f45b558c55e6e6f9cffb1210d54b8b3f47091e",
+  "rea_bootloader_board_init_evidence_id": "ev_798033463a740d8a3d73f23becb0ae294189437654f43695408aab2397f5a052",
+  "rea_bootloader_initdram_evidence_id": "ev_8feabe4860eabf58ec7b561bafb0fe259017e85b253350c8516e36e48e34eec0",
+  "upgrade_payload_integrity_audit": {
+    "authority": "Rebuilt development/factory archives, source-bound payload hashes, native UBI model and packaged MIPS checksum execution",
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "report": "upgrade-payload-integrity-results.json",
+    "report_sha256": "ba6970d53c465bf0f675e8923217b3f9eacbcab7214d9ebe83189783e2004827",
+    "development_image_audit_sha256": "cc712cdd310911e60c6e62035350f6e89ee447306ec18fd6b12b5d76ea04221c",
+    "factory_image_audit_sha256": "2c29e39d3daf8b40fc0455d9ba9f58d2127d65af6d9206290d2e6de9621f313c",
+    "scope": "Intact kernel/rootfs hashes match; single-byte corruption in either member is rejected before modeled UBI mutation. No physical flash or boot."
+  },
+  "manual_acceptance_audit": {
+    "authority": "Source-bound factory control command and worker, isolated native/MIPS execution and exact stock-writer parser capture",
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "report": "manual-acceptance-results.json",
+    "report_sha256": "4f4e6af06b02bd582098fd1a21ce8ab59ca505a8311e0f86b357b27c45155f00",
+    "scope": "Boot-bound acceptance, serialized decision and restart-safe singleton worker modeled in native/MIPS shells; uncertain environment saves do not trigger automatic reboot. No physical boot or network test."
+  },
+  "rea_checkout_head_after_pull": "c106cf20cbfcec8e1fcd953ad8e52bdfbf8c3f9c",
+  "v16_baseline_audit": {
+    "authority": "TP-Link US V1.60 support page and fresh official 230831 ZIP comparison",
+    "hardware_tested": false,
+    "report": "v16-baseline-results.json",
+    "report_sha256": "dcd75d3a826ef41ccced2d6e52eb8c9a328752dbbb1a4bfdd0320aad5f8e60a7",
+    "router_firmware_version_observed": false
+  },
+  "vht160_band_audit": {
+    "authority": "Prepared cfg80211 source, compiled MIPS branch and matching packaged modules in both rebuilt image audits",
+    "hardware_tested": false,
+    "report": "vht160-band-results.json",
+    "report_sha256": "7d4192010fea034e9b747dd15b4c3103091fc3078d76583961908cd0aaabe1fc",
+    "scope": "VHT 160 MHz and short-GI flags gated on 5 GHz while 5 GHz HE/VHT capability remains; actual RF operation untested."
+  },
+  "upgrade_env_geometry_audit": {
+    "authority": "Exact upgrade script in native and packaged-MIPS BusyBox, mocked MTD/UBI; source-bound rebuilt images",
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "report": "upgrade-env-geometry-results.json",
+    "report_sha256": "a683885d861da9cda489c63c526eb4f547561f7d7d3557bafeaaeb3a20955d59",
+    "scope": "Unexpected stock environment partition geometry is rejected before boot environment read or UBI mutation. No physical flash or boot."
+  },
+  "stock_web_route_audit": {
+    "authority": "Pinned stock MIPS Lua bytecode and interpreter under isolated QEMU, with external commands intercepted",
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "report": "stock-web-route-results.json",
+    "report_sha256": "e2eba662a3c8f3c373dc5769b747cb02f84492294698e8aac783b4c5a3dbdcf5",
+    "scope": "This isolated stock LuCI HTTP multipart parser and file handler test preserves exact factory bytes and dispatches checker before writer; rejected check blocks writer. It does not run HTTP server, router boot or flash; a separate stock-uhttpd-ingress test runs the server."
+  },
+  "stock_uhttpd_ingress_audit": {
+    "authority": "Pinned stock MIPS uhttpd and ubusd under isolated QEMU, host loopback HTTP requests, disposable capture CGI",
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "report": "stock-uhttpd-ingress-results.json",
+    "report_sha256": "11704780bdf7a2a01f28c76a87816278801be8e2491c960e737070786ad52a72",
+    "scope": "Both browser-style and Expect: 100-continue requests delivered the exact 9,038,490-byte multipart body. Stock LuCI authentication and upgrade were not exercised over HTTP; no physical flash or boot."
+  },
+  "rea_latest_bootloader_recheck": {
+    "checkout_commit": "c106cf20cbfcec8e1fcd953ad8e52bdfbf8c3f9c",
+    "local_adapter_sha256": "0af77662161fa3e3e51c821aed8f422c834b73ccf833f2af1790977729beaa68",
+    "load_image_output_sha256": "4bd0f65d26684f3725445732fb28e6418bb8becb64bba7015bcb078426e95d0b",
+    "board_init_output_sha256": "56d1dff15aef6ec72e2ea168d350c4692fe63019ed88c64f527420870983e51a",
+    "initdram_output_sha256": "38e878f6be243f0b03eb2bd6850fc8ea58f90b39a6c61ab9169c500888d57915",
+    "bootm_output_sha256": "33955e78b69142ed55bb3e79bd681b4eba4ed5268f3f1c809d048bdc8f8d3b74",
+    "layout_report_path": "/home/zach/code/archer-ax3000-bringup/bootloader-audit/rea-c106-bootargs-layout-results.json",
+    "layout_report_sha256": "519bc1d48bb0f7dae6a9687bf715f70d7c22cfedb573b333902a98574c7b0227",
+    "negative_controls_rejected": 3,
+    "hardware_tested": false,
+    "scope": "Latest REA build reproduced all four prior raw U-Boot Evidence outputs byte-for-byte; bound boot-argument layout check passes. No U-Boot or Linux execution."
+  },
+  "stock_boot_fallback_audit": {
+    "authority": "Pinned stock U-Boot binary command table, GPL U-Boot parser/saveenv source and stock ltqboot script; exact-string two-boot transition model",
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "report": "stock-boot-fallback-results.json",
+    "report_sha256": "ca2ad081401f8d49f2b7042b99da907768629b05178e05ddcbd62f09c106b3e5",
+    "scope": "The save abbreviation uniquely resolves to saveenv; both trial defaults save the previous update_chk selector and select the previous bank at the following boot. Real environment saves, reset and recovery remain untested."
+  },
+  "dfs_workqueue_quiesce_audit": {
+    "authority": "Patched vendor driver source, native sanitizer and MIPS QEMU fixtures, exact rebuilt OpenWrt images, stock checker/writer capture and prior REA bootloader evidence",
+    "report": "dfs-workqueue-quiesce-results.json",
+    "report_sha256": "d08d23baba4217ae4a0f0a69479734bbe9947a965b98b2436d0c8eae46617289",
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "scope": "DFS cfg80211 workqueue is closed and drained before mac80211 unregister; exact image content and unapproved factory container pass static and captured stock-writer checks. Device boot and network behavior are untested. Exact stock LuCI route and uhttpd receive tests also pass in isolated QEMU. Current loader reports and latest REA boot-argument evidence bind to the canonical images.",
+    "superseded_by": "mac-callback-quiesce-results.json"
+  },
+  "mac_callback_quiesce_audit": {
+    "report": "mac-callback-quiesce-results.json",
+    "report_sha256": "ba4fdda45cff919c829ca27e75f2b9429efe5ba01b0957a3cbdf405a8f7ca2ec",
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "scope": "Station management RX and TX-status callbacks share the existing mac80211 admission counter and drain before unregister. AP cfg80211 callbacks and broader recovery are not covered.",
+    "superseded_by": "ap-status-gate-results.json"
+  },
+  "ap_status_gate_audit": {
+    "report": "ap-status-gate-results.json",
+    "report_sha256": "a1be37c2b5b04a4cfe09e21756a28ab36dab7238f51ffa35bd38710c63689f12",
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "scope": "The reserved-BSS failure helper suppresses AP cfg80211 management TX status once MAC events stop, while still consuming queued station/AP skbs. Other AP callbacks and complete recovery remain outside this check.",
+    "superseded_by": "mac-event-gate-once-results.json"
+  },
+  "mac_event_gate_once_audit": {
+    "report": "mac-event-gate-once-results.json",
+    "report_sha256": "ffaeb7b74d4489564887b6913d636f8d81d1b3cb5476b30474e74cdbcb6d5989",
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "scope": "All active stop-gate flag accesses use READ_ONCE/WRITE_ONCE; rebuilt development and factory images, exact stock checker/writer capture, isolated LuCI/uhttpd, loader handoff and REA layout checks pass. No physical boot, networking, flash or fallback test."
+  },
+  "bss_removed_vap_audit": {
+    "report": "bss-removed-vap-results.json",
+    "report_sha256": "f814631f43770adcca809540d746e5110f30b3debfb3605c7576e3ce326d6e72",
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "scope": "Two actual BSS handler bugs reproduced before and corrected: late removed-VAP confirmation no longer resets the whole card, and reserve-slot reuse preserves original ACK/probe metadata. Native/MIPS fixtures, three full builds, six image/loader audits, REA layout check, and isolated stock checker/writer/LuCI/uhttpd checks pass. Concurrent VAP/netdev lifetime, physical networking, boot, flash and fallback remain unverified."
+  },
+  "vap_rtnl_lifetime_audit": {
+    "report": "vap-rtnl-lifetime-results.json",
+    "report_sha256": "2a23e47d78e4674d38d8bff07290028c7ab3bcb9dbb8d9ca3a62a2ffce557a9b",
+    "release_gate_passed": false,
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "scope": "Prepared WAVE600 source and Linux 6.18.55 prove WEXT/serializer RTNL ownership mismatch and VAP cleanup before unpublish. Dynamic AP VAP path is unsafe; no image upload is approved."
+  },
+  "station_remove_deferred_lifetime_audit": {
+    "report": "station-remove-terminal-results.json",
+    "report_sha256": "97bc3006a40701319178cd057fb9b1bad5b43449b372b0e2b23060679fb7bb01",
+    "station_removal_source_gate_passed": true,
+    "full_device_release_gate_passed": false,
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "scope": "Patch 254 serializes and unpublishes station VIF readers, gives a failed VAP/DF independent netdev ownership, retries deletion, blocks replacement admission and cancels retry work before final manager cleanup. Extracted ASan/UBSan cases, all 26 host scripts, the MIPS package build and the full development image build/static audits pass. No router, firmware, recovery, RF, flash or fallback execution; no factory container includes this repair."
+  },
+  "unconnected_sta_lifetime_audit": {
+    "report": "unconnected-sta-lifetime-results.json",
+    "report_sha256": "fc576d8bea887d86b4a95c15ccb5ef25e95f7d112e96f52804792e9991394f1f",
+    "unconnected_station_source_gate_passed": true,
+    "full_device_release_gate_passed": false,
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "scope": "Patch 255 keeps the nl80211 vendor callback and wiphy lifetime active until serialized unconnected-station measurement/event completion, propagates errors and initializes every event result before interface lookup. The exact Linux lock contract, extracted ASan/UBSan cases, all 27 driver scripts, MIPS package, full development images and static audits pass. No physical firmware, recovery/removal, RF, boot, flash or fallback execution; no factory container includes this repair."
+  },
+  "async_channel_request_gate_audit": {
+    "report": "async-channel-request-gate-results.json",
+    "report_sha256": "980d6cc4f7fcb4fc5ad1a808a73ebe8d7e8d9e09dd126f1743c62ac1549b85a2",
+    "barrier_failure_followup": "removal-scan-barrier-results.json",
+    "scope_correction": "The patch-256 gate covers producer admission/copying only. Its ordinary completion barrier could fail; patch 257 supersedes any failure-safe teardown interpretation of this historical result.",
+    "async_channel_source_gate_passed": true,
+    "full_device_release_gate_passed": false,
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "scope": "Patch 256 closes and drains the two compiled asynchronous SET_CHAN producers before teardown's existing serializer barrier, preventing their copied master netdev from crossing mac80211 unregister. Extracted native ASan/UBSan and static-MIPS races, all 28 driver scripts, all 15 target scripts, clean MIPS package/target/full builds, current image audits and packaged-MIPS corruption checks pass. No physical DFS/CAC, firmware, unregister, recovery, RF, boot, flash or fallback execution; no factory container includes this repair."
+  },
+  "removal_scan_barrier_audit": {
+    "report": "removal-scan-barrier-results.json",
+    "report_sha256": "ae93fffb08c80bfca052872e67ed96a32dbb2bd4a855a430faa4e98ac377031a",
+    "removal_scan_barrier_source_gate_passed": true,
+    "full_device_release_gate_passed": false,
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "scope": "Patch 257 replaces the fallible removal user request with a stack-owned FIFO command/completion and serializer stop/join fallback. Five pre-fix failures are reproduced. Extracted native ASan/UBSan and static-MIPS tests, all 29 driver scripts, clean MIPS package/full builds, both image audits and packaged-MIPS corruption checks pass. Queue, worker join and scan leaves are modeled; no physical firmware, recovery, RF, boot, flash or fallback execution, and no factory container includes this repair."
+  },
+  "serializer_thread_start_audit": {
+    "report": "serializer-thread-start-results.json",
+    "report_sha256": "6218dd296f9a909f491aacd5988673b836339bb858744505301b3da22bbef078",
+    "serializer_worker_start_source_gate_passed": true,
+    "full_device_release_gate_passed": false,
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "scope": "Patch 258 rejects kthread_run error pointers instead of falsely completing serializer startup. The actual OS-dependent implementation and vendor lifecycle macros reject 4,095 injected error encodings and allow 4,095 successful retries on native ASan/UBSan and static MIPS; all 30 driver scripts, clean package/full builds, both image audits and packaged-MIPS corruption checks pass. Kernel worker/event leaves are modeled. Physical fault injection, boot, networking, recovery, flash and fallback remain untested; no factory container includes this repair."
+  },
+  "serializer_current_lifetime_audit": {
+    "report": "serializer-current-lifetime-results.json",
+    "report_sha256": "baa95cbd60eb7e7cf1d557a01e2e70a90be0dce1433f9c6132dc651f44d65ce4",
+    "serializer_current_lifetime_source_gate_passed": true,
+    "full_device_release_gate_passed": false,
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "scope": "Patch 259 clears current_command under the enumeration lock before completion releases the command. A deterministic concurrent reader observes two freed commands on the baseline and none after correction. Extracted native ASan/UBSan and static-MIPS tests, the adapted removal-barrier regression, all 31 driver scripts, clean package/full builds, both image audits and packaged-MIPS corruption checks pass. No target kernel worker/procfs, physical networking, recovery, boot, flash or fallback execution; no factory container includes this repair."
+  },
+  "ethtool_autoneg_restart_audit": {
+    "report": "ethtool-autoneg-results.json",
+    "report_sha256": "d4100aced8b135741d556642a31c06579dddf971cf4a2eaf570af939fc1c9f87",
+    "source_and_build_gate_passed": true,
+    "physical_ethernet_gate_passed": false,
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "scope": "The GRX500 PHY-backed ethtool nway_reset callback now invokes Linux phylib and propagates real results instead of returning false success. Five extracted ASan/UBSan cases, the MIPS kernel object, full development build and current image audits pass. No physical PHY, link, traffic, flash or fallback execution; no factory container includes this repair."
+  },
+  "ethernet_flow_control_audit": {
+    "report": "ethernet-flow-control-results.json",
+    "report_sha256": "3a43268d3f2765716206ff0cb676bf4a4317309948f7110560f4de575d936cad",
+    "source_and_build_gate_passed": true,
+    "physical_ethernet_gate_passed": false,
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "scope": "The GRX500 datapath callbacks now stop every TX queue and restart only a running netdev; the watchdog records and wakes timed-out queues. Seven extracted ASan/UBSan cases, the complete GRX500 native suite, MIPS kernel object, full development build, image audits and packaged-MIPS corruption tests pass. No physical congestion, watchdog, shutdown-race, traffic, flash or fallback execution; no factory container includes this repair."
+  },
+  "ethernet_datapath_rx_audit": {
+    "report": "ethernet-datapath-rx-results.json",
+    "report_sha256": "10773fa472dc313a0fc4229b5103805234715e7f40da0afbd354099468d45ad6",
+    "source_and_build_gate_passed": true,
+    "physical_ethernet_gate_passed": false,
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "scope": "The GRX500 callback now validates lengths, header access, DMA tails, interface state and skb ownership; RX drops propagate and the datapath's txif mode reaches dev_queue_xmit instead of being freed. Official UGW 8.5.2 source comparison, 38 callback-focused ASan/UBSan cases, the complete target suite, MIPS object bindings, full image build, static audits and packaged-MIPS corruption tests pass. No physical packet, counter, flash or fallback execution; no factory container includes this repair."
+  },
+  "datapath_rx_accounting_audit": {
+    "report": "datapath-rx-accounting-results.json",
+    "report_sha256": "f4465d3e6eab6431d7fa1c631513154d769a30cf59fdffdb8bfb5c9316a34d51",
+    "source_and_build_gate_passed": true,
+    "physical_ethernet_gate_passed": false,
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "scope": "The GSWIP receive path now classifies a nonzero registered-callback result as rx_fn_dropped/global rx_drop instead of normal-RX, redirected-TX or LCT success, while preserving consumed-skb ownership and the outer handled-packet return contract. Seven exact-helper ASan/UBSan cases, all 15 zero-argument target scripts, the rebuilt MIPS object, full image build, static audits and packaged-MIPS corruption tests pass. No physical packet, counter, flash or fallback execution; no factory container includes this repair."
+  },
+  "datapath_debug_dump_audit": {
+    "report": "datapath-debug-dump-results.json",
+    "report_sha256": "7c215334b30d6c17639128a0372bdc6fac31cb1bb5e4eb88d14abb2758dac9db",
+    "source_and_build_gate_passed": true,
+    "physical_datapath_gate_passed": false,
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "scope": "All four raw RX/TX skb data dumps now derive length from the linear head, reject exhausted offsets and honor a positive print cap. Eleven exact-helper ASan/UBSan cases, all 15 zero-argument target scripts, both rebuilt MIPS objects, full image build, static audits and packaged-MIPS corruption tests pass. No physical diagnostic-path, packet, flash or fallback execution; no factory container includes this repair."
+  }
+}

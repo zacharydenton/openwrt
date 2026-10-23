@@ -1,0 +1,90 @@
+Subject: [PATCH] MIPS: add experimental Intel GRX500 platform hooks
+
+Adapt Intel's 2018 GRX500 submission for the current kernel.
+Platform sources retain their original copyright and license notices.
+Source: https://lists.openwall.net/linux-kernel/2018/08/03/90
+
+--- a/arch/mips/Kbuild.platforms
++++ b/arch/mips/Kbuild.platforms
+@@ -13,6 +13,7 @@
+ platform-$(CONFIG_MACH_DECSTATION)	+= dec/
+ platform-$(CONFIG_ECONET)		+= econet/
+ platform-$(CONFIG_MIPS_GENERIC)		+= generic/
++platform-$(CONFIG_INTEL_MIPS)		+= intel-mips/
+ platform-$(CONFIG_MACH_JAZZ)		+= jazz/
+ platform-$(CONFIG_LANTIQ)		+= lantiq/
+ platform-$(CONFIG_MACH_LOONGSON2EF)	+= loongson2ef/
+--- a/arch/mips/Kconfig
++++ b/arch/mips/Kconfig
+@@ -452,6 +452,33 @@
+ 	select CPU_SUPPORTS_CPUFREQ
+ 	select MIPS_EXTERNAL_TIMER
+ 
++config INTEL_MIPS
++	bool "Intel MIPS interAptiv SoC based platforms"
++	select BOOT_RAW
++	select CEVT_R4K
++	select COMMON_CLK
++	select CPU_MIPS32_3_5_EVA
++	select CPU_MIPS32_3_5_FEATURES
++	select CPU_MIPSR2_IRQ_EI
++	select CPU_MIPSR2_IRQ_VI
++	select CSRC_R4K
++	select DMA_NONCOHERENT
++	select IRQ_MIPS_CPU
++	select MFD_CORE
++	select MFD_SYSCON
++	select MIPS_CPU_SCACHE
++	select MIPS_GIC
++	select MIPS_CM
++	select SYS_HAS_CPU_MIPS32_R2
++	select SYS_HAS_CPU_MIPS32_R3_5
++	select SYS_SUPPORTS_BIG_ENDIAN
++	select SYS_SUPPORTS_32BIT_KERNEL
++	select SYS_SUPPORTS_MULTITHREADING
++	select SYS_SUPPORTS_SMP
++	select TIMER_OF
++	select USE_OF
++	select WEAK_ORDERING
++
+ config LANTIQ
+ 	bool "Lantiq based platforms"
+ 	select DMA_NONCOHERENT
+@@ -1064,6 +1089,7 @@
+ source "arch/mips/bmips/Kconfig"
+ source "arch/mips/econet/Kconfig"
+ source "arch/mips/generic/Kconfig"
++source "arch/mips/intel-mips/Kconfig"
+ source "arch/mips/ingenic/Kconfig"
+ source "arch/mips/jazz/Kconfig"
+ source "arch/mips/lantiq/Kconfig"
+--- a/drivers/clk/Kconfig
++++ b/drivers/clk/Kconfig
+@@ -32,6 +32,8 @@
+ 	  this option.
+ 
+ if COMMON_CLK
++
++source "drivers/clk/intel/Kconfig"
+ 
+ config COMMON_CLK_WM831X
+ 	tristate "Clock driver for WM831x/2x PMICs"
+--- a/drivers/clk/Makefile
++++ b/drivers/clk/Makefile
+@@ -168,3 +168,5 @@
+ obj-y					+= xilinx/
+ obj-$(CONFIG_ARCH_ZYNQ)			+= zynq/
+ obj-$(CONFIG_COMMON_CLK_ZYNQMP)         += zynqmp/
++
++obj-$(CONFIG_INTEL_CGU_CLK) += intel/
+--- a/drivers/tty/serial/Kconfig
++++ b/drivers/tty/serial/Kconfig
+@@ -1002,7 +1002,7 @@
+ 
+ config SERIAL_LANTIQ
+ 	tristate "Lantiq serial driver"
+-	depends on (LANTIQ || X86) || COMPILE_TEST
++	depends on (LANTIQ || INTEL_MIPS || X86) || COMPILE_TEST
+ 	select SERIAL_CORE
+ 	help
+ 	  Support for UART on Lantiq and Intel SoCs.

@@ -1,0 +1,63 @@
+--- a/wireless/driver/shared/hw_mmb.c
++++ b/wireless/driver/shared/hw_mmb.c
+@@ -1836,6 +1836,17 @@
+   /* TODO: use shift instead of multiplication */
+   data_req = _mtlk_basic_bdr_get_mirror_bd(&hw->tx.bdr_data.basic, u32BdIndex, mtlk_hw_data_req_mirror_t);
+ 
++#ifdef BD_DBG
++  if (radio_id != data_req->radio_id) {
++    ELOG_DD("Received data frame cfm from wrong RADIO:%d bss_req_RADIO:%d", radio_id, data_req->radio_id);
++    goto the_trap;
++  }
++  if (__UNLIKELY(vap_id != data_req->vap_id)) {
++    ELOG_DD("Received data frame cfm from wrong VAP:%d bss_req_VAP:%d", vap_id, data_req->vap_id);
++    goto the_trap;
++  }
++#endif
++
+   if (__UNLIKELY(_mtlk_mmb_get_vap_is_not_ready(hw, radio_id, vap_id))) {
+     _mtlk_mmb_log_error_vap_not_ready(__FUNCTION__, radio_id, vap_id);
+     goto skip_process;
+@@ -1846,18 +1857,6 @@
+     _mtlk_mmb_log_error_vap_not_exist(__FUNCTION__, radio_id, vap_id);
+     goto skip_process;
+   }
+-
+-#ifdef BD_DBG
+-  if (radio_id != data_req->radio_id) {
+-    ELOG_DD("Received data frame cfm from wrong RADIO:%d bss_req_RADIO:%d", radio_id, data_req->radio_id);
+-    goto the_trap;
+-  }
+-  if (__UNLIKELY(vap_id != data_req->vap_id)) {
+-    ELOG_DD("Received data frame cfm from wrong VAP:%d bss_req_VAP:%d", vap_id, data_req->vap_id);
+-    goto the_trap;
+-  }
+-#endif
+-
+ 
+   if (data_req->dma_addr) { /* NULL keep-alive packets are not mapped */
+     ILOG5_DDD("handling CFM: index %d, payload %08X, HD payload %08X", u32BdIndex, data_req->dma_addr, LE32_TO_CPU(hd->u32HostPayloadAddr));
+@@ -1875,8 +1874,23 @@
+   data_req->nof_retries     = 0;
+ 
+   mtlk_vap_get_core_vft(vap_handle)->release_tx_data(vap_handle, data_req);
++  data_req->nbuf = NULL;
++  data_req->dma_addr = 0;
+ 
+ skip_process:
++  /* A stopped/removed VAP cannot consume the completion, but the confirmed
++   * packet still belongs to this descriptor. Release it before returning the
++   * descriptor to the free pool, where recovery no longer finds it.
++   */
++  if (data_req->nbuf) {
++    if (data_req->dma_addr)
++      mtlk_df_nbuf_unmap_phys_addr(mtlk_ccr_get_dev_ctx(hw->ccr),
++                                 data_req->nbuf, data_req->dma_addr,
++                                 data_req->size, MTLK_DATA_TO_DEVICE);
++    mtlk_df_nbuf_free(data_req->nbuf);
++    data_req->nbuf = NULL;
++  }
++  data_req->dma_addr = 0;
+   /* TODO: get rid of used list */
+   _mtlk_mmb_free_sent_msg_to_data_pool(hw, data_req);
+   return;

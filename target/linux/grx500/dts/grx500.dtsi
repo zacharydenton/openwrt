@@ -1,0 +1,92 @@
+// SPDX-License-Identifier: GPL-2.0
+/* Based on Intel's 2018 xrx500.dtsi, Copyright (C) Intel Corporation. */
+
+#include <dt-bindings/clock/intel,grx500-clk.h>
+#include <dt-bindings/interrupt-controller/mips-gic.h>
+
+/ {
+	#address-cells = <1>;
+	#size-cells = <1>;
+
+	cpus {
+		#address-cells = <1>;
+		#size-cells = <0>;
+
+		cpu0: cpu@0 {
+			device_type = "cpu";
+			compatible = "mti,interaptiv";
+			reg = <0>;
+			clocks = <&cgu CLK_CPU>;
+		};
+		cpu1: cpu@1 {
+			device_type = "cpu";
+			compatible = "mti,interaptiv";
+			reg = <1>;
+			clocks = <&cgu CLK_CPU>;
+		};
+
+		cpu2: cpu@2 {
+			device_type = "cpu";
+			compatible = "mti,interaptiv";
+			reg = <2>;
+			clocks = <&cgu CLK_CPU>;
+		};
+
+		cpu3: cpu@3 {
+			device_type = "cpu";
+			compatible = "mti,interaptiv";
+			reg = <3>;
+			clocks = <&cgu CLK_CPU>;
+		};
+
+	};
+
+	cpu_intc: interrupt-controller {
+		compatible = "mti,cpu-interrupt-controller";
+		interrupt-controller;
+		#interrupt-cells = <1>;
+		#address-cells = <0>;
+	};
+
+	gic: interrupt-controller@12320000 {
+		compatible = "mti,gic";
+		reg = <0x12320000 0x20000>;
+		interrupt-controller;
+		#interrupt-cells = <3>;
+		#address-cells = <0>;
+		interrupt-parent = <&cpu_intc>;
+	};
+
+	cgu: clock-controller@16200000 {
+		compatible = "intel,grx500-cgu", "syscon";
+		reg = <0x16200000 0x200>;
+		#clock-cells = <1>;
+		native-endian;
+	};
+
+	rcu: syscon@16000000 {
+		compatible = "lantiq,rcu-grx500", "syscon";
+		reg = <0x16000000 0x100>;
+		native-endian;
+	};
+
+	reboot {
+		compatible = "syscon-reboot";
+		regmap = <&rcu>;
+		offset = <0x10>;
+		mask = <0x40000000>;
+		value = <0x40000000>;
+	};
+
+	asc0: serial@16600000 {
+		compatible = "lantiq,asc";
+		reg = <0x16600000 0x100>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SHARED 103 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SHARED 105 IRQ_TYPE_LEVEL_HIGH>,
+			     <GIC_SHARED 106 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&cgu CLK_SSX4>, <&cgu GCLK_UART>;
+		clock-names = "freq", "asc";
+		status = "disabled";
+	};
+};

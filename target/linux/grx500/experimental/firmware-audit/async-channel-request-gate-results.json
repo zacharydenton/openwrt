@@ -1,0 +1,180 @@
+{
+  "schema": 1,
+  "base_commit": "bf46a5077ea14291164b145f62efcaf7d67a8f8a",
+  "date": "2026-10-23",
+  "status": "The two compiled asynchronous SET_CHAN producers are source-level ordered before Wi-Fi teardown's serializer barrier; physical firmware, channel-switch and unregister qualification remains outstanding.",
+  "hardware_tested": false,
+  "release_gate": {
+    "async_channel_source_gate_passed": true,
+    "full_device_release_gate_passed": false,
+    "upload_recommended": false
+  },
+  "async_callsite_audit": {
+    "prepared_source_calls": 8,
+    "compiled_calls": 7,
+    "compiled_out_calls": 1,
+    "compiled_out_reason": "The multicast-helper producer is guarded by MTLK_USE_DIRECTCONNECT_DP_API, which is 0 in this build.",
+    "affected_calls": 2,
+    "affected_request": "WAVE_RADIO_REQ_SET_CHAN",
+    "affected_producers": [
+      "_mtlk_core_switch_channel_normal after a DFS-channel beacon",
+      "cac_timer_serialized_func after CAC completion"
+    ],
+    "defect": "Each affected producer copied the master netdev into asynchronous serializer work. A producer could pass removal_pending, be preempted, and enqueue after teardown's synchronous serializer barrier.",
+    "other_compiled_classes": [
+      "management TX with explicit request ownership and teardown drain",
+      "copied operating-mode values",
+      "statistics callback ordered by synchronous timer cancellation and serializer lifetime",
+      "payload-free scan timeout",
+      "payload-free CAC timeout"
+    ]
+  },
+  "patch": {
+    "path": "package/kernel/iwlwav-stock/patches/256-async-channel-request-gate.patch",
+    "sha256": "e4bc1699f0aa49a8828f8a0a2934124e748842de0dd33c852cdba6fabe95690b",
+    "changes": [
+      "add a per-radio spinlock, waitqueue and admitted-producer count",
+      "admit both asynchronous SET_CHAN producers only while removal is open",
+      "close admission and wait for every pre-close producer to finish the clipboard copy",
+      "leave the existing synchronous scan abort/prevent request as the serializer completion barrier"
+    ]
+  },
+  "prepared_source": {
+    "core_c_sha256": "7b7ff30a47a7a36dffd012472ac3a7edd0fcabe07d7e27f20839c209d9ccccae",
+    "scan_support_c_sha256": "1e88f80ea30bafafec457475502459cbc5a9422c96f1d802ff7a0d69bbeb154d",
+    "scan_support_h_sha256": "882a666fc61a16ca38b8cb9d630c087a83414674589b55b56bdb9b891264a75e",
+    "async_copy_implementation_sha256": "362264ad00517635f97dd5ec67697e110d0f2b5a89976cda98b4619b14e5b9e2"
+  },
+  "channel_gate_test": {
+    "path": "package/kernel/iwlwav-stock/tests/async-channel-request-gate.py",
+    "sha256": "1f9399679dd059a6266178263eb928d52edacf889f64e4b67cd8aa384d5ad347",
+    "native": {
+      "compiler": "native GCC with ASan/UBSan, pthreads and -Wall -Wextra -Werror",
+      "exit_code": 0,
+      "result": "PASS: async channel admission, rejection and admitted-producer drain"
+    },
+    "mips": {
+      "compiler": "OpenWrt GCC 14.4.0 static big-endian MIPS",
+      "runner": "/home/zach/code/archer-ax3000-bringup/web-upgrade-audit/usr/bin/qemu-mips-static",
+      "runner_sha256": "8d02f418b92f4ddf984ed8352954b0067d1a5cd810d38247aaf5f0fddc31c42e",
+      "exit_code": 0,
+      "result": "PASS: async channel admission, rejection and admitted-producer drain"
+    },
+    "cases": [
+      "ordinary producer copies the chandef, master netdev and VAP id",
+      "a closed gate rejects a new producer",
+      "teardown waits for a producer paused inside the async clipboard copy",
+      "no producer enters after teardown completes"
+    ],
+    "structural_checks": [
+      "the actual CAC producer orders enter before submission and exit after submission",
+      "the actual normal channel producer uses the same gate",
+      "teardown closes under the gate lock and waits for the admitted count to reach zero"
+    ]
+  },
+  "scan_cancel_regression": {
+    "path": "package/kernel/iwlwav-stock/tests/scan-cancel.py",
+    "sha256": "05db2dfb798b655a7706e1f1f71c124c44c96de40f457013438673c6fbd16e38",
+    "exit_code": 0,
+    "cases": 21,
+    "result": "PASS: 21 scan-cancel/timer cases (modeled timer and serializer)"
+  },
+  "full_driver_suite": {
+    "python_test_scripts": 28,
+    "python_exit_code": 0,
+    "he_wire_test": "pass",
+    "sanitizers": "ASan/UBSan where provided by each harness",
+    "scope": "Extracted production functions plus modeled kernel, serializer, DMA, workqueue, firmware and callback leaves; not a running target kernel."
+  },
+  "full_grx500_native_suite": {
+    "zero_argument_scripts": 15,
+    "exit_code": 0,
+    "enumerated_cases": 252192,
+    "trial_cases": 14,
+    "trial_worker_cases": 8,
+    "upgrade_cases": 9
+  },
+  "package_build": {
+    "command": "make package/kernel/iwlwav-stock/clean V=s && make package/kernel/iwlwav-stock/compile V=s -j4",
+    "exit_code": 0,
+    "architecture": "mips_24kc big-endian",
+    "objects": {
+      "core_o": {
+        "bytes": 1259888,
+        "sha256": "552e4966ecc33869193eee399a5873a0570add3b9686ffc0cff7f9a4a3990bff"
+      },
+      "scan_support_o": {
+        "bytes": 244128,
+        "sha256": "e3d776aaba6ba22c75e0c8117bea7b1d37c26f86eaa4bcd818e21d43c0e0e42a"
+      }
+    },
+    "modules": {
+      "mtlk_ko": {
+        "bytes": 8957892,
+        "sha256": "7e7c071189c37d477449152a50422b4052b97dc4117cea2d552b5448a9f51808"
+      },
+      "mtlkroot_ko": {
+        "bytes": 653672,
+        "sha256": "a08ee89dd58208b0e114348a3859446a2cfb6da66af4832ccb79019242087cef"
+      }
+    },
+    "package": {
+      "path": "bin/targets/grx500/generic/packages/kmod-iwlwav-stock-6.18.55.6.0.8.0.87.0.7-r1.apk",
+      "bytes": 689443,
+      "sha256": "d64d333ed8e3ff25e45a7a3c34979ec55929c36785f7230d97ab7c41dc63ddf6"
+    }
+  },
+  "integrated_builds": {
+    "target_linux": {
+      "command": "make target/linux/compile V=s -j4",
+      "exit_code": 0
+    },
+    "development_image": {
+      "command": "make -j4",
+      "exit_code": 0
+    }
+  },
+  "development_images": {
+    "initramfs": {
+      "path": "bin/targets/grx500/generic/openwrt-grx500-generic-tplink_archer-ax3000-v1-initramfs-kernel.bin",
+      "bytes": 8628760,
+      "sha256": "96bd3275ef4aae14aeb7c80da46acc9a8ecb85afba5cd187be9a07fbc2f4321e",
+      "elf_sha256": "69cb4d7af70ec7c29e753a25820dc05919ac04cf17e236e342cd9d6e8bfd885a",
+      "audit": "current-image-audit.json",
+      "audit_sha256": "c16c8055ca5758f886d99ed851a9e63e57e68a0ade1826a1213b61ef0cee25b4",
+      "audit_result": "pass"
+    },
+    "sysupgrade": {
+      "path": "bin/targets/grx500/generic/openwrt-grx500-generic-tplink_archer-ax3000-v1-squashfs-sysupgrade.bin",
+      "bytes": 9052445,
+      "sha256": "743202e7c0c5d5bc5a4d29c0afd2d0dd8559c9283f86167ae73346c7459966a4",
+      "elf_sha256": "a3d199ef5cdd3669a05d88e446df8ef9ab08593d4b81a5b37bb7bd4b7788087c",
+      "audit": "current-sysupgrade-audit.json",
+      "audit_sha256": "a196c77ff37a9008aa7a6189120af26ef71ffe22b40ec7d6841781af617c72cd",
+      "audit_result": "pass",
+      "rootfs_mtlk_ko_sha256": "265b63de23d0e3bb93cbbc5660d1da077c6bdcec4a89229995d8c4f7cabff56b",
+      "rootfs_mtlkroot_ko_sha256": "7840da26d8a4dc265a398540c65d288d40ac293a6d5d7b77055a41b40dbed74c"
+    }
+  },
+  "packaged_mips_checksum_test": {
+    "report": "development-current-checksums-mips.json",
+    "report_sha256": "df93c7135b3474e56c5823fba6f522510894537e9fa9a46af5b8f5dd64580206",
+    "cases_passed": 3,
+    "flash_operations_performed": false
+  },
+  "factory_candidate": {
+    "rebuilt_with_patch_256": false,
+    "hardware_tested": false,
+    "upload_recommended": false
+  },
+  "remaining_release_gates": [
+    "Physical boot and module load/unload on Archer AX3000(US) v1.6",
+    "Real DFS-beacon and CAC completion overlap with interface teardown",
+    "Firmware channel switching, serializer contention and cfg80211 notification",
+    "Recovery and module removal under live 2.4/5 GHz traffic",
+    "Ethernet forwarding and simultaneous 2.4/5 GHz Wi-Fi association and traffic",
+    "Flash-write, trial acceptance, reset and stock-bank fallback",
+    "Hardware watchdog or another demonstrated early-boot recovery mechanism",
+    "Verification of the user's installed stock firmware against the pinned US image"
+  ]
+}

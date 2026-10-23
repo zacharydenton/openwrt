@@ -1,0 +1,74 @@
+--- a/wireless/driver/linux/mac80211.c
++++ b/wireless/driver/linux/mac80211.c
+@@ -73,7 +73,8 @@
+ 
+ /* Counts queued station TX requests through their completion callback.
+  * This lifetime is deliberately separate from the hardware TX ring gate:
+- * recovery must not wait for work queued behind itself in a serializer. */
++ * recovery must not wait for work queued behind itself in a serializer.
++ * It also covers RX and TX-status calls into mac80211 during unregister. */
+ struct wave_sta_tx_lifetime {
+   spinlock_t lock;
+   wait_queue_head_t wait;
+@@ -2595,15 +2596,24 @@
+ wv_ieee80211_mngmn_frame_rx(mtlk_core_t *nic, const u8 *data, int size,
+     int freq, int sig_dbm, unsigned subtype, uint16 rate_idx, u8 phy_mode, uint8 pmf_flags)
+ {
+-  struct ieee80211_hw *mac80211_hw = wave_vap_ieee80211_hw_get(nic->vap_handle);
++  wave_radio_t *radio = wave_vap_radio_get(nic->vap_handle);
++  wv_mac80211_t *mac80211 = wave_radio_mac80211_get(radio);
++  struct ieee80211_hw *mac80211_hw;
+   struct ieee80211_rx_status *rx_status;
+   struct sk_buff *skb;
+   u8 *buf;
+ 
++  /* A serialized frame may already be queued when IRQ delivery stops. Keep
++   * the owner alive through the callback and reject new work before unregister.
++   */
++  if (!mac80211 || !wave_sta_tx_get(mac80211))
++    return;
++  mac80211_hw = mac80211->mac80211_hw;
++
+   skb = dev_alloc_skb(size);
+   if (!skb) {
+     ELOG_V("Couldn't allocate RX skb frame");
+-    return;
++    goto out;
+   }
+ 
+   buf = skb_put(skb, size);
+@@ -2613,18 +2623,33 @@
+   _wv_ieee80211_hw_rx_status(mac80211_hw, rx_status, freq, sig_dbm, rate_idx, phy_mode, pmf_flags);
+ 
+   ieee80211_rx_irqsafe(mac80211_hw, skb);
++out:
++  wave_sta_tx_put(mac80211);
+ }
+ 
+ void __MTLK_IFUNC
+ wv_ieee80211_tx_status(struct ieee80211_hw *hw,
+     struct sk_buff *skb, uint8 status)
+ {
+-  struct ieee80211_tx_info *info = IEEE80211_SKB_CB(skb);
++  wv_mac80211_t *mac80211;
++  struct ieee80211_tx_info *info;
++
++  if (!hw) {
++    dev_kfree_skb_any(skb);
++    return;
++  }
++  mac80211 = __wv_ieee80211_hw_get_mac80211(hw);
++  if (!wave_sta_tx_get(mac80211)) {
++    dev_kfree_skb_any(skb);
++    return;
++  }
++  info = IEEE80211_SKB_CB(skb);
+ 
+   if ((status == TX_STATUS_SUCCESS) && !(info->flags & IEEE80211_TX_CTL_NO_ACK))
+     info->flags |= IEEE80211_TX_STAT_ACK;
+ 
+   ieee80211_tx_status_irqsafe(hw, skb);
++  wave_sta_tx_put(mac80211);
+ }
+ 
+ void __MTLK_IFUNC

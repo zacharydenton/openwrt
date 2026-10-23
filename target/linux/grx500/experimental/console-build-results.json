@@ -1,0 +1,28 @@
+{
+  "requirements_met": false,
+  "kernel_version": "6.18.55",
+  "compiler": "OpenWrt GCC 14.4.0, mips_24kc_musl",
+  "ethernet_objects": "pass",
+  "ethernet_vmlinux_link": "pass",
+  "ethernet_warnings_as_errors": false,
+  "ethernet_boot_or_packet_test": "not performed; board integration incomplete",
+  "wifi_full_stack_build": "failed",
+  "wifi_boot_or_association_test": "not performed",
+  "source_import_verification": "201 source files byte-identical to the compiled experiment",
+  "experimental_vmlinux_sha256": "86b4ad1b9c0a879d98ac8eb58e4b0b88d31d5378f31714809ed24cd2bb35958a",
+  "default_initramfs_sha256": "7f5fdbb503216fbe38b406e860b6392556c9ea14845ba6900e7420aa6c4426d4",
+  "default_initramfs_scope": "console-only; networking experiment not included",
+  "ethernet_source": {
+    "url": "https://gitlab.com/prpl-foundation/intel/linux.git",
+    "commit": "dc542d0ac6100123552c3a6ea12296061850e20b"
+  },
+  "wave_source": {
+    "url": "https://github.com/maxlinear/iwlwav-dev.git",
+    "commit": "fca84700765154b42d440ae4aa0c2d860ba431ef"
+  },
+  "wave_a0_capable_candidate": {
+    "url": "https://gitlab.com/prpl-foundation/intel/iwlwav-dev.git",
+    "commit": "b6ae17b7580b47f1295239c8c41458c2ba8d30c6",
+    "built": false
+  }
+}

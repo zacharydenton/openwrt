@@ -1,0 +1,35 @@
+{
+  "passed": true,
+  "hardware_tested": false,
+  "flash_operations_performed": false,
+  "upload_recommended": false,
+  "source_sha256": {
+    "target/linux/grx500/base-files/lib/upgrade/platform.sh": "4dad5e73290373bbcadda4d41e32b069012e85e3db774287875596f2220dfa60",
+    "target/linux/grx500/tests/test-upgrade.py": "c1594d1099cd1f7879fbee7f431289e95c93b4fd2d1b61001f3a744e3a520339"
+  },
+  "stock_geometry": {
+    "ubootconfigA_offset": 1048576,
+    "ubootconfigB_offset": 1310720,
+    "size": 262144,
+    "erasesize": 131072,
+    "writesize": 2048,
+    "type": "nand"
+  },
+  "test_groups_per_shell": 9,
+  "test_log_sha256": {
+    "native": "d59866b113becc6e241dda5306b3b39bd962029617ebcd08d6f2e0e264c3da68",
+    "packaged_mips": "8549f47fea9a91c3b4aa22617fc5dda824256ff41049fba91f151e1f71ff656b"
+  },
+  "image_sha256": {
+    "development": "f54a7157b42b7e3234f7b6b2d38e41c83a425012ba509d7bec7e7f93b3fb9dc6",
+    "factory": "102e2f0c8d0532831a7baa8d36ec4648aed0717b7519883f10d60084df87399e",
+    "laboratory_stock_web_container": "d917a62080d3c179f79241066a6fe515c31ce21f9551441d259a06042cd95169"
+  },
+  "image_audit_sha256": {
+    "development": "1c545475f59d7e09870ca7422357f9735bcd11ce05a766996cceecf06fbd0b04",
+    "factory": "2c29e39d3daf8b40fc0455d9ba9f58d2127d65af6d9206290d2e6de9621f313c"
+  },
+  "stock_writer_report_sha256": "27ae27ed24c0ae6c0bf0b522731e70c10d59fc73170fe6e4c57f2cd7dbf63dcc",
+  "scope": "Exact upgrade script rejects six isolated partition-geometry mutations before environment read or UBI operation in native and packaged-MIPS BusyBox tests; packaged images bind to source.",
+  "limitation": "MTD/UBI were modeled; no physical router boot, flash write or rollback was tested."
+}

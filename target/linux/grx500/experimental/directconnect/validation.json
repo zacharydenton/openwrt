@@ -1,0 +1,88 @@
+{
+  "hardware_tested": false,
+  "openwrt_variant_image_built": true,
+  "scratch_kernel_build": "PASS",
+  "directconnect_compile_modpost": "PASS",
+  "wifi_compile_modpost": "PASS",
+  "combined_dtb_compile": "PASS",
+  "extracted_umt_host_test": "PASS",
+  "export_reproducibility_test": "PASS",
+  "logs": [
+    "directconnect-port/kernel-build-04.log",
+    "directconnect-build-09.log",
+    "directconnect-port/wifi-build-05.log",
+    "directconnect-port/dtc.log"
+  ],
+  "artifacts": {
+    "network-kernel/vmlinux": {
+      "sha256": "fe6407edb84d780c22d0a04b591de119989fde13d50cb7c0435fd9654171caca",
+      "bytes": 79486824
+    },
+    "directconnect-port/ax3000-dc.dtb": {
+      "sha256": "bd2ef56582fc7ec1f3a98cd9ef75fc84202c1bcb5f716515be457db2b36ebac3",
+      "bytes": 13028
+    },
+    "directconnect-source/common/directconnect_datapath.ko": {
+      "sha256": "c9ac56d4a61765b18b3793189e48ad7392af7b9f1b452417ed3fae31032621f0",
+      "bytes": 341372
+    },
+    "directconnect-source/dc_mode/dc_mode-hw.ko": {
+      "sha256": "6673d5a51d793aefde3b2bbac49d4b9ed3d6c348da9c0b9797ea280d3d20722d",
+      "bytes": 115860
+    },
+    "directconnect-port/wifi-src/mtlk.ko": {
+      "sha256": "3915e95206473938ac664a6dbbe3f3171fe6fd8f6d9b61e16a7632b766a912aa",
+      "bytes": 9077084
+    },
+    "directconnect-port/wifi-src/mtlkroot.ko": {
+      "sha256": "0adbae2236fb95877665c4f176a62d613e692f2dd9b64d7189906bb579cc287e",
+      "bytes": 656412
+    }
+  },
+  "openwrt_full_build": "PASS",
+  "ram_image_audit": "PASS",
+  "sysupgrade_image_audit": "PASS",
+  "openwrt_build_log": {
+    "path": "directconnect-image-build-03.log",
+    "sha256": "a08e86b8122ccba16c9367d3d2c5c8cb8f918a5ddaf85e018ee23044a4df1ab5"
+  },
+  "image_sha256": {
+    "openwrt-grx500-generic-tplink_archer-ax3000-v1-initramfs-kernel.bin": "0024809d6e45ad0e6d12ef730a52bb243604349f7bf95a6a8a33d493661dbf81",
+    "openwrt-grx500-generic-tplink_archer-ax3000-v1-squashfs-sysupgrade.bin": "6e8279a7a7c6ed03a12235eb3085c816dfcb9f2e72c0262423ea0c8046d61c1c"
+  },
+  "wifi_directconnect_references": [
+    "dc_dp_add_session_shortcut_forward",
+    "dc_dp_alloc_port",
+    "dc_dp_alloc_skb",
+    "dc_dp_clear_netif_stats",
+    "dc_dp_disconn_if",
+    "dc_dp_get_host_capability",
+    "dc_dp_get_netif_stats",
+    "dc_dp_handle_ring_sw",
+    "dc_dp_map_prio_devqos_class",
+    "dc_dp_mark_pkt_devqos",
+    "dc_dp_register_dev",
+    "dc_dp_register_mcast_module",
+    "dc_dp_register_subif",
+    "dc_dp_xmit"
+  ],
+  "integrated_module_sha256": {
+    "iwlwav-stock-6.0.8.0.87.0.7/mtlk.ko": "17ca7fa7b968f8750c977b6eda8497617d3927aae61dcfe36747a0e4fc1a6865",
+    "iwlwav-stock-6.0.8.0.87.0.7/mtlkroot.ko": "b732c40d287707ab92b581f17c31a7e5b3726b674868b4346bd85ad70c898c23",
+    "directconnect_dp-6ceb742215486e690c6c8604f06a81415d12f398/common/directconnect_datapath.ko": "a7f5b2a8189ca3c4e70e97439bfe37f85b220556a9d1bdbdf56d45382fcafd6f",
+    "directconnect_dp-6ceb742215486e690c6c8604f06a81415d12f398/dc_mode/dc_mode-hw.ko": "b19a8ec5d6a9390b69dbb8cee125ebd09ae9686b21b528f37163ac9757c3e4e8",
+    "directconnect_dp-6ceb742215486e690c6c8604f06a81415d12f398/ipkg-mips_24kc/kmod-directconnect-grx500/lib/modules/6.18.55/dc_mode-hw.ko": "d2181a03e225e39f1dd75cc936a772d96c115124ff41a4fa7c56826326aef4b0",
+    "directconnect_dp-6ceb742215486e690c6c8604f06a81415d12f398/ipkg-mips_24kc/kmod-directconnect-grx500/lib/modules/6.18.55/directconnect_datapath.ko": "f914db066c0679e33f534cb88795416f6633d17b2b56b828108d30fa82674ed2",
+    "directconnect_dp-6ceb742215486e690c6c8604f06a81415d12f398/.pkgdir/kmod-directconnect-grx500/lib/modules/6.18.55/dc_mode-hw.ko": "b19a8ec5d6a9390b69dbb8cee125ebd09ae9686b21b528f37163ac9757c3e4e8",
+    "directconnect_dp-6ceb742215486e690c6c8604f06a81415d12f398/.pkgdir/kmod-directconnect-grx500/lib/modules/6.18.55/directconnect_datapath.ko": "a7f5b2a8189ca3c4e70e97439bfe37f85b220556a9d1bdbdf56d45382fcafd6f"
+  },
+  "historical_image_status": "Original images have known stock-address decompression overlap; do not install",
+  "relocated_update": {
+    "path": "/home/zach/code/archer-ax3000-bringup/artifacts/relocated/directconnect",
+    "image_build": "pass",
+    "ELF_audits": "pass",
+    "kernel_bytes_match_decoder_tested_prototypes": true,
+    "hardware_tested": false,
+    "factory_upload_supported": false
+  }
+}

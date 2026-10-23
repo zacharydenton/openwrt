@@ -1,0 +1,119 @@
+--- a/wireless/driver/linux/mtlk_mmb_drv.h
++++ b/wireless/driver/linux/mtlk_mmb_drv.h
+@@ -77,6 +77,10 @@
+ void __MTLK_IFUNC mtlk_mmb_drv_recovery_irq_quiesce(mtlk_hw_t *hw);
+ void __MTLK_IFUNC mtlk_mmb_drv_recovery_irq_resume(mtlk_hw_t *hw);
+ 
++/* Process context: keep all VAP-consuming tasklets out of VAP cleanup. */
++uint32 __MTLK_IFUNC mtlk_mmb_drv_vap_tasklets_pause(mtlk_hw_t *hw);
++void __MTLK_IFUNC mtlk_mmb_drv_vap_tasklets_resume(mtlk_hw_t *hw, uint32 mask);
++
+ uint32 __MTLK_IFUNC
+ mtlk_mmb_drv_get_disable_11d_hint_param(void);
+ 
+--- a/wireless/driver/linux/mtlk_mmb_drv.c
++++ b/wireless/driver/linux/mtlk_mmb_drv.c
+@@ -1287,6 +1287,43 @@
+ {
+   _mmb_drv_drain_tasklets(obj);
+   obj->tasklets_initialized = false;
++}
++
++uint32 __MTLK_IFUNC
++mtlk_mmb_drv_vap_tasklets_pause(mtlk_hw_t *hw)
++{
++  mtlk_mmb_drv_t *obj = container_of(mtlk_hw_mmb_get_ccr(hw), mtlk_mmb_drv_t, ccr);
++  uint32 mask = 0;
++  int i;
++
++  if (!READ_ONCE(obj->tasklets_initialized))
++    return 0;
++
++  for (i = 0; i < obj->nof_irqs; i++) {
++    if (_mmb_drv_is_irqno_required(hw, obj->irq_handler_data[i].irq_no)) {
++      tasklet_disable(&obj->irq_tasklet[i]);
++      mask |= BIT(i);
++    }
++  }
++  if (obj->ihd_pending) {
++    tasklet_disable(&obj->irq_tasklets_global[0]);
++    mask |= BIT(IRQS_TO_HANDLE);
++  }
++  return mask;
++}
++
++void __MTLK_IFUNC
++mtlk_mmb_drv_vap_tasklets_resume(mtlk_hw_t *hw, uint32 mask)
++{
++  mtlk_mmb_drv_t *obj = container_of(mtlk_hw_mmb_get_ccr(hw), mtlk_mmb_drv_t, ccr);
++  int i;
++
++  if (mask & BIT(IRQS_TO_HANDLE))
++    tasklet_enable(&obj->irq_tasklets_global[0]);
++  for (i = obj->nof_irqs - 1; i >= 0; i--) {
++    if (mask & BIT(i))
++      tasklet_enable(&obj->irq_tasklet[i]);
++  }
+ }
+ 
+ /* Process context only. Recovery and removal serialize these transitions.
+--- a/wireless/driver/linux/mtlk_vap_manager.c
++++ b/wireless/driver/linux/mtlk_vap_manager.c
+@@ -104,7 +104,7 @@
+   MTLK_ASSERT(vap_id < obj->max_vaps_count);
+ 
+   if (__LIKELY(obj->guest_vap_array)) {
+-    return obj->guest_vap_array[vap_id];
++    return smp_load_acquire(&obj->guest_vap_array[vap_id]);
+   }
+ 
+   return NULL;
+@@ -283,7 +283,7 @@
+   }
+ 
+   MTLK_ASSERT(NULL != obj->guest_vap_array);
+-  obj->guest_vap_array[vap_index] = vap_handle;
++  smp_store_release(&obj->guest_vap_array[vap_index], vap_handle);
+ 
+   if (!mtlk_vap_is_master(vap_handle) && !mtlk_vap_is_dut(vap_handle))
+   {
+@@ -776,6 +776,8 @@
+ mtlk_vap_delete (mtlk_vap_handle_t vap_handle)
+ {
+   mtlk_vap_manager_t *obj = NULL;
++  mtlk_hw_t *hw;
++  uint32 tasklet_mask;
+   uint8              vap_index;
+ 
+   MTLK_ASSERT(NULL != vap_handle);
+@@ -786,12 +788,20 @@
+   vap_index = mtlk_vap_get_id(vap_handle);
+   MTLK_ASSERT(vap_index < obj->max_vaps_count);
+ 
++  hw = mtlk_vap_get_hw(vap_handle);
++  /* No new IRQ callback may acquire this VAP once its core/DF cleanup
++   * begins. Drain callbacks that already fetched it before freeing either. */
++  if (__UNLIKELY(!obj->guest_vap_array ||
++                 smp_load_acquire(&obj->guest_vap_array[vap_index]) != vap_handle)) {
++    ELOG_D("VAP slot %d changed before deletion", vap_index);
++    return;
++  }
++  smp_store_release(&obj->guest_vap_array[vap_index], NULL);
++  tasklet_mask = mtlk_mmb_drv_vap_tasklets_pause(hw);
++
+   _mtlk_vap_cleanup(vap_handle);
+-
+-  if (obj->guest_vap_array) {
+-    mtlk_osal_mem_free((struct _mtlk_vap_handle_t *)obj->guest_vap_array[vap_index]);
+-    obj->guest_vap_array[vap_index] = NULL;
+-  }
++  mtlk_osal_mem_free(vap_handle);
++  mtlk_mmb_drv_vap_tasklets_resume(hw, tasklet_mask);
+ }
+ 
+ #if defined (MTCFG_G6_BAR0_TEST)
+@@ -1137,4 +1147,3 @@
+ 
+   _info->radio_id_txmm = new_radio_id_txmm;
+ }
+-

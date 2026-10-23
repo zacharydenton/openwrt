@@ -1,0 +1,18 @@
+{
+  "schema": 1,
+  "hardware_tested": false,
+  "source_gate_passed": false,
+  "historical_reproduction": true,
+  "scope": "Production OS-dependent serializer functions and actual mtlkstartup/mtlkbfield headers; modeled kthread and event leaves, no Linux worker execution.",
+  "source_sha256": {
+    "wireless/driver/linux/mtlk_serializer_osdep.c": "6c8a95b5b87ed37909f6009e4b98c5fd040afd709c06cc3173d756765f4ec60f",
+    "wireless/shared/mtlkstartup.h": "ee9193604d213439651751fcffff166e22ef39265c94f469ba5ac0dbe4306f9d",
+    "wireless/shared/mtlkbfield.h": "c22f7e6c467a16ef0ecb090369bbbf6f3261fba0cd537325d3e5755834d36946"
+  },
+  "cases": {
+    "error_pointer_cases": 4095,
+    "successful_retries": 4095,
+    "unsafe_failures": 4095
+  },
+  "runner": "native ASan/UBSan"
+}

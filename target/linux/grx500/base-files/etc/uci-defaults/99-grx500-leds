@@ -1,0 +1,3 @@
+#!/bin/sh
+/etc/init.d/grx500-leds enable
+exit 0

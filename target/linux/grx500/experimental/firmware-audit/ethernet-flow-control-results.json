@@ -1,0 +1,105 @@
+{
+  "schema": 1,
+  "base_commit": "bf46a5077ea14291164b145f62efcaf7d67a8f8a",
+  "date": "2026-10-23",
+  "status": "GRX500 Ethernet datapath flow control now stops and conditionally restarts Linux TX queues, with watchdog error accounting and liveness recovery; hardware execution remains outstanding.",
+  "hardware_tested": false,
+  "release_gate": {
+    "source_and_build_gate_passed": true,
+    "physical_ethernet_gate_passed": false,
+    "upload_recommended": false
+  },
+  "source": {
+    "path": "target/linux/grx500/files/drivers/net/ethernet/lantiq/ltq_eth_drv_xrx500.c",
+    "sha256": "0427a09891f83c77cd669c4074c13b8c8fa8e6662ff34964eaa30efb177ac080",
+    "before": [
+      "registered datapath stop and restart callbacks returned success without changing a TX queue",
+      "the advertised ten-second netdev watchdog callback performed no recovery"
+    ],
+    "after": [
+      "stop rejects a null netdev and stops every configured TX queue",
+      "restart rejects a null netdev and wakes every queue only while the interface is running",
+      "timeout records a TX error, reports its queue and wakes every queue under the kernel watchdog's serialization"
+    ]
+  },
+  "test": {
+    "path": "target/linux/grx500/tests/test-ethernet-flow-control.py",
+    "sha256": "8c35eeff0a5f409bf3d79a430cfd1c4d5c7057c639d76dbeca26a98efc743699",
+    "compiler": "native GCC with ASan/UBSan and -Wall -Wextra -Werror",
+    "exit_code": 0,
+    "cases": 7,
+    "coverage": [
+      "null stop request",
+      "all-queue stop",
+      "null restart request",
+      "late restart while down",
+      "normal all-queue restart",
+      "eight-queue timeout recovery",
+      "AX3000 one-queue timeout recovery"
+    ]
+  },
+  "full_grx500_native_suite": {
+    "zero_argument_scripts": 15,
+    "exit_code": 0,
+    "enumerated_cases": 252192,
+    "results": {
+      "boot_bank": "pass with ASan/UBSan",
+      "cbm_rx_cases": 18957,
+      "cbm_tx_cases": 165906,
+      "datapath_debug_dump_cases": 11,
+      "datapath_rx_accounting_cases": 7,
+      "ethernet_flow_control_cases": 7,
+      "ethernet_mac_cases": 6,
+      "ethernet_rx_cases": 16,
+      "ethtool_nway_cases": 5,
+      "ethtool_pause_cases": 16,
+      "mtu_cases": 19183,
+      "mtu_switch_cases": 48047,
+      "trial_cases": 14,
+      "trial_worker_cases": 8,
+      "upgrade_cases": 9
+    }
+  },
+  "kernel_build": {
+    "command": "make target/linux/compile V=s -j4",
+    "exit_code": 0,
+    "kernel": "6.18.55",
+    "architecture": "mips_24kc",
+    "object": "build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/drivers/net/ethernet/lantiq/ltq_eth_drv_xrx500.o",
+    "object_bytes": 159468,
+    "object_sha256": "29061c101fa67c677a2d6082674a38e9ac193463332b81ea664461b33f597f78",
+    "binding": "MIPS disassembly contains calls to netif_tx_stop_all_queues, netif_tx_wake_queue and netdev_warn"
+  },
+  "development_image_build": {
+    "command": "make -j4",
+    "exit_code": 0,
+    "initramfs": {
+      "path": "bin/targets/grx500/generic/openwrt-grx500-generic-tplink_archer-ax3000-v1-initramfs-kernel.bin",
+      "bytes": 8628210,
+      "sha256": "2f36b8c1d64af1e33a45dd34ebfecb21e85ee7ce3eec664700451f7893a84f1d",
+      "audit": "current-image-audit.json",
+      "audit_sha256": "79cef6701899fe1e4c613fe6d85b336725219bf7e6f9db81a11034544c6b3f05",
+      "audit_result": "pass"
+    },
+    "sysupgrade": {
+      "path": "bin/targets/grx500/generic/openwrt-grx500-generic-tplink_archer-ax3000-v1-squashfs-sysupgrade.bin",
+      "bytes": 9052445,
+      "sha256": "a066360d245facf6a3409a3e319b525e7c07b7154e101371b6e06d079453a19c",
+      "audit": "current-sysupgrade-audit.json",
+      "audit_sha256": "cc712cdd310911e60c6e62035350f6e89ee447306ec18fd6b12b5d76ea04221c",
+      "audit_result": "pass"
+    }
+  },
+  "packaged_mips_checksum_test": {
+    "report": "development-current-checksums-mips.json",
+    "report_sha256": "c8054c29f9327154ba5b25b5ffdc3c2cb6a82ef49608095204cb6aee4ab68a97",
+    "cases_passed": 3,
+    "flash_operations_performed": false
+  },
+  "remaining": [
+    "Generate real datapath congestion and verify stop/restart behavior on every LAN/WAN port",
+    "Force a real TX watchdog event and verify bounded recovery without packet storms or a queue wedge",
+    "Exercise flow control during link changes and interface shutdown",
+    "Complete physical boot, RF, NAND, flash-write and bank-fallback qualification"
+  ]
+}

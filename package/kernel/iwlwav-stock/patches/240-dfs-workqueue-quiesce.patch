@@ -1,0 +1,131 @@
+--- a/wireless/driver/linux/mtlk_df_user.c
++++ b/wireless/driver/linux/mtlk_df_user.c
+@@ -242,6 +242,8 @@
+   struct workqueue_struct *propagate_dfs_state_wq;
+   mtlk_dlist_t             propagate_dfs_state_list;
+   mtlk_osal_mutex_t        prop_dfs_mutex;
++  spinlock_t               prop_dfs_gate_lock;
++  BOOL                     prop_dfs_closing;
+ 
+   int corrupted_packets_counter;
+ 
+@@ -9084,6 +9086,35 @@
+   return _mtlk_df_mtlk_to_linux_error_code(res);
+ }
+ 
++void __MTLK_IFUNC
++mtlk_df_user_quiesce_prop_dfs_wq (mtlk_df_user_t *df_user)
++{
++  mtlk_dlist_entry_t *head, *entry;
++  mtlk_dfs_state_cfg_t *dfs_state_cfg;
++  unsigned long flags;
++
++  if (!df_user || !df_user->propagate_dfs_state_wq)
++    return;
++
++  /* Close admission before draining. A queued callback finishes while its
++   * wiphy is registered; no later producer can call cfg80211 after removal.
++   */
++  spin_lock_irqsave(&df_user->prop_dfs_gate_lock, flags);
++  df_user->prop_dfs_closing = TRUE;
++  spin_unlock_irqrestore(&df_user->prop_dfs_gate_lock, flags);
++
++  flush_workqueue(df_user->propagate_dfs_state_wq);
++
++  /* An event may have been added just before closure but never scheduled. */
++  mtlk_osal_mutex_acquire(&df_user->prop_dfs_mutex);
++  mtlk_dlist_foreach(&df_user->propagate_dfs_state_list, entry, head) {
++    dfs_state_cfg = MTLK_LIST_GET_CONTAINING_RECORD(entry, mtlk_dfs_state_cfg_t, lentry);
++    entry = mtlk_dlist_remove(&df_user->propagate_dfs_state_list, entry);
++    mtlk_osal_mem_free(dfs_state_cfg);
++  }
++  mtlk_osal_mutex_release(&df_user->prop_dfs_mutex);
++}
++
+ static void
+ mtlk_df_user_uninit_prop_dfs_wq (mtlk_df_user_t *df_user)
+ {
+@@ -9092,8 +9123,9 @@
+ 
+   ILOG2_V("Uninit of DFS propagate state");
+ 
+-  flush_workqueue(df_user->propagate_dfs_state_wq);
++  mtlk_df_user_quiesce_prop_dfs_wq(df_user);
+   destroy_workqueue(df_user->propagate_dfs_state_wq);
++  df_user->propagate_dfs_state_wq = NULL;
+ }
+ 
+ static void
+@@ -9285,6 +9317,8 @@
+                                   BOOL cac_started)
+ {
+   mtlk_dfs_state_cfg_t *dfs_state_cfg;
++  unsigned long flags;
++  BOOL closing;
+   df_user = mtlk_df_get_user(mtlk_df_user_get_master_df(df_user));
+ 
+   dfs_state_cfg = mtlk_osal_mem_alloc(sizeof(*dfs_state_cfg), MTLK_MEM_TAG_PROP_DFS_STATE);
+@@ -9303,8 +9337,15 @@
+   ILOG2_V("Adding work");
+ 
+   mtlk_osal_mutex_acquire(&df_user->prop_dfs_mutex);
+-  mtlk_dlist_push_back_obj(&df_user->propagate_dfs_state_list, dfs_state_cfg, lentry);
++  spin_lock_irqsave(&df_user->prop_dfs_gate_lock, flags);
++  closing = df_user->prop_dfs_closing;
++  if (!closing) {
++    mtlk_dlist_push_back_obj(&df_user->propagate_dfs_state_list, dfs_state_cfg, lentry);
++  }
++  spin_unlock_irqrestore(&df_user->prop_dfs_gate_lock, flags);
+   mtlk_osal_mutex_release(&df_user->prop_dfs_mutex);
++  if (closing)
++    mtlk_osal_mem_free(dfs_state_cfg);
+ }
+ 
+ void mtlk_df_user_handle_radar_event (mtlk_df_user_t *df_user, struct wireless_dev *wdev,
+@@ -9369,10 +9410,14 @@
+ void __MTLK_IFUNC
+ mtlk_df_user_schedule_prop_dfs_wq (mtlk_df_user_t *df_user)
+ {
++  unsigned long flags;
+   df_user = mtlk_df_get_user(mtlk_df_user_get_master_df(df_user));
+ 
+   ILOG2_V("Scheduling work");
+-  queue_work(df_user->propagate_dfs_state_wq, &df_user->propagate_dfs_state_work);
++  spin_lock_irqsave(&df_user->prop_dfs_gate_lock, flags);
++  if (!df_user->prop_dfs_closing)
++    queue_work(df_user->propagate_dfs_state_wq, &df_user->propagate_dfs_state_work);
++  spin_unlock_irqrestore(&df_user->prop_dfs_gate_lock, flags);
+ }
+ 
+ static int
+@@ -9396,6 +9441,9 @@
+ _mtlk_df_user_init(mtlk_df_user_t *df_user, void *ctx, const char *name)
+ {
+   int i;
++
++  spin_lock_init(&df_user->prop_dfs_gate_lock);
++  df_user->prop_dfs_closing = FALSE;
+ 
+   MTLK_INIT_TRY(df_user, MTLK_OBJ_PTR(df_user))
+     MTLK_INIT_STEP_EX(df_user, ALLOC_SLOW_CTX, MTLK_OBJ_PTR(df_user),
+--- a/wireless/driver/linux/mtlk_df_user_priv.h
++++ b/wireless/driver/linux/mtlk_df_user_priv.h
+@@ -709,6 +709,8 @@
+ 
+ void __MTLK_IFUNC
+ mtlk_df_user_schedule_prop_dfs_wq (mtlk_df_user_t *df_user);
++void __MTLK_IFUNC
++mtlk_df_user_quiesce_prop_dfs_wq (mtlk_df_user_t *df_user);
+ 
+ int  __MTLK_IFUNC    mtlk_df_ui_phy_rx_status_create(mtlk_df_user_t *df_user, unsigned size);
+ void __MTLK_IFUNC    mtlk_df_ui_phy_rx_status_delete(mtlk_df_user_t *df_user);
+--- a/wireless/driver/linux/wave_radio.c
++++ b/wireless/driver/linux/wave_radio.c
+@@ -1176,6 +1176,7 @@
+     if (radio->init_done) {
+       scan_support_prepare_remove(wave_radio_scan_support_get(radio));
+       _wave_radio_abort_and_prevent_scan(radio);
++      mtlk_df_user_quiesce_prop_dfs_wq(mtlk_df_get_user(wave_radio_df_get(radio)));
+     }
+   }
+ }

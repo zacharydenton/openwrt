@@ -1,0 +1,125 @@
+{
+  "schema": 1,
+  "image": {
+    "path": "bin/targets/grx500/generic/openwrt-grx500-generic-tplink_archer-ax3000-v1-initramfs-kernel.bin",
+    "sha256": "7f5fdbb503216fbe38b406e860b6392556c9ea14845ba6900e7420aa6c4426d4",
+    "bytes": 4920749,
+    "load": "0xa0020000",
+    "entry": "0xa0020000"
+  },
+  "elf": {
+    "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/vmlinux-initramfs.debug",
+    "sha256": "e030413e7db031ccb6ec2d90411fa38728f845cd85b02918fbaf341472e8d455",
+    "matches_image_kernel": true
+  },
+  "image_integrity": "passed",
+  "dtb_sha256": "f8a950be8ed09f4b72dfe2863cb55ec2fd4e43030daf27dc46c953d625b8ea44",
+  "initramfs_entries": 698,
+  "checks": [
+    {
+      "check": "CBM driver",
+      "status": "missing",
+      "evidence": {
+        "required_builtin_symbol": "cbm_xrx500_probe",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "Ethernet transmit implementation",
+      "status": "missing",
+      "evidence": {
+        "required_builtin_symbol": "ltq_start_xmit",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "datapath implementation",
+      "status": "missing",
+      "evidence": {
+        "required_builtin_symbol": "dp_xmit",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "GPHY firmware loader",
+      "status": "missing",
+      "evidence": {
+        "required_builtin_symbol": "xrx500_phy_fw_init",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "PCIe host driver",
+      "status": "missing",
+      "evidence": {
+        "required_builtin_symbol": "intel_pcie_probe",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "CBM DT node",
+      "status": "missing",
+      "evidence": {
+        "enabled_matching_nodes": []
+      }
+    },
+    {
+      "check": "Ethernet DT node",
+      "status": "missing",
+      "evidence": {
+        "enabled_matching_nodes": []
+      }
+    },
+    {
+      "check": "PCIe DT node",
+      "status": "missing",
+      "evidence": {
+        "enabled_matching_nodes": []
+      }
+    },
+    {
+      "check": "GPHY loader DT node",
+      "status": "missing",
+      "evidence": {
+        "enabled_matching_nodes": []
+      }
+    },
+    {
+      "check": "GPHY payload",
+      "status": "missing",
+      "evidence": {
+        "path": "lib/firmware/ltq_fw_PHY11G_IP_xRx5xx_A21.bin"
+      }
+    },
+    {
+      "check": "WAVE driver",
+      "status": "missing",
+      "evidence": {
+        "modules": [],
+        "builtin_symbol": "mtlk_hw_mmb_init"
+      }
+    },
+    {
+      "check": "Gen6 radio AP firmware",
+      "status": "missing",
+      "evidence": {
+        "paths": []
+      }
+    },
+    {
+      "check": "board network setup",
+      "status": "missing",
+      "evidence": {
+        "path": "etc/board.d/02_network"
+      }
+    }
+  ],
+  "static_prerequisites_met": false,
+  "hardware_tested": false,
+  "limitations": [
+    "Selected baseline driver names are checked; alternative implementations need manual review.",
+    "Presence does not validate driver bindings, reset sequencing, DMA ownership or firmware ABI.",
+    "Per-device calibration retrieval, physical flash layout and regulatory configuration remain unverified.",
+    "Boot, link, WAN/LAN isolation, both Wi-Fi bands and packet transfer require device tests."
+  ]
+}

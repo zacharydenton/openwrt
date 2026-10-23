@@ -1,0 +1,104 @@
+{
+  "passed": true,
+  "hardware_tested": false,
+  "cases": [
+    {
+      "case": "software-initramfs-original-known-overlap",
+      "passed": true
+    },
+    {
+      "case": "software-initramfs-wrapped-elf-binding",
+      "passed": true,
+      "linux_sha256": "f6791ddaaa25d4d0e73f2493347389d751c58a70d7bf0803666d22c6a5be668e"
+    },
+    {
+      "case": "software-initramfs-missing-loader",
+      "passed": true,
+      "rejection": "unknown boot addresses or missing --loader-elf"
+    },
+    {
+      "case": "software-initramfs-wrong-loader",
+      "passed": true,
+      "rejection": "loader ELF does not reproduce outer decoded bytes"
+    },
+    {
+      "case": "software-initramfs-wrong-address",
+      "passed": true,
+      "rejection": "unknown boot addresses or missing --loader-elf"
+    },
+    {
+      "case": "software-sysupgrade-original-known-overlap",
+      "passed": true
+    },
+    {
+      "case": "software-sysupgrade-wrapped-elf-binding",
+      "passed": true,
+      "linux_sha256": "70c171ba0d5a5785ea6dcfeddf3c70c6b41275cb7ca52b872cab189eb73d4a39"
+    },
+    {
+      "case": "software-sysupgrade-missing-loader",
+      "passed": true,
+      "rejection": "unknown boot addresses or missing --loader-elf"
+    },
+    {
+      "case": "software-sysupgrade-wrong-loader",
+      "passed": true,
+      "rejection": "loader ELF does not reproduce outer decoded bytes"
+    },
+    {
+      "case": "software-sysupgrade-wrong-address",
+      "passed": true,
+      "rejection": "unknown boot addresses or missing --loader-elf"
+    },
+    {
+      "case": "directconnect-initramfs-original-known-overlap",
+      "passed": true
+    },
+    {
+      "case": "directconnect-initramfs-wrapped-elf-binding",
+      "passed": true,
+      "linux_sha256": "40a18d6a8aa7248c239ed3abe983ef01cb12c6db5d8129d9a2e2ecf243023f46"
+    },
+    {
+      "case": "directconnect-initramfs-missing-loader",
+      "passed": true,
+      "rejection": "unknown boot addresses or missing --loader-elf"
+    },
+    {
+      "case": "directconnect-initramfs-wrong-loader",
+      "passed": true,
+      "rejection": "loader ELF does not reproduce outer decoded bytes"
+    },
+    {
+      "case": "directconnect-initramfs-wrong-address",
+      "passed": true,
+      "rejection": "unknown boot addresses or missing --loader-elf"
+    },
+    {
+      "case": "directconnect-sysupgrade-original-known-overlap",
+      "passed": true
+    },
+    {
+      "case": "directconnect-sysupgrade-wrapped-elf-binding",
+      "passed": true,
+      "linux_sha256": "67fb49eba5dbe4d8e655e130f05276c947237ac08f629f7920f19b26da5a6bd7"
+    },
+    {
+      "case": "directconnect-sysupgrade-missing-loader",
+      "passed": true,
+      "rejection": "unknown boot addresses or missing --loader-elf"
+    },
+    {
+      "case": "directconnect-sysupgrade-wrong-loader",
+      "passed": true,
+      "rejection": "loader ELF does not reproduce outer decoded bytes"
+    },
+    {
+      "case": "directconnect-sysupgrade-wrong-address",
+      "passed": true,
+      "rejection": "unknown boot addresses or missing --loader-elf"
+    }
+  ],
+  "harness_sha256": "682866cff10ae304256db9422f7046359e8091f2e036291f7d5a5a5b55b8f675",
+  "helper_sha256": "f0e67001db02b307a09ac0c511c2663e9fc0badcfcdbea636faae03bcc9b5114"
+}

@@ -1,0 +1,13 @@
+bootcmd=run flash_flash
+flash_flash=run run_bootcore;ubi read $(loadaddr) $(kernel_vol);run flashargs addmisc;bootm $(loadaddr);reset
+ubi_init=setenv kernelA_id 0;setenv rootfsA_id 1;setenv firmwareA_id 2;setenv kernelB_id 3;setenv rootfsB_id 4;setenv firmwareB_id 5;setenv bootcoreA_id 6; setenv bootcoreB_id 7;setenv setbank check_image$(update_chk);run $(setbank);ubi part system_sw
+run_bootcore=run ubi_init; ubi read 0xA0400000 $(bootcore_vol) ; secboot load_os 0x88000000 0xA0400000 0x200000
+switchbankA=setenv active_bank A;setenv kernel_id $(kernelA_id);setenv rootfs_id $(rootfsA_id);setenv f_kernel_size f_kernel_sizeA;setenv kernel_vol kernelA;setenv rootfs_vol rootfsA;setenv firmware_vol firmwareA;setenv rootfsname rootfsA;setenv bootcore_vol bootcoreA
+switchbankB=setenv active_bank B;setenv kernel_id $(kernelB_id);setenv rootfs_id $(rootfsB_id);setenv f_kernel_size f_kernel_sizeB;setenv kernel_vol kernelB;setenv rootfs_vol rootfsB;setenv firmware_vol firmwareB;setenv rootfsname rootfsB;setenv bootcore_vol bootcoreB
+check_image0=run switchbankA
+check_image1=run switchbankB;setenv update_chk 0;save
+check_image2=run switchbankB
+check_image3=run switchbankA;setenv update_chk 2;save
+addmisc=setenv bootargs $(bootargs) console=$(console),$(baudrate) ethaddr=$(ethaddr) panic=1 $(mtdparts) init=/etc/preinit active_bank=$(active_bank) update_chk=$(update_chk) maxcpus=4 pci=pcie_bus_perf ethwan=$(ethwan) ubootver=$(ver) mem=256M@512M Production=$(Production)
+flashargs=setenv bootargs ubi.mtd=system_sw rootfsname=$(rootfsname) ro rootfstype=squashfs do_overlay
+loadaddr=0x80800000

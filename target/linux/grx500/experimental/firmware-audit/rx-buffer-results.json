@@ -1,0 +1,50 @@
+{
+  "status": "two receive-buffer defects reproduced and fixed; hardware validation outstanding",
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "new_firmware_image_built": false,
+  "ethernet": {
+    "original_failure": "valid CBM copy rejected above capacity minus 256 bytes",
+    "fixed_cases": 10765,
+    "test": "ASan/UBSan actual helper with bounded pools and mocked DMA/ownership",
+    "cross_compile": "pass; existing unrelated warnings"
+  },
+  "wifi": {
+    "original_failure": "4110-byte RX accepted with a 4096-byte DMA mapping and 4160-byte allocation",
+    "fixed_boundary_combinations": 666384,
+    "test": "ASan/UBSan extracted production rejection branch; no firmware or whole RX handler execution",
+    "package_build": "pass; 100 and 110 patches apply; both modules link and modpost passes; existing warnings"
+  },
+  "source_sha256": {
+    "target/linux/grx500/files/drivers/net/ethernet/lantiq/cqm/grx500/cbm.c": "dd8601f260aeb1c52061a616c919835b4ea4229752b5874e142e5a05fd72d449",
+    "target/linux/grx500/tests/test-cbm-rx.py": "ae2cc67e97966f92aa000d90654cc5474283718b74a0e7dc46db6081015d65a8",
+    "package/kernel/iwlwav-stock/patches/110-rx-dma-mapping-bounds.patch": "32034020209533f486bd2b5da1b957d7ad0135f22d635d5422e2af919bb5ed7c",
+    "package/kernel/iwlwav-stock/tests/rx-dma-bounds.py": "fa3c0aa450fd8251ddaf5d1e25db2377cf494dda551ef5211cde0582d3f41463",
+    "package/kernel/iwlwav-stock/README.rst": "9612fde685c9c3caa8db6c5e5ec2cfa34003e4b01d5ee2f2b009c2dec8114a3b"
+  },
+  "previous_cbm_source_sha256": "a2a1342d28de01ded9a37aeba0d79a415dbd6f73619d8dd6918c1a2a3f32a8f2",
+  "prepared_hw_mmb_sha256": "bb76f1397d7a3ff7a3f1224e3fc22d075bf415e7631056ded171d7392d49fee7",
+  "logs": {
+    "cbm-rx-before.log": "7b2c380bd14a1c5c71c96e2b27b4f4ac9bf7183394ef41794370458aee9ae00b",
+    "cbm-rx-after.log": "e12d1e5f8319b0368c490cced3cdc709d8bda954aeb4fc136079fee430fc1b63",
+    "cbm-rx-build.log": "430808999d49b33099ddf18c65e7fee99bffe45e3cf3b7e05b0a7c1825eff6ac",
+    "cbm-rx-mips-layout.txt": "811501d29276dc784e7aa16d5051401532d95524a44a3532d4b360e17d4b355c",
+    "wave-rx-before.log": "b48aac75c7cdee6d55200efce2c83833ecd29cb075711754872aa28dc295cc2b",
+    "wave-rx-after-final.log": "16894cb43b9dbc353e5badadbf4433a041f90a1b19da73a8bf7263bb549a3f0e",
+    "wave-rx-build-final.log": "acd2da176c4fc6dff21a0fd3317f4b8405ef10c91caa3116e68cc938e5f9463b"
+  },
+  "retained_build_files": {
+    "rx-buffer-build/STATUS.txt": "6f91aba986908fb5b640e309b26aaf5eb74de757fefaa361d8530b1d6531231c",
+    "rx-buffer-build/cbm.o": "94a1a2a4632c31b9e64695d522844b4bc6c3779a21b28fc80fa0cb48e6511130",
+    "rx-buffer-build/hw_mmb.c": "bb76f1397d7a3ff7a3f1224e3fc22d075bf415e7631056ded171d7392d49fee7",
+    "rx-buffer-build/kernel.config": "1a01d56dd5953996f2ab543c9f92923af4ace382f0a802dc00874c88477ef2ed",
+    "rx-buffer-build/mtlk.ko": "c8a06a59a328e14310c0dad5d93dfd077143723ab983ff34ea30f8fb2cd3051f",
+    "rx-buffer-build/mtlkroot.ko": "5679826dd226ddfda320a0cd5231a5ede15e3bbf42e213a1b3f7719e328e5efa"
+  },
+  "limitations": [
+    "No physical Ethernet or Wi-Fi traffic",
+    "No boot, NAND, reset or fallback validation",
+    "No replacement factory image",
+    "Automatic device acceptance remains unavailable and bank commitment fails closed"
+  ]
+}

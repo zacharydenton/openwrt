@@ -1,0 +1,192 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/* AX3000 V1 stock DTB addresses and GPIO reset wiring, modern bindings.
+ * PCI MEM addresses are identity: stock pci_load_of_ranges ignored the child
+ * address; copying its raw child cells into modern ranges would misplace BARs.
+ */
+#include <dt-bindings/gpio/gpio.h>
+
+&rcu {
+	#reset-cells = <2>;
+};
+
+/ {
+	aliases {
+		pcie0 = &pcie0;
+		pciephy0 = &pcie_phy0;
+		pcie1 = &pcie1;
+		pciephy1 = &pcie_phy1;
+		pcie2 = &pcie2;
+		pciephy2 = &pcie_phy2;
+	};
+
+	chiptop: syscon@16080000 {
+		compatible = "lantiq,chiptop-grx500", "syscon";
+		reg = <0x16080000 0x1000>;
+		native-endian;
+	};
+
+	gpio0: gpio@16c00000 {
+		compatible = "intel,grx500-gpio";
+		reg = <0x16c00000 0x80>, <0x16c80000 0x100>;
+		reg-names = "gpio", "pads";
+		gpio-controller;
+		#gpio-cells = <2>;
+		ngpios = <32>;
+	};
+
+	gpio1: gpio@16c00100 {
+		compatible = "intel,grx500-gpio";
+		reg = <0x16c00100 0x80>, <0x16c80100 0x100>;
+		reg-names = "gpio", "pads";
+		gpio-controller;
+		#gpio-cells = <2>;
+		ngpios = <30>;
+	};
+
+	pcie_phy0: phy@18500000 {
+		compatible = "intel,grx500-pciephy";
+		reg = <0x18500000 0x100000>;
+		#phy-cells = <0>;
+		intel,ssc-syscon = <&cgu>;
+		/* Stock phy-mode 5 is PCIE_PHY_100MHZ_SSC. */
+		intel,ssc-enable = <1>;
+		intel,syscon = <&chiptop>;
+		resets = <&rcu 0x10 12>;
+		reset-names = "phy";
+	};
+
+	pcie0: pcie@18900000 {
+		compatible = "intel,xrx500-pcie";
+		device_type = "pci";
+		#address-cells = <3>;
+		#size-cells = <2>;
+		reg = <0x18900000 0x100000>, <0xbb000000 0x800000>,
+		      <0x18800000 0x100000>;
+		reg-names = "csr", "cfg", "app";
+		linux,pci-domain = <0>;
+		bus-range = <0 7>;
+		max-link-speed = <2>;
+		num-lanes = <1>;
+		/* Wave600 uses MMIO BARs and stock legacy INTx; no I/O mapping. */
+		ranges = <0x02000000 0 0xb8000000 0xb8000000 0 0x03000000>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SHARED 152 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "ir";
+		#interrupt-cells = <1>;
+		interrupt-map-mask = <0 0 0 7>;
+		interrupt-map = <0 0 0 1 &gic GIC_SHARED 136 IRQ_TYPE_LEVEL_HIGH>,
+				<0 0 0 2 &gic GIC_SHARED 137 IRQ_TYPE_LEVEL_HIGH>,
+				<0 0 0 3 &gic GIC_SHARED 138 IRQ_TYPE_LEVEL_HIGH>,
+				<0 0 0 4 &gic GIC_SHARED 139 IRQ_TYPE_LEVEL_HIGH>;
+		intel,syscon = <&chiptop>;
+		intel,inbound-shift = <5>;
+		intel,outbound-shift = <4>;
+		intel,inbound-swap = <1>;
+		intel,outbound-swap = <0>;
+		intel,rst-interval = <200>;
+		intel,iatu = <0>;
+		clocks = <&cgu GCLK_PCIE0>;
+		clock-names = "ctl";
+		phys = <&pcie_phy0>;
+		phy-names = "phy";
+		reset-gpios = <&gpio1 11 GPIO_ACTIVE_LOW>;
+	};
+
+	pcie_phy1: phy@18000000 {
+		compatible = "intel,grx500-pciephy";
+		reg = <0x18000000 0x100000>;
+		#phy-cells = <0>;
+		intel,ssc-syscon = <&cgu>;
+		/* Stock phy-mode 5 is PCIE_PHY_100MHZ_SSC. */
+		intel,ssc-enable = <1>;
+		intel,syscon = <&chiptop>;
+		resets = <&rcu 0x10 13>;
+		reset-names = "phy";
+	};
+
+	pcie1: pcie@18400000 {
+		compatible = "intel,xrx500-pcie";
+		device_type = "pci";
+		#address-cells = <3>;
+		#size-cells = <2>;
+		reg = <0x18400000 0x100000>, <0xb7000000 0x800000>,
+		      <0x18300000 0x100000>;
+		reg-names = "csr", "cfg", "app";
+		linux,pci-domain = <1>;
+		bus-range = <0 7>;
+		max-link-speed = <2>;
+		num-lanes = <1>;
+		/* Wave600 uses MMIO BARs and stock legacy INTx; no I/O mapping. */
+		ranges = <0x02000000 0 0xb4000000 0xb4000000 0 0x03000000>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SHARED 49 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "ir";
+		#interrupt-cells = <1>;
+		interrupt-map-mask = <0 0 0 7>;
+		interrupt-map = <0 0 0 1 &gic GIC_SHARED 9 IRQ_TYPE_LEVEL_HIGH>,
+				<0 0 0 2 &gic GIC_SHARED 10 IRQ_TYPE_LEVEL_HIGH>,
+				<0 0 0 3 &gic GIC_SHARED 11 IRQ_TYPE_LEVEL_HIGH>,
+				<0 0 0 4 &gic GIC_SHARED 12 IRQ_TYPE_LEVEL_HIGH>;
+		intel,syscon = <&chiptop>;
+		intel,inbound-shift = <9>;
+		intel,outbound-shift = <8>;
+		intel,inbound-swap = <1>;
+		intel,outbound-swap = <0>;
+		intel,rst-interval = <200>;
+		intel,iatu = <0>;
+		clocks = <&cgu GCLK_PCIE1>;
+		clock-names = "ctl";
+		phys = <&pcie_phy1>;
+		phy-names = "phy";
+		reset-gpios = <&gpio1 29 GPIO_ACTIVE_LOW>;
+	};
+
+	pcie_phy2: phy@18a00000 {
+		compatible = "intel,grx500-pciephy";
+		reg = <0x18a00000 0x100000>;
+		#phy-cells = <0>;
+		intel,ssc-syscon = <&cgu>;
+		/* Stock phy-mode 5 is PCIE_PHY_100MHZ_SSC. */
+		intel,ssc-enable = <1>;
+		intel,syscon = <&chiptop>;
+		resets = <&rcu 0x10 10>;
+		reset-names = "phy";
+	};
+
+	pcie2: pcie@18e00000 {
+		compatible = "intel,xrx500-pcie";
+		device_type = "pci";
+		#address-cells = <3>;
+		#size-cells = <2>;
+		reg = <0x18e00000 0x100000>, <0xbf000000 0x800000>,
+		      <0x18d00000 0x100000>;
+		reg-names = "csr", "cfg", "app";
+		linux,pci-domain = <2>;
+		bus-range = <0 7>;
+		max-link-speed = <2>;
+		num-lanes = <1>;
+		/* Wave600 uses MMIO BARs and stock legacy INTx; no I/O mapping. */
+		ranges = <0x02000000 0 0xbc000000 0xbc000000 0 0x03000000>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SHARED 55 IRQ_TYPE_LEVEL_HIGH>;
+		interrupt-names = "ir";
+		#interrupt-cells = <1>;
+		interrupt-map-mask = <0 0 0 7>;
+		interrupt-map = <0 0 0 1 &gic GIC_SHARED 155 IRQ_TYPE_LEVEL_HIGH>,
+				<0 0 0 2 &gic GIC_SHARED 156 IRQ_TYPE_LEVEL_HIGH>,
+				<0 0 0 3 &gic GIC_SHARED 157 IRQ_TYPE_LEVEL_HIGH>,
+				<0 0 0 4 &gic GIC_SHARED 158 IRQ_TYPE_LEVEL_HIGH>;
+		intel,syscon = <&chiptop>;
+		intel,inbound-shift = <13>;
+		intel,outbound-shift = <12>;
+		intel,inbound-swap = <1>;
+		intel,outbound-swap = <0>;
+		intel,rst-interval = <200>;
+		intel,iatu = <0>;
+		clocks = <&cgu GCLK_PCIE2>;
+		clock-names = "ctl";
+		phys = <&pcie_phy2>;
+		phy-names = "phy";
+		reset-gpios = <&gpio0 14 GPIO_ACTIVE_HIGH>;
+	};
+};

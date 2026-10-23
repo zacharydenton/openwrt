@@ -1,0 +1,199 @@
+--- a/wireless/driver/linux/mac80211.c
++++ b/wireless/driver/linux/mac80211.c
+@@ -2183,6 +2183,25 @@
+   ILOG2_SD("%s: return with %d",
+       ieee80211_vif_to_name(vif), _mtlk_df_mtlk_to_linux_error_code(res));
+   return _mtlk_df_mtlk_to_linux_error_code(res);
++}
++
++/* mac80211 calls this under the wiphy lock. Request cancellation without
++ * waiting on the scan serializer, whose completion must be allowed to queue
++ * ieee80211_scan_completed() from its own context.
++ */
++static void
++_wv_ieee80211_op_cancel_hw_scan(struct ieee80211_hw *hw,
++                               struct ieee80211_vif *vif)
++{
++  wv_mac80211_t *mac80211 = __wv_ieee80211_hw_get_mac80211(hw);
++  struct scan_support *ss;
++
++  MTLK_UNREFERENCED_PARAM(vif);
++  if (!mac80211)
++    return;
++  ss = __wv_mac80211_scan_support_get(mac80211);
++  if (ss)
++    abort_scan(ss);
+ }
+ 
+ /* Setting up passive scan flag on radar channels */
+@@ -2730,6 +2749,7 @@
+   .conf_tx                  = _wv_ieee80211_op_conf_tx,
+   .channel_switch           = _wv_ieee80211_op_channel_switch,
+   .hw_scan                  = _wv_ieee80211_op_hw_scan,
++  .cancel_hw_scan           = _wv_ieee80211_op_cancel_hw_scan,
+   .sw_scan_complete         = _wv_ieee80211_op_sw_scan_complete,
+ };
+ 
+--- a/wireless/driver/linux/wave_radio.c
++++ b/wireless/driver/linux/wave_radio.c
+@@ -1157,6 +1157,27 @@
+     ELOG_V("Failed to abort or prevent scan");
+ 
+   return res;
++}
++
++void wave_radio_scan_quiesce(wave_radio_descr_t *radio_descr)
++{
++  wave_int i;
++
++  if (!radio_descr)
++    return;
++
++  /* The synchronous master-serializer request runs after any queued scan
++   * work, aborts an active scan and prevents another one from starting.
++   * Complete scan callbacks while both AP and STA wiphys still exist.
++   */
++  for (i = 0; i < radio_descr->num_radios; i++) {
++    wave_radio_t *radio = &radio_descr->radio[i];
++
++    if (radio->init_done) {
++      scan_support_prepare_remove(wave_radio_scan_support_get(radio));
++      _wave_radio_abort_and_prevent_scan(radio);
++    }
++  }
+ }
+ 
+ static int
+--- a/wireless/driver/linux/wave_radio.h
++++ b/wireless/driver/linux/wave_radio.h
+@@ -133,6 +133,7 @@
+ void wave_radio_deinit_finalize(wave_radio_descr_t *radio_descr);
+ void wave_radio_prepare_stop(wave_radio_descr_t *radio_descr);
+ void wave_radio_mac80211_tx_quiesce(wave_radio_descr_t *radio_descr);
++void wave_radio_scan_quiesce(wave_radio_descr_t *radio_descr);
+ void wave_radio_mac80211_deinit(wave_radio_descr_t *radio_descr);
+ 
+ mtlk_hw_api_t *wave_radio_descr_hw_api_get(wave_radio_descr_t *radio_descr, wave_int radio_idx);
+--- a/wireless/driver/linux/mtlk_mmb_drv.c
++++ b/wireless/driver/linux/mtlk_mmb_drv.c
+@@ -1411,6 +1411,7 @@
+     /* Queued station TX may still own a callback and a mac80211 HW pointer.
+      * Drain it while core serializers and recovery context remain alive. */
+     wave_radio_mac80211_tx_quiesce(radio_descr);
++    wave_radio_scan_quiesce(radio_descr);
+     MTLK_CLEANUP_STEP(mmb_drv, MMB_RCVRY_INIT_FINALIZE, MTLK_OBJ_PTR(obj),
+                       wave_rcvry_cleanup_finalize, (obj->hw_api->hw));
+     MTLK_CLEANUP_STEP(mmb_drv, MMB_RADIO_MAC80211_INIT, MTLK_OBJ_PTR(obj),
+--- a/wireless/driver/shared/scan_support.c
++++ b/wireless/driver/shared/scan_support.c
+@@ -206,10 +206,12 @@
+ uint32 scan_timer_clb_func(mtlk_osal_timer_t *timer, mtlk_handle_t nic)
+ {
+   mtlk_core_t *core = (mtlk_core_t *) nic;
++  mtlk_scan_support_t *ss = __wave_core_scan_support_get(core);
+ 
+   MTLK_ASSERT(core == mtlk_vap_manager_get_master_core(mtlk_vap_get_manager(core->vap_handle)));
+ 
+-  if (wave_rcvry_mac_fatal_pending_get(mtlk_vap_get_hw(core->vap_handle)))
++  if (!READ_ONCE(ss->removal_pending) &&
++      wave_rcvry_mac_fatal_pending_get(mtlk_vap_get_hw(core->vap_handle)))
+     return MTLK_ERR_OK;
+ 
+   /* this interface is way too heavy for the simple context switch we need to do */
+@@ -621,6 +623,11 @@
+   }
+ }
+ 
++void scan_support_prepare_remove(struct scan_support *ss)
++{
++  WRITE_ONCE(ss->removal_pending, TRUE);
++}
++
+ static int scan_timeout_func(mtlk_core_t *core, mtlk_scan_support_t *ss);
+ 
+ /* Arranges that the scan gets aborted right away and waits for it. */
+@@ -732,7 +739,11 @@
+   wmb(); /* so that set_channel really knows the scan has ended */
+ 
+   /* we have to restore the channel, if we had one, and set normal mode (not scan mode) */
+-  if (is_channel_certain(&ss->orig_chandef))
++  /* There is no channel to restore during device removal, and a fatal MAC
++   * cannot answer the firmware command. Keep the local cleanup and scan
++   * completion, but do not wait for dead firmware here.
++   */
++  if (!READ_ONCE(ss->removal_pending) && is_channel_certain(&ss->orig_chandef))
+     res = core_cfg_set_chan(core, &ss->orig_chandef, NULL); /* this takes care of hdk config, etc. */
+   else
+     ILOG0_S("%s: Leaving the channel as uncertain after the scan", name);
+@@ -1190,7 +1201,8 @@
+   /* Do not clean up and end scan in case of MAC Fatal pending and fast or full recovery will be started
+      Return MTLK_ERR_OK so in case its initial invocation, we'll notify hostapd that scan stared successfully */
+   hw = mtlk_vap_get_hw(core->vap_handle);
+-  if (wave_rcvry_mac_fatal_pending_get(hw) && wave_rcvry_is_configured(hw))
++  if (!READ_ONCE(ss->removal_pending) &&
++      wave_rcvry_mac_fatal_pending_get(hw) && wave_rcvry_is_configured(hw))
+     return MTLK_ERR_OK;
+ 
+   clean_up_after_this_scan(core, ss);
+@@ -1309,6 +1321,7 @@
+   BOOL has_peer_connections = mtlk_vap_manager_has_peer_connections(vap_mgr);
+   BOOL has_stas_connected = wv_mac80211_has_sta_connections(mac80211);
+   BOOL do_background_scan = FALSE;
++  BOOL started_this_request = FALSE;
+   int i;
+ 
+   MTLK_UNREFERENCED_PARAM(name); /* printouts only */
+@@ -1318,7 +1331,7 @@
+ 
+   current_chandef = __wave_core_chandef_get(core);
+ 
+-  if (mtlk_core_is_stopping(core)) /* not a good time for a new scan */
++  if (READ_ONCE(ss->removal_pending) || mtlk_core_is_stopping(core)) /* no new scans on removal */
+   {
+     ELOG_S("%s: Core is stopping, cannot start the scan", name);
+     res = MTLK_ERR_NOT_READY;
+@@ -1384,6 +1397,7 @@
+   }
+ 
+   ss->flags |= (SDF_RUNNING | SDF_IGNORE_FRAMES); /* prevent heard frames from being reported yet */
++  started_this_request = TRUE;
+ 
+   if (!request->n_channels)
+   {
+@@ -1625,11 +1639,16 @@
+   res = MTLK_ERR_NO_MEM;
+ 
+ error_exit:
+-  if (!wave_rcvry_mac_fatal_pending_get(hw) || !wave_rcvry_is_configured(hw))
++  if (READ_ONCE(ss->removal_pending) || !wave_rcvry_mac_fatal_pending_get(hw) || !wave_rcvry_is_configured(hw))
+     clean_up_after_this_scan(core, ss);
+ 
+ no_clean_exit:
+-  if (!wave_rcvry_mac_fatal_pending_get(hw) || !wave_rcvry_is_configured(hw)) {
++  /* A failure before SDF_RUNNING never installed a scan request that recovery
++   * can resume. Return its real error so cfg80211/mac80211 does not wait for a
++   * completion that this driver cannot produce.
++   */
++  if (READ_ONCE(ss->removal_pending) || !started_this_request ||
++      !wave_rcvry_mac_fatal_pending_get(hw) || !wave_rcvry_is_configured(hw)) {
+     if (res != MTLK_ERR_OK && res != MTLK_ERR_NOT_READY)
+       ELOG_SDP("%s: Scan failed: res=%i, ss=%p", name, res, ss);
+   } else {
+--- a/wireless/driver/shared/scan_support.h
++++ b/wireless/driver/shared/scan_support.h
+@@ -242,6 +242,7 @@
+   mtlk_core_t *master_core; /* this allows us to easily refer to related stuff, such as the current_chandef */
+   mtlk_core_t *requester_core;
+   uint32 flags;        /* flags from scanDescriptionFlags */
++  BOOL removal_pending; /* End scans even when fatal recovery would defer them */
+   struct mtlk_chan_def orig_chandef; /* what to return to after scan, if any */
+   u8 max_widths[NUM_SUPPORTED_BANDS];
+   struct mtlk_scan_request req; /* sched scan stuff can get saved here, too */
+@@ -325,6 +326,7 @@
+ int mtlk_scan_recovery_continue_scan(mtlk_core_t *core, BOOL is_bg_scan);
+ 
+ void abort_scan(struct scan_support *ss);
++void scan_support_prepare_remove(struct scan_support *ss);
+ int abort_scan_sync(mtlk_core_t *core);
+ int pause_or_prevent_scan(mtlk_core_t *core);
+ int resume_or_allow_scan(mtlk_core_t *core);

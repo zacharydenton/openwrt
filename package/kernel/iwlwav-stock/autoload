@@ -1,0 +1,2 @@
+mtlkroot
+mtlk fastpath=0,0,0 dual_pci=1,0 ahb_off=1 loggersid=255,255 rcvry_on=1,1

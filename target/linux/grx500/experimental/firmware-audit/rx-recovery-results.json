@@ -1,0 +1,39 @@
+{
+  "status": "RX ownership/recovery fixes tested; complete ordinary development build passes",
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "new_factory_image_built": false,
+  "ordinary_image_build": "pass",
+  "ownership_cases": 19,
+  "recovery_descriptor_cases": 11,
+  "source_sha256": {
+    "package/kernel/iwlwav-stock/patches/120-rx-buffer-ownership.patch": "484669fb0a4e1cb4f5353ede02e0ba4e658b9afef69b31dad57eca6cb8fe9a8e",
+    "package/kernel/iwlwav-stock/tests/rx-ownership.py": "b8c108b95a72a52c94fb161d37d5a741dff3d4e4cd80fb76c96b14ddacc406cd",
+    "package/kernel/iwlwav-stock/tests/rx-recovery-descriptor.py": "2ef5296523b2cb467e64406a571184e101b065dea8213f06930acbdd0b6cdb00",
+    "package/kernel/iwlwav-stock/README.rst": "925e96b1e2df8c0d8add32a904caf0a35eaa6adef79ed5f0edf858a682af9a5f",
+    "target/linux/grx500/config-6.18": "da63ad014616d1f8965665214fb7d2b9c86db554124ecbce9598a5ea67e18161"
+  },
+  "prepared_hw_mmb_sha256": "ff5c745b17f208e16aa443947b2ed6fcd013cd039e7ebe8cdb58f117df3402bb",
+  "logs": {
+    "wave-ownership-before.log": "015ef3d9584de5c78754272d8e8201ffe3f4f65b54eee6cfd931dcf2e6797095",
+    "wave-fragments-before.log": "2344766bbec873001593f5eab95f634588fe38e03ae3782d0a7e0f023d43f798",
+    "wave-recovery-desc-before.log": "e4d85b9f68c4b3078ac80e99dcd8d1be52b24e3720e8bc0d4f22d58d08ee24c1",
+    "wave-ownership-final.log": "0767b80c877e5f6e9cac032a329b2ff113a2fc338a609c8356cee450a9c9e891",
+    "wave-recovery-desc-final.log": "1b56290afb3b4549b72427520cd075389e776b030b71b6cee23f79cfccf2f22c",
+    "integrated-safety-build.log": "e812b45d3653a9c0ae0f4b388592318dbe34452fbc668931ffbf160ced0dc7f4",
+    "integrated-safety-build-02.log": "b01e41061ce2395c6a09b2c2d1d9010c40fbc74a6dd8095f71987b64788e3f07",
+    "integrated-safety-content.log": "ba06978797f5ac0d2c1b0e912b58417bfac5698fb7bb6c66341420ee8e00df51",
+    "verify-integrated-safety.py": "c2fc261072611c343c430a227722bd8cf2acca6a6769ec314ab296d31878d65f"
+  },
+  "reports": {
+    "integrated-safety-initramfs.json": "03dcc27a2e2405e9cdf026c5f1bf3fecbd3fc8e734cbdfd276fa99331e58b0be",
+    "integrated-safety-sysupgrade.json": "f375478949d6e0b5050d37d690f651a78567c7f85a57a9b17c13940b2b1bb5af",
+    "integrated-safety-content.json": "11508f81791d5b1a372ebacf67f076b32efa11c23c03bacb9ea10c5e98469476"
+  },
+  "limitations": [
+    "Mocked DMA/list/ring leaves; no target hardware execution",
+    "No physical Ethernet/Wi-Fi traffic or recovery validation",
+    "Stock-web factory candidate remains withdrawn",
+    "Automatic acceptance remains unavailable"
+  ]
+}

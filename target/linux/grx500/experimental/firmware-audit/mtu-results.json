@@ -1,0 +1,68 @@
+{
+  "schema": 1,
+  "status": "Software MTU mismatch corrected; physical jumbo behavior unverified",
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "new_factory_container": false,
+  "configuration": {
+    "max_mtu": 8000,
+    "default_mtu": 1500,
+    "jumbo_buffer_bytes": 16384,
+    "jumbo_pool_bytes": 8388608,
+    "nominal_jumbo_buffers": 512,
+    "previous_nominal_jumbo_buffers": 1024,
+    "headroom_bytes": 194,
+    "reserved_protocol_bytes": 78,
+    "datapath_capacity_before_soc_cap": 16112
+  },
+  "tests": {
+    "mtu_cases": 19183,
+    "rx_copy_cases": 18957,
+    "tx_descriptor_cases_per_execution": 165906,
+    "native_sanitizers": "pass",
+    "mips_tx_userspace": "pass",
+    "scope": "Actual extracted functions with platform/DMA/MMIO fixtures; no packet transmission"
+  },
+  "build": {
+    "first": "Failed: CBM_SUCCESS not visible in datapath compilation unit",
+    "second": "pass; existing vendor warnings remain",
+    "prepared_sources_match": true,
+    "compiled_cbm_capacity": 16190,
+    "compiled_datapath_subtraction": 78,
+    "compiled_soc_mtu": 8000,
+    "compiled_soc_data_sha256": "5dccea4f1f122c0e89e2cd1853c47e81349bd08e361d0aae3fc34f0aa6ec59cb"
+  },
+  "image_checks": {
+    "integrated-safety-content.json": "193ff36e0d71269586adf3bf619aa506ce3c78c7843185add6b95e8b79568897",
+    "integrated-safety-initramfs.json": "b73a7a5e373848bb73deb5e0b4fabb86dc9018f45617f2d966429c9ad1947963",
+    "integrated-safety-sysupgrade.json": "1e2afee4dacddcc996d15b12e4171482d690426db89268870ba6c1d4b785e948"
+  },
+  "inputs": {
+    "/home/zach/code/openwrt/target/linux/grx500/files/arch/mips/intel-mips/Kconfig.ethernet": "c4282c9f45fe2b9685347cb9bbecacb1f5cf61ca5fbb5488aa807493aed7b068",
+    "/home/zach/code/openwrt/target/linux/grx500/files/drivers/net/ethernet/lantiq/cqm/grx500/Kconfig": "3003139afe2e70ee3c412f87b4f0c8c8bd1364d88a39b9642f1d8bf031f7a53f",
+    "/home/zach/code/openwrt/target/linux/grx500/files/drivers/net/ethernet/lantiq/cqm/grx500/cbm.c": "b3018ee38c8e64d70ef38253578f485fcc300a4d7145a1715f0fd7b4596b3d8d",
+    "/home/zach/code/openwrt/target/linux/grx500/files/drivers/net/ethernet/lantiq/ltq_eth_drv_xrx500.c": "ef1011118c0f4c54fb000a9c023d115fa9b0e0a3b60344f0152adc124a608d5d",
+    "/home/zach/code/openwrt/target/linux/grx500/files/drivers/net/datapath/dpm/datapath_api.c": "4738411f02c44574596cd0ae184f23af0befc2af98ae51f84f9b3dabf4ca8f16",
+    "/home/zach/code/openwrt/target/linux/grx500/config-6.18": "c59f01d05b0ddb338e832941684e8ef94e582d24813174e1d3a6046dde1cfa84",
+    "/home/zach/code/openwrt/target/linux/grx500/tests/test-mtu.py": "9a0f0b3439a5ed0a07e84dbf8970f24436d61c730a8d1c8f0908daf5330e282f",
+    "/home/zach/code/openwrt/target/linux/grx500/tests/test-cbm-rx.py": "aff76ce674d3e39ce7648396b10595b7546b801025895796b22b3da18baa5dd0",
+    "/home/zach/code/openwrt/target/linux/grx500/tests/test-cbm-tx.py": "2ecdbe8789b7bd9a3508a5b0102f854efda9b2180456aa9911a13fb3ed252421",
+    "/home/zach/code/archer-ax3000-bringup/vendor/intel_GRX350/sdk/7.5.1.50/ugw/target/linux/lantiq/linux-3.10.104-sources/drivers/net/ethernet/lantiq/ltq_eth_drv_xrx500.c": "6951d3cda1fbfd44ce3e90a9cd098b0d6eb7dd59169f80fc2c983200f943d78c",
+    "/home/zach/code/archer-ax3000-bringup/vendor/intel_GRX350/sdk/7.5.1.50/ugw/target/linux/lantiq/linux-3.10.104-sources/drivers/net/ethernet/lantiq/cbm/reg/cbm.h": "d473e0dc557c070ec56e6f61ce8faef592d932e16993137fc9062454b8bcbac0"
+  },
+  "logs": {
+    "mtu-before.log": "f6de685d53fc05b7400a4bacf85abb491f130e007023baca988ec2001eae4e99",
+    "mtu-after.log": "8146b3bfa7ee56ee0fdd9e96847c482aaf90e4798543b1c0d046de34fc203226",
+    "mtu-cbm-rx-16k.log": "2979b8d1341ad5cac34996ce78d1a860892d9033aa208b4ab42ba8a1e73ae24a",
+    "mtu-cbm-tx-16k.log": "aaf5b3da4c92ce92a187dc5d44ed2a47fb06cc01c65a3952e72654352174cf71",
+    "mtu-cbm-tx-mips-16k.log": "2cae356fbbfb0daf7ccbbfcc8a36002eca11de3de894f31788452d1f44271558",
+    "mtu-integrated-build.log": "df0051341e3d08c614955e526718e4fcbf97bf6c6e88ba2b464f5fc547f93977",
+    "mtu-integrated-build-02.log": "11f8d419492dfd1a8ef9e8260f616868ee5965524b9e25f238af6dc53f4a76d6"
+  },
+  "artifact_path": "/home/zach/code/archer-ax3000-bringup/artifacts/development-mtu",
+  "remaining": [
+    "Physical jumbo traffic and queue-pressure/throughput validation for 16 KiB mode",
+    "Physical Ethernet, both radios and complete peripheral/persistence behavior",
+    "Serial-free boot, NAND writes and reliable reset/power-loss fallback"
+  ]
+}

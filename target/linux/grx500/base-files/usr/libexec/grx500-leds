@@ -1,0 +1,96 @@
+#!/bin/sh
+
+. /lib/functions.sh
+[ "$(board_name)" = "tplink,archer-ax3000-v1" ] || exit 0
+
+grx500_bind_radio_led() {
+	local led="/sys/class/leds/blue:wlan$1" ifname="$2"
+	[ -d "$led" ] || return 0
+	if [ -z "$ifname" ]; then
+		echo none > "$led/trigger"
+		echo 0 > "$led/brightness"
+		return
+	fi
+	# These are runtime netdev names from netifd, not assumed PHY indices.
+	echo netdev > "$led/trigger"
+	echo "$ifname" > "$led/device_name"
+	echo 1 > "$led/link"
+	echo 1 > "$led/tx"
+	echo 1 > "$led/rx"
+}
+
+grx500_update_radio_leds() {
+	local status radios radio up band interfaces entry ifname mode
+	local selected2g="" selected5g=""
+	if [ "$(uci -q get system.@system[-1].leds_off)" = 1 ]; then
+		touch /tmp/grx500-leds-off
+		grx500_bind_radio_led 2g ""
+		grx500_bind_radio_led 5g ""
+		return
+	fi
+	rm -f /tmp/grx500-leds-off
+	status="$(ubus -t 3 call network.wireless status)" || return 1
+	. /usr/share/libubox/jshn.sh
+	json_load "$status" || return 1
+	json_get_keys radios
+	for radio in $radios; do
+		json_select "$radio" || continue
+		json_get_var up up
+		band=""
+		json_select config && {
+			json_get_var band band
+			json_select ..
+		}
+		if [ "$up" = 1 ] && { [ "$band" = 2g ] || [ "$band" = 5g ]; }; then
+			if json_select interfaces; then
+				json_get_keys interfaces
+				for entry in $interfaces; do
+					json_select "$entry" || continue
+					json_get_var ifname ifname
+					mode=""
+					json_select config && {
+						json_get_var mode mode
+						json_select ..
+					}
+					case "$ifname:$mode" in
+						*:ap|*:sta)
+							case "$ifname" in ''|*[!a-zA-Z0-9_.:-]*) ifname="";; esac
+							if [ -n "$ifname" ] && [ -d "/sys/class/net/$ifname" ]; then
+								[ "$band" = 2g ] && [ -z "$selected2g" ] && selected2g="$ifname"
+								[ "$band" = 5g ] && [ -z "$selected5g" ] && selected5g="$ifname"
+							fi
+							;;
+					esac
+					json_select ..
+				done
+				json_select ..
+			fi
+		fi
+		json_select ..
+	done
+	grx500_bind_radio_led 2g "$selected2g"
+	grx500_bind_radio_led 5g "$selected5g"
+}
+
+grx500_watch_wan() {
+	local led=/sys/class/leds/orange:internet carrier state brightness
+	[ -d "$led" ] || return 0
+	echo none > "$led/trigger"
+	while :; do
+		carrier=0
+		{ read -r carrier < /sys/class/net/wan/carrier; } 2>/dev/null
+		state=1
+		[ "$carrier" = 1 ] && state=0
+		[ -e /tmp/grx500-leds-off ] && state=0
+		brightness=""
+		read -r brightness < "$led/brightness"
+		[ "$state" = "$brightness" ] || echo "$state" > "$led/brightness"
+		sleep 1
+	done
+}
+
+case "$1" in
+	update) grx500_update_radio_leds;;
+	watch) grx500_watch_wan;;
+	*) exit 2;;
+esac

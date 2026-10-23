@@ -1,0 +1,118 @@
+--- a/wireless/driver/shared/hw_mmb.c
++++ b/wireless/driver/shared/hw_mmb.c
+@@ -2340,7 +2340,7 @@
+ 
+   mtlk_nbuf_start_tracking(skb);
+ 
+-  if (__UNLIKELY(hw->mac_events_stopped)) {
++  if (__UNLIKELY(READ_ONCE(hw->mac_events_stopped))) {
+     res = DC_DP_SUCCESS;
+     goto finish;
+   }
+@@ -2583,27 +2583,27 @@
+   switch (type) {
+   case ARRAY_MAN_IND:
+     CPU_STAT_SPECIFY_TRACK(CPU_STAT_ID_RX_MM);
+-    if (__LIKELY(!hw->mac_events_stopped))
++    if (__LIKELY(!READ_ONCE(hw->mac_events_stopped)))
+       _mtlk_mmb_handle_cm_ind(hw, TRUE, &msg);
+     break;
+   case ARRAY_MAN_REQ:
+     CPU_STAT_SPECIFY_TRACK(CPU_STAT_ID_TX_MM_CFM);
+-    if (__LIKELY(!hw->mac_events_stopped_completely))
++    if (__LIKELY(!READ_ONCE(hw->mac_events_stopped_completely)))
+       _mtlk_mmb_handle_cm_cfm(hw, TRUE, &msg);
+     break;
+   case ARRAY_DBG_IND:
+     CPU_STAT_SPECIFY_TRACK(CPU_STAT_ID_RX_MM);
+-    if (__LIKELY(!hw->mac_events_stopped))
++    if (__LIKELY(!READ_ONCE(hw->mac_events_stopped)))
+       _mtlk_mmb_handle_cm_ind(hw, FALSE, &msg);
+     break;
+   case ARRAY_DBG_REQ:
+     CPU_STAT_SPECIFY_TRACK(CPU_STAT_ID_TX_MM_CFM);
+-    if (__LIKELY(!hw->mac_events_stopped_completely))
++    if (__LIKELY(!READ_ONCE(hw->mac_events_stopped_completely)))
+       _mtlk_mmb_handle_cm_cfm(hw, FALSE, &msg);
+     break;
+   case ARRAY_DAT_LOGGER_IND:
+     CPU_STAT_SPECIFY_TRACK(CPU_STAT_ID_RX_LOG);
+-    if (__LIKELY(!hw->mac_events_stopped_completely))
++    if (__LIKELY(!READ_ONCE(hw->mac_events_stopped_completely)))
+       _mtlk_mmb_handle_logger_buf_indication(hw, descriptor);
+     break;
+   case ARRAY_NULL:
+@@ -2674,7 +2674,7 @@
+   int res;
+   mtlk_hw_t *hw = ihd->hw;
+ 
+-  if (__UNLIKELY(hw->mac_events_stopped)) {
++  if (__UNLIKELY(READ_ONCE(hw->mac_events_stopped))) {
+     return MTLK_ERR_OK;
+   }
+ 
+@@ -2742,7 +2742,7 @@
+ 
+   MTLK_ASSERT(NULL != hw->ccr);
+ 
+-  if (__LIKELY(!hw->mac_events_stopped)) {
++  if (__LIKELY(!READ_ONCE(hw->mac_events_stopped))) {
+     uint32 cur_hd, hds_to_process;
+ 
+ #ifdef MTLK_DEBUG
+@@ -2847,7 +2847,7 @@
+   for (cur_hd = 0; cur_hd < hds_to_process; cur_hd++) {
+     CPU_STAT_BEGIN_TRACK(CPU_STAT_ID_RX_DAT);
+     CPU_STAT_BEGIN_TRACK(CPU_STAT_ID_RX_HW);
+-    if (__LIKELY(!hw->mac_events_stopped)) {
++    if (__LIKELY(!READ_ONCE(hw->mac_events_stopped))) {
+       _mtlk_mmb_handle_dat_ind(hw, hw->rx.ring.base_addr + hw->rx.ring.read_ptr);
+     } else {
+       /* must confirm w/o processing */
+@@ -2921,7 +2921,7 @@
+ 
+   hw->bss_cfm_num++;
+ 
+-  if (__LIKELY(!hw->mac_events_stopped_completely)) {
++  if (__LIKELY(!READ_ONCE(hw->mac_events_stopped_completely))) {
+     uint32 cur_hd, hds_to_process = 0;
+ 
+     hds_to_process = mtlk_ccr_ring_get_hds_to_process(hw->ccr, &hw->bss_mgmt.tx_ring.regs);
+@@ -2968,7 +2968,7 @@
+ 
+   hw->bss_ind_num++;
+ 
+-  if (__LIKELY(!hw->mac_events_stopped)) {
++  if (__LIKELY(!READ_ONCE(hw->mac_events_stopped))) {
+     uint32 cur_hd, hds_to_process = 0;
+ 
+     hds_to_process = mtlk_ccr_ring_get_hds_to_process(hw->ccr, &hw->bss_mgmt.rx_ring.regs);
+@@ -5464,15 +5464,15 @@
+ {
+   /* NOTE: mac_events_stopped must be also set here to avoid additional checks
+    * in _mtlk_mmb_handle_received_msg() (hw->mac_events_stopped || hw->mac_events_stopped_completely) */
+-  hw->mac_events_stopped            = 1;
+-  hw->mac_events_stopped_completely = 1;
++  WRITE_ONCE(hw->mac_events_stopped, 1);
++  WRITE_ONCE(hw->mac_events_stopped_completely, 1);
+ }
+ 
+ static void
+ _mtlk_mmb_reset_all_events(mtlk_hw_t *hw)
+ {
+-    hw->mac_events_stopped            = 0;
+-    hw->mac_events_stopped_completely = 0;
++    WRITE_ONCE(hw->mac_events_stopped, 0);
++    WRITE_ONCE(hw->mac_events_stopped_completely, 0);
+ }
+ 
+ static void
+@@ -9605,7 +9605,7 @@
+ void __MTLK_IFUNC
+ mtlk_hw_mmb_stop_mac_events (mtlk_hw_t *hw)
+ {
+-  hw->mac_events_stopped = 1;
++  WRITE_ONCE(hw->mac_events_stopped, 1);
+ }
+ 
+ mtlk_hw_api_t * __MTLK_IFUNC

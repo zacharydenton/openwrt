@@ -1,0 +1,16 @@
+--- a/wireless/driver/shared/hw_mmb.c
++++ b/wireless/driver/shared/hw_mmb.c
+@@ -11801,8 +11801,11 @@
+                                     struct mtlk_hw_bss_req_mirror *req,
+                                     mtlk_vap_handle_t vap)
+ {
+-  if (vap && mtlk_vap_is_ap(vap) && req->cookie &&
+-      req->extra_processing == PROCESS_MANAGEMENT) {
++  /* Completion processing resumes for command replies during VAP removal.
++   * Do not notify a wdev whose cfg80211 teardown may already have started.
++   */
++  if (!READ_ONCE(hw->mac_events_stopped) && vap && mtlk_vap_is_ap(vap) &&
++      req->cookie && req->extra_processing == PROCESS_MANAGEMENT) {
+     mtlk_df_user_t *user = mtlk_df_get_user(mtlk_vap_get_df(vap));
+     cfg80211_mgmt_tx_status(mtlk_df_user_get_wdev(user), req->cookie,
+                            req->virt_addr, req->size, false, GFP_ATOMIC);

@@ -1,0 +1,18 @@
+
+config MTD_NAND_GRX500
+	bool "AX3000 GRX500 NAND with BCH4 ECC"
+	depends on INTEL_MIPS
+	default y
+	select MTD
+	select MTD_BLOCK_RO
+	select MTD_RAW_NAND
+	select MTD_NAND_ECC_SW_BCH
+
+config GRX500_FACTORY_TRIAL
+	bool "Experimental AX3000 stock-web trial bank commitment"
+	depends on MTD_NAND_GRX500
+	default n
+	help
+	  Permit writes to the two redundant boot-environment partitions for
+	  the guarded first-boot bank transaction. Bootloader, calibration and
+	  other factory partitions remain read-only. Hardware validation pending.

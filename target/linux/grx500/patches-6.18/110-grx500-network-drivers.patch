@@ -1,0 +1,24 @@
+--- a/drivers/net/ethernet/Makefile
++++ b/drivers/net/ethernet/Makefile
+@@ -108,3 +108,5 @@
+ obj-$(CONFIG_NET_VENDOR_SYNOPSYS) += synopsys/
+ obj-$(CONFIG_NET_VENDOR_PENSANDO) += pensando/
+ obj-$(CONFIG_OA_TC6) += oa_tc6.o
++
++obj-$(CONFIG_INTEL_MIPS) += lantiq/
+--- a/drivers/net/Makefile
++++ b/drivers/net/Makefile
+@@ -90,3 +90,5 @@
+ obj-$(CONFIG_USB4_NET) += thunderbolt/
+ obj-$(CONFIG_NETDEVSIM) += netdevsim/
+ obj-$(CONFIG_NET_FAILOVER) += net_failover.o
++
++obj-$(CONFIG_INTEL_MIPS) += datapath/
+--- a/drivers/dma/Makefile
++++ b/drivers/dma/Makefile
+@@ -92,3 +92,5 @@
+ obj-y += stm32/
+ obj-y += ti/
+ obj-y += xilinx/
++
++obj-$(CONFIG_INTEL_MIPS) += intel/

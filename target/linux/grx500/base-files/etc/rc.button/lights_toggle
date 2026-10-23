@@ -1,0 +1,15 @@
+#!/bin/sh
+[ "$ACTION" = "released" ] || exit 0
+. /lib/functions.sh
+[ "$(board_name)" = "tplink,archer-ax3000-v1" ] || exit 0
+if [ "$(uci -q get system.@system[-1].leds_off)" = 1 ]; then
+	uci set system.@system[-1].leds_off=0
+	uci commit system
+	/etc/init.d/led turnon
+else
+	uci set system.@system[-1].leds_off=1
+	uci commit system
+	/etc/init.d/led turnoff
+fi
+
+/usr/libexec/grx500-leds update

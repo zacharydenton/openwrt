@@ -1,0 +1,201 @@
+{
+  "schema": 1,
+  "base_commit": "bf46a5077ea14291164b145f62efcaf7d67a8f8a",
+  "date": "2026-10-23",
+  "status": "Patch 259 unpublishes the current serializer command under the enumeration lock before completion can release it. Controlled concurrent native/MIPS regressions and builds pass; physical qualification remains outstanding.",
+  "hardware_tested": false,
+  "release_gate": {
+    "serializer_current_lifetime_source_gate_passed": true,
+    "full_device_release_gate_passed": false,
+    "upload_recommended": false
+  },
+  "patch": {
+    "path": "package/kernel/iwlwav-stock/patches/259-serializer-current-command-lifetime.patch",
+    "bytes": 1236,
+    "sha256": "2ac373079d11430fc9383cae16464ca1a852ecd24068290232d2d487893da4f1"
+  },
+  "audit": {
+    "path": "target/linux/grx500/experimental/firmware-audit/serializer-current-lifetime-audit.rst",
+    "bytes": 4315,
+    "sha256": "709a4b28112bd2a7bc908c891f15dd402f1d578934df3c3b166237cc696b2992"
+  },
+  "defect": "Core completion freed its execution context while current_command still referred to the embedded command. A concurrent synchronous serializer-info request could enumerate freed memory.",
+  "correction": "Clear current_command under the enumeration lock after the command body but before completion. Run both callbacks outside the lock and do not touch the command after completion.",
+  "compiled_reader_path": {
+    "proc_entry": "serializer_dump",
+    "request": "WAVE_CORE_REQ_GET_SERIALIZER_INFO",
+    "dispatch": "synchronous, outside the serializer queue",
+    "verified_mtlk_ko_symbols": [
+      "mtlk_df_ui_serializer_dump",
+      "_mtlk_core_get_serializer_info",
+      "__mtlk_core_get_serializer_info_enum_clb",
+      "mtlk_serializer_enum_commands"
+    ]
+  },
+  "test": {
+    "path": "package/kernel/iwlwav-stock/tests/serializer-current-lifetime.py",
+    "bytes": 9260,
+    "sha256": "099cf1d6857141c2d0e4466e1b8fc769023f26bac2c902144738d82bc88fe57e",
+    "scope": "Actual enqueue, worker loop, invocation, enumeration and core completion; pthread locks, real free and a rendezvous model the kernel scheduling interleaving. No target kernel execution.",
+    "historical": {
+      "report": {
+        "path": "target/linux/grx500/experimental/firmware-audit/serializer-current-lifetime-before.json",
+        "bytes": 673,
+        "sha256": "a5dd2f78653db03ab1a028b630ff3b226aa308423c7b591db23dd06aa07c2011"
+      },
+      "default_exit_code": 1,
+      "expect_vulnerable_exit_code": 0,
+      "completed_commands": 2,
+      "freed_command_observations": 2
+    },
+    "native": {
+      "report": {
+        "path": "target/linux/grx500/experimental/firmware-audit/serializer-current-lifetime-native.json",
+        "bytes": 673,
+        "sha256": "2212b7ba082626ed22bb88c9845d367df2f0260f3306132114028e407548b716"
+      },
+      "exit_code": 0,
+      "completed_commands": 2,
+      "freed_command_observations": 0
+    },
+    "mips": {
+      "report": {
+        "path": "target/linux/grx500/experimental/firmware-audit/serializer-current-lifetime-mips.json",
+        "bytes": 736,
+        "sha256": "7c4afb0079554fb1cb500c50cf8f4e49e341f123007c2a5cf4724c7521162353"
+      },
+      "exit_code": 0,
+      "completed_commands": 2,
+      "freed_command_observations": 0,
+      "compiler": "OpenWrt GCC 14.4.0 static big-endian MIPS",
+      "runner": {
+        "path": "/home/zach/code/archer-ax3000-bringup/web-upgrade-audit/usr/bin/qemu-mips-static",
+        "bytes": 4335352,
+        "sha256": "8d02f418b92f4ddf984ed8352954b0067d1a5cd810d38247aaf5f0fddc31c42e"
+      }
+    },
+    "checks": [
+      "queued-command enumeration",
+      "live current command visible during body",
+      "higher-priority command runs first",
+      "early enumeration termination",
+      "concurrent enumeration while completion is paused after real free",
+      "exactly-once completion and drained pending count",
+      "empty enumeration after worker exit"
+    ],
+    "stale_pointer_detection": "Compare numeric addresses to freed addresses before reading command fields; no deliberate use-after-free dereference in the fixture."
+  },
+  "removal_barrier_regression": {
+    "path": "package/kernel/iwlwav-stock/tests/removal-scan-barrier.py",
+    "bytes": 9203,
+    "sha256": "c3bf8588d1b4cada25d699a8c5a8ecfb6dc8f83092926db658e0d41abb06f80a",
+    "native_exit_code": 0,
+    "mips_exit_code": 0,
+    "change": "Adapted fixture to the invocation helper's serializer argument; its serializer-lock leaves remain modeled."
+  },
+  "prepared_sources": [
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/shared/mtlk_serializer.c",
+      "bytes": 14383,
+      "sha256": "ad4ee6af7b574090792bd69d180d6b52dc2ac25b110d07f2cce9fdb759e37ffa"
+    },
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/core.c",
+      "bytes": 629141,
+      "sha256": "3ed4de8c2f95f62b48527b2aa8c838211c835d634b1e5ea8de17a1a591630ae4"
+    },
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/mtlk_df_user.c",
+      "bytes": 441953,
+      "sha256": "da1c90587df1fe1c8a48a57e09478fb8e699abf79eb26696050e07ee9a1f91dc"
+    }
+  ],
+  "full_driver_suite": {
+    "python_test_scripts": 31,
+    "exit_code": 0,
+    "scope": "Extracted production functions with modeled kernel/firmware leaves; cfg80211 contract test also checks the target kernel source.",
+    "standalone_he_test_rerun": false,
+    "unrelated_target_suite_rerun": false
+  },
+  "builds": [
+    {
+      "command": "make package/kernel/iwlwav-stock/clean V=s && make package/kernel/iwlwav-stock/compile V=s -j4",
+      "exit_code": 0
+    },
+    {
+      "command": "make -j4",
+      "exit_code": 0
+    }
+  ],
+  "object": {
+    "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/shared/mtlk_serializer.o",
+    "bytes": 68144,
+    "sha256": "11c825ada4749f07f42e746194be51a4eca3b8066a32fe6d535f6bcae378db27"
+  },
+  "modules": [
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/mtlk.ko",
+      "bytes": 8961092,
+      "sha256": "90ce4383bc6a10f8ac2f0ba4c8fef1ce9f1e327e644a047915cdda1b11e5d16b"
+    },
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/mtlkroot.ko",
+      "bytes": 653672,
+      "sha256": "a08ee89dd58208b0e114348a3859446a2cfb6da66af4832ccb79019242087cef"
+    }
+  ],
+  "package": {
+    "path": "bin/targets/grx500/generic/packages/kmod-iwlwav-stock-6.18.55.6.0.8.0.87.0.7-r1.apk",
+    "bytes": 689786,
+    "sha256": "2add63485c10d98495f932cdcae66b0b95579f0deb654fe931157a7488fecda3"
+  },
+  "development_images": [
+    {
+      "path": "bin/targets/grx500/generic/openwrt-grx500-generic-tplink_archer-ax3000-v1-initramfs-kernel.bin",
+      "bytes": 8627864,
+      "sha256": "81e156f426eef311b53f6e9109f8ac8edbf7b6644e3d7ded848296874a993e97",
+      "audit": {
+        "path": "target/linux/grx500/experimental/firmware-audit/current-image-audit.json",
+        "bytes": 14574,
+        "sha256": "76995b105cdbf9e75d7a3863a3b31f680eb14b84fc8568c40ab10712a8f6cec7"
+      },
+      "audit_result": "pass"
+    },
+    {
+      "path": "bin/targets/grx500/generic/openwrt-grx500-generic-tplink_archer-ax3000-v1-squashfs-sysupgrade.bin",
+      "bytes": 9052445,
+      "sha256": "22ea0815fb9b58276deacfe5d6900684f8ad7158db14b74cddd89d300a6df676",
+      "audit": {
+        "path": "target/linux/grx500/experimental/firmware-audit/current-sysupgrade-audit.json",
+        "bytes": 7717,
+        "sha256": "ebfc6466238d9ca72c7ae2f87c9b8d5528d2c889bffc9ebf31a2306ff819aac8"
+      },
+      "audit_result": "pass",
+      "rootfs_mtlk_ko_sha256": "da32803717ba397fd0164fe4ddd6c516684bd707a422d25e0276adabde62836a",
+      "rootfs_mtlkroot_ko_sha256": "7840da26d8a4dc265a398540c65d288d40ac293a6d5d7b77055a41b40dbed74c"
+    }
+  ],
+  "packaged_mips_checksum_test": {
+    "report": {
+      "path": "target/linux/grx500/experimental/firmware-audit/development-current-checksums-mips.json",
+      "bytes": 1158,
+      "sha256": "374fad5eeaf061e0da2f61f98374269758df2a09bf2b74720bd9797603cd60ca"
+    },
+    "cases_passed": 3,
+    "flash_operations_performed": false
+  },
+  "factory_candidate": {
+    "rebuilt_with_patch_259": false,
+    "hardware_tested": false,
+    "upload_recommended": false
+  },
+  "remaining_release_gates": [
+    "Physical boot and module load/unload on Archer AX3000(US) v1.6",
+    "Real serializer diagnostic reads under traffic, recovery and teardown",
+    "Live recovery, DFS/CAC, scan cancellation and firmware behavior",
+    "Ethernet forwarding and simultaneous 2.4/5 GHz association and traffic",
+    "Flash-write, trial acceptance, reset and stock-bank fallback",
+    "Hardware watchdog or demonstrated early-boot recovery",
+    "Verification of installed stock firmware against the pinned US image"
+  ]
+}

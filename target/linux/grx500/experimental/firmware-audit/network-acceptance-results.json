@@ -1,0 +1,52 @@
+{
+  "status": "withdrawn; production bank commitment fails closed",
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "new_image_built": false,
+  "withdrawn_candidate_sha256": "abea552e78ba3adfe52323566a3d93c1cc587e56382e727429c754a6c41ecf29",
+  "original_failures": {
+    "premature_commit_bank_directions": 2,
+    "ambiguous_bank_parser_cases": 3
+  },
+  "current_validation": {
+    "trial_scenarios_per_shell": 30,
+    "trial_groups_per_shell": 8,
+    "native_shell": "pass",
+    "packaged_mips_shell": "pass",
+    "boot_bank_asan_ubsan": "pass",
+    "prom_object_cross_compile": "pass"
+  },
+  "scope": "Real shell/C source with simulated environment/network leaves; no hardware, NAND, packets, RF or physical reset tests. Test harness alone substitutes acceptance for transaction coverage.",
+  "source_sha256": {
+    "target/linux/grx500/base-files/lib/functions/grx500-trial.sh": "03d1bcb0c85d752b55f547ef92243fe32b33c88940be02dbc422a952eb57eeed",
+    "target/linux/grx500/base-files/usr/libexec/grx500-trial": "b2f54be96241eebb4ad621d41dc2c347560e2c1e7f72d142a69052d842f62108",
+    "target/linux/grx500/files/arch/mips/intel-mips/prom.c": "e5207045222c7b706ea3096a9a088bb96d90c482a43061ff1e3d7b1a84da6ef7",
+    "target/linux/grx500/tests/test-trial.py": "1951be6602ea67274bcfb6200f40cf7c27643e4d210a3f76e690dd2246ae6e02",
+    "target/linux/grx500/tests/test-boot-bank.py": "8666a49e723bf7cb7a8af5d701c1e8f50f832f0ad7269df13e8849dd35b15815"
+  },
+  "previous_source_sha256": {
+    "target/linux/grx500/base-files/lib/functions/grx500-trial.sh": "514edcc3b5aac821d2c87c952ad51feaace11782373e7eb24a4994a17747dce4",
+    "target/linux/grx500/base-files/usr/libexec/grx500-trial": "e36be521838573db516da3749816059b28bb6df3be350cbc414532c8ba027d5e",
+    "target/linux/grx500/files/arch/mips/intel-mips/prom.c": "6d1eeeed327a20449a9f4e99e3ddd453f494fa54f133e6327a29bd0bcc0be556",
+    "target/linux/grx500/tests/test-trial.py": "841699993b50a0a814fe818087a2481b7e7911cd8df5b5cd605f116f0fd632d9",
+    "target/linux/grx500/tests/test-boot-bank.py": "097a2a77672785e49c3b13b55ebda6ad8be3ad19eba97ba8f4ba34d2fbc1ad78"
+  },
+  "logs": {
+    "network-acceptance-before.log": "452bbf2b48f90090e810f9fc3770226e0f44d7dd6148a6c60b8b1e058c624add",
+    "network-acceptance-native.log": "76140c4e4b5746569956ab9d5bae62011d53dcbaada365d14a88031f4daed04f",
+    "network-acceptance-mips.log": "ef218d7c0b842f9610e05e2a20ffad68bcdfdf99bcf9ccc2ff5775319e2bee7b",
+    "boot-bank-before.log": "ada890c49ca2bfabef884d31d303217194f2e4f2e53390b35ec11c8808fcdc60",
+    "boot-bank-strict.log": "4bb2a6ed9e7670ae2458768d9b0156bb2c52199ff95e76c828c18ea1bb383192",
+    "boot-bank-strict-build.log": "0513b82ee74c5f38e88c1f37467f5d9d2973da5b058938c00fc77ac73a9a7364"
+  },
+  "compiled_prom_object_sha256": "c5cdb3f7f9e2fc1ed78bac23e72313c43f03c09d282d01dd664dc8453fecf193",
+  "factory_kernel_config_sha256": "13309b7053d1ec19171ca4e89a3dd220f4d155be7e4d9f0ee0754ccd7ae3fec3",
+  "remaining": [
+    "physical boot and NAND behavior",
+    "Ethernet traffic/reachability/isolation",
+    "both Wi-Fi bands and full capabilities",
+    "automatic acceptance mechanism",
+    "physical reset and failure/power-loss fallback",
+    "USB, LEDs, buttons and persistence"
+  ]
+}

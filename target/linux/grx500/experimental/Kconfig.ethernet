@@ -1,0 +1,81 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Diagnostic-only configuration, not enabled by the OpenWrt target.
+
+if INTEL_MIPS
+
+config LTQ_ETHSW_API
+	bool
+	default y
+
+config LTQ_CBM
+	bool
+	default y
+
+config GRX500_CBM
+	bool
+	default y
+
+config LTQ_TMU
+	bool
+	default y
+
+config INTEL_DATAPATH
+	bool
+	default y
+
+config INTEL_DATAPATH_HAL_GSWIP30
+	bool
+	default y
+
+config INTEL_DATAPATH_HAL_GSWIP30_MIB
+	bool
+	default y
+
+config INTEL_DATAPATH_MANUAL_PARSE
+	bool
+	default y
+
+config INTEL_HDMA
+	bool
+	default y
+
+config XRX500_PHY_FW
+	bool
+	default y
+
+config LTQ_ETH_XRX500
+	bool
+	default y
+
+config CBM_STD_BUF_POOL_SIZE
+	hex
+	default 0x1200000
+
+config CBM_JBO_BUF_SIZE
+	hex
+	default 0x800000
+
+config CBM_JBO_PKT_SIZE
+	hex
+	default 0x2000
+
+config SOC_GRX500
+	bool
+	default y
+
+config GRX500_NETWORK_EXPERIMENT
+	bool
+	default y
+	select HAVE_PCI
+	select PCI_DRIVERS_GENERIC
+	select CRYPTO_CMAC
+	select SYSTEM_DATA_VERIFICATION
+
+config GRX500_ETH_PHY_EXPERIMENT
+	bool
+	default y
+	select PHYLIB
+	select MDIO_BUS
+	select OF_MDIO
+
+endif

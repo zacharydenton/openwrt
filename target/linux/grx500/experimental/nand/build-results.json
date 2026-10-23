@@ -1,0 +1,23 @@
+{
+  "kernel": "6.18.55",
+  "object_compile": "passed",
+  "vmlinux_link": "passed",
+  "dts_compile": "passed",
+  "hardware_tested": false,
+  "initramfs_in_link_test": "empty (independent of concurrently rebuilt OpenWrt rootfs)",
+  "partition": {
+    "name": "calibration",
+    "offset": "0x1c0000",
+    "size": "0x100000",
+    "read_only": true
+  },
+  "ecc": {
+    "engine": "software BCH",
+    "step_size": 512,
+    "strength": 4,
+    "bytes_per_step": 7,
+    "placement": "OOB tail"
+  },
+  "driver_sha256": "bd9198550671f32d54532e9310e793402431784165b4bf9a68bf23fc1a9bde71",
+  "kernel_sha256": "73c0cc39337ef8ab814bcb6081ff177c0195f380066629dbf8ab2c91e1acdcf6"
+}

@@ -1,0 +1,74 @@
+{
+  "passed": true,
+  "hardware_tested": false,
+  "stock_bootloader_sha256": "87fae41adc20ac4855d0716917cf4aaebec3c5688102360849fd43475a693f13",
+  "stock_bootloader_bytes": 343580,
+  "raw_base": "0xa0400000",
+  "rea": {
+    "load": {
+      "path": "/home/zach/code/archer-ax3000-bringup/bootloader-audit/rea-latest-load-image.json",
+      "sha256": "4bd0f65d26684f3725445732fb28e6418bb8becb64bba7015bcb078426e95d0b",
+      "evidence_id": "ev_4ce015b96ea9a0293966d9c90bcc19e38b68fd1f27507b3ce9129084b711aa0f"
+    },
+    "board_init": {
+      "path": "/home/zach/code/archer-ax3000-bringup/bootloader-audit/rea-board-init-function.json",
+      "sha256": "56d1dff15aef6ec72e2ea168d350c4692fe63019ed88c64f527420870983e51a",
+      "evidence_id": "ev_798033463a740d8a3d73f23becb0ae294189437654f43695408aab2397f5a052"
+    },
+    "initdram": {
+      "path": "/home/zach/code/archer-ax3000-bringup/bootloader-audit/rea-initdram-function.json",
+      "sha256": "38e878f6be243f0b03eb2bd6850fc8ea58f90b39a6c61ab9169c500888d57915",
+      "evidence_id": "ev_8feabe4860eabf58ec7b561bafb0fe259017e85b253350c8516e36e48e34eec0"
+    },
+    "bootm": {
+      "path": "/home/zach/code/archer-ax3000-bringup/bootloader-audit/rea-bootm-function.json",
+      "sha256": "33955e78b69142ed55bb3e79bd681b4eba4ed5268f3f1c809d048bdc8f8d3b74",
+      "evidence_id": "ev_5f175fe55b65b487128325c083f45b558c55e6e6f9cffb1210d54b8b3f47091e"
+    }
+  },
+  "loader_reports": [
+    {
+      "path": "target/linux/grx500/experimental/firmware-audit/loader-handoff-development-results.json",
+      "sha256": "815af65b0d7eb27f41535f69e1a05958b04e9497dcbd0aefdd73ba9093c1c3c5",
+      "loader_elf_sha256": "2029a3fc54bbc6bd739b97690db5610ca9a1bcefbeea6b39e46494847162e425"
+    },
+    {
+      "path": "target/linux/grx500/experimental/firmware-audit/loader-handoff-factory-results.json",
+      "sha256": "ca41706aa201aa01c9fbd351dce4fb15246211d7c4362a2c0bc1a4181d355b79",
+      "loader_elf_sha256": "60ec546bc9260c3663a1650732f6e41ca7156e88f841ed4ac63bef804f76fd75"
+    }
+  ],
+  "ram_size_choices_mib": [
+    128,
+    224
+  ],
+  "boot_arguments": [
+    {
+      "ram_mib": 128,
+      "cached": "0x87b3ffb8",
+      "uncached": "0xa7b3ffb8",
+      "physical": "0x7b3ffb8",
+      "margin_above_linux_output": 78905272
+    },
+    {
+      "ram_mib": 224,
+      "cached": "0x8db3ffb8",
+      "uncached": "0xadb3ffb8",
+      "physical": "0xdb3ffb8",
+      "margin_above_linux_output": 179568568
+    }
+  ],
+  "mips_words_checked": 38,
+  "data_pointers_checked": 4,
+  "negative_controls_rejected": [
+    "dram_size",
+    "board_pointer",
+    "bootm_pointer"
+  ],
+  "limitations": [
+    "The raw bootloader is from the official V1-family update, not the user router.",
+    "Exact instruction matching and REA decompilation do not execute U-Boot or Linux.",
+    "REA board-init pseudocode exceeds its reported FunctionManager body; exact words establish this path.",
+    "This proves only boot-argument region separation for the two encoded RAM-size choices."
+  ]
+}

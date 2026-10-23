@@ -1,0 +1,23 @@
+{
+  "checks_passed": true,
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "factory_sysupgrade_sha256": "102e2f0c8d0532831a7baa8d36ec4648aed0717b7519883f10d60084df87399e",
+  "laboratory_stock_web_candidate_sha256": "d917a62080d3c179f79241066a6fe515c31ce21f9551441d259a06042cd95169",
+  "factory_prerequisites_sha256": "2c29e39d3daf8b40fc0455d9ba9f58d2127d65af6d9206290d2e6de9621f313c",
+  "stock_writer_report_sha256": "27ae27ed24c0ae6c0bf0b522731e70c10d59fc73170fe6e4c57f2cd7dbf63dcc",
+  "trial_policy_report_sha256": "ab0cae5dc19dc0ed15c0007e3354dbc71b5ad55d1de7f95309c0624122e47e2a",
+  "packaged_control_sha256": "2de2a057b84d8d02741b4f04589be2b4d61eb44bff7f0d6e95a7632fed473feb",
+  "packaged_worker_sha256": "4b06a655364ad02caddf116901227d54d8181191c7fc125784729852674736a9",
+  "packaged_trial_library_sha256": "50e17f86c3010104017d041093f5de9de38ebcc52885ff92b36cdcd33a0ca148",
+  "trial_scenarios_per_shell": 57,
+  "worker_test_groups_per_shell": 8,
+  "factory_only_control": true,
+  "timeout_seconds": 1800,
+  "scope": "Opt-in factory image requires boot-bound root acceptance; serialized rejection/save and a restart-safe singleton worker. Native/MIPS models pass; physical boot and flash remain untested.",
+  "limitations": [
+    "No client has tested Ethernet, Wi-Fi, USB, LEDs or buttons on a router.",
+    "No physical NAND write, boot, timeout reboot or stock fallback has occurred.",
+    "No hardware watchdog can recover a hard kernel lockup."
+  ]
+}

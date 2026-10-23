@@ -1,0 +1,120 @@
+--- a/wireless/driver/linux/cfg80211.h
++++ b/wireless/driver/linux/cfg80211.h
+@@ -36,6 +36,8 @@
+ void            __MTLK_IFUNC wv_cfg80211_cleanup(wv_cfg80211_t *cfg80211);
+ int             __MTLK_IFUNC wv_cfg80211_register(wv_cfg80211_t *cfg80211);
+ void *          __MTLK_IFUNC wv_cfg80211_wiphy_get(wv_cfg80211_t *cfg80211);
++/* True only during this task's cfg80211 add/delete callback. */
++bool            __MTLK_IFUNC wv_cfg80211_netdev_api_owner(struct wiphy *wiphy);
+ int             __MTLK_IFUNC wv_cfg80211_handle_eapol(mtlk_vap_handle_t vap_handle, void *data, int data_len);
+ int             __MTLK_IFUNC wv_cfg80211_handle_flush_stations(mtlk_vap_handle_t vap_handle, void *data, int data_len);
+ int             __MTLK_IFUNC wv_cfg80211_handle_get_unconnected_sta(struct wireless_dev *wdev, void *data,int data_len);
+--- a/wireless/driver/linux/cfg80211.c
++++ b/wireless/driver/linux/cfg80211.c
+@@ -69,6 +69,8 @@
+   /* mtlk_vap_manager_t *vap_manager;*/
+   wave_radio_t *radio;
+   struct wiphy *wiphy;
++  /* cfg80211 owns both RTNL and the wiphy mutex in add/delete callbacks. */
++  struct task_struct *netdev_api_owner;
+ };
+ 
+ 
+@@ -452,6 +454,14 @@
+ }
+ 
+ 
++bool __MTLK_IFUNC
++wv_cfg80211_netdev_api_owner(struct wiphy *wiphy)
++{
++  wv_cfg80211_t *cfg80211 = wiphy_priv(wiphy);
++
++  return READ_ONCE(cfg80211->netdev_api_owner) == current;
++}
++
+ static struct wireless_dev * _wave_cfg80211_op_add_virtual_iface (
+   struct wiphy *wiphy,
+   const char *name,
+@@ -461,6 +471,7 @@
+ {
+   mtlk_mbss_cfg_t mbss_cfg;
+   wv_cfg80211_t *cfg80211 = wiphy_priv(wiphy);
++  struct wireless_dev *wdev;
+ 
+   MTLK_ASSERT(NULL != cfg80211);
+   mbss_cfg.added_vap_name = name;
+@@ -471,7 +482,12 @@
+    * allocated net_device and we only need to set it in df_user ) */
+   mbss_cfg.ndev = NULL;
+ 
+-  return (struct wireless_dev *)wave_radio_virtual_interface_add(cfg80211->radio, &mbss_cfg, iftype);
++  /* The serializer hands this request back to us. Its netdev operation must
++   * use cfg80211_register_netdevice while this callback holds wiphy.mtx. */
++  WRITE_ONCE(cfg80211->netdev_api_owner, current);
++  wdev = wave_radio_virtual_interface_add(cfg80211->radio, &mbss_cfg, iftype);
++  WRITE_ONCE(cfg80211->netdev_api_owner, NULL);
++  return wdev;
+ }
+ 
+ static struct wireless_dev * API_WRAPPER(_wave_cfg80211_op_add_virtual_iface) (
+@@ -501,8 +517,13 @@
+   struct wireless_dev *wdev)
+ {
+   wv_cfg80211_t *cfg80211 = wiphy_priv(wiphy);
++  int res;
++
+   MTLK_ASSERT(NULL != cfg80211);
+-  return wave_radio_virtual_interface_del(cfg80211->radio, wdev->netdev);
++  WRITE_ONCE(cfg80211->netdev_api_owner, current);
++  res = wave_radio_virtual_interface_del(cfg80211->radio, wdev->netdev);
++  WRITE_ONCE(cfg80211->netdev_api_owner, NULL);
++  return res;
+ }
+ 
+ static int API_WRAPPER(_wave_cfg80211_op_del_virtual_iface) (
+--- a/wireless/driver/linux/mtlk_df_user.c
++++ b/wireless/driver/linux/mtlk_df_user.c
+@@ -5298,9 +5298,12 @@
+   BOOL is_ap = mtlk_vap_is_ap(mtlk_df_get_vap_handle(df_user->df));
+   ILOG1_SDD("%s: is_ap=%d, is_reg=%d", df_user->ndev->name, (int)is_ap, (int)df_user->ndev_registered);
+   if (is_ap && !df_user->ndev_registered) {
+-    res = register_netdevice(df_user->ndev);
++    if (wv_cfg80211_netdev_api_owner(df_user->wdev.wiphy))
++      res = cfg80211_register_netdevice(df_user->ndev);
++    else
++      res = register_netdevice(df_user->ndev);
+     if (0 != res) {
+-      ELOG_D("register_netdevice failed, err %d", res);
++      ELOG_D("netdevice registration failed, err %d", res);
+     } else {
+       df_user->ndev_registered = TRUE;
+     }
+@@ -5316,9 +5319,13 @@
+   ILOG1_SDD("%s: is_ap=%d, is_reg=%d", df_user->ndev->name, (int)is_ap, (int)df_user->ndev_registered);
+   if (is_ap && df_user->ndev_registered) {
+     /* Can be called with rtnl locked already */
+-    int locked = rtnl_trylock();
+-    unregister_netdevice(df_user->ndev);
+-    if (locked) rtnl_unlock();
++    if (wv_cfg80211_netdev_api_owner(df_user->wdev.wiphy)) {
++      cfg80211_unregister_netdevice(df_user->ndev);
++    } else {
++      int locked = rtnl_trylock();
++      unregister_netdevice(df_user->ndev);
++      if (locked) rtnl_unlock();
++    }
+     df_user->ndev_registered = FALSE;
+   }
+ }
+--- a/wireless/driver/linux/core.c
++++ b/wireless/driver/linux/core.c
+@@ -7313,7 +7313,8 @@
+ 
+   if ((res = mtlk_vap_manager_create_vap(mtlk_vap_get_manager(core->vap_handle),
+                                          vap_index,
+-                                         NULL,
++                                         wv_cfg80211_wiphy_get(wave_radio_cfg80211_get(
++                                             wave_vap_radio_get(core->vap_handle))),
+                                          ndev_name_pattern,
+                                          role,
+                                          is_master,

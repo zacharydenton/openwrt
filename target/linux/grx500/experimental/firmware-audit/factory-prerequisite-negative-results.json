@@ -1,0 +1,18 @@
+{
+  "passed": true,
+  "hardware_tested": false,
+  "cases": [
+    {
+      "case": "ordinary-relocated-image",
+      "passed": true,
+      "exit_code": 1,
+      "rejection": "grx500-factory-install"
+    },
+    {
+      "case": "wrong-loader",
+      "passed": true,
+      "exit_code": 1,
+      "rejection": "loader ELF does not reproduce"
+    }
+  ]
+}

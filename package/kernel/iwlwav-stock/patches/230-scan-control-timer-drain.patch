@@ -1,0 +1,101 @@
+--- a/wireless/driver/shared/scan_support.c
++++ b/wireless/driver/shared/scan_support.c
+@@ -224,9 +224,14 @@
+ uint32 sched_scan_timer_clb_func(mtlk_osal_timer_t *timer, mtlk_handle_t nic)
+ {
+   mtlk_core_t *core = (mtlk_core_t *) nic;
+-  struct mtlk_scan_request *sr = core->slow_ctx->sched_scan_req;
++  struct scan_support *ss = __wave_core_scan_support_get(core);
++  struct mtlk_scan_request *sr;
+   int res = MTLK_ERR_OK;
+ 
++  if (READ_ONCE(ss->removal_pending))
++    return 0;
++
++  sr = core->slow_ctx->sched_scan_req;
+   if (sr)
+   {
+     mtlk_df_t *master_df = mtlk_vap_manager_get_master_df(mtlk_vap_get_manager(core->vap_handle));
+@@ -235,7 +240,16 @@
+     res = _mtlk_df_user_invoke_core(master_df, WAVE_RADIO_REQ_DO_SCAN, &clpb, sr, sizeof(*sr));
+     res = _mtlk_df_user_process_core_retval_void(res, clpb, WAVE_RADIO_REQ_DO_SCAN, TRUE);
+ 
+-    mtlk_osal_timer_set(&core->slow_ctx->sched_scan_timer, sr->interval); /* it's in milliseconds already */
++    if (READ_ONCE(ss->removal_pending))
++      return 0;
++
++    /* The OSAL timer wrapper rearms on a nonzero callback return. Calling
++     * timer_set here from the timer's own callback would synchronously
++     * delete the running timer. Only the initial direct call must arm it.
++     */
++    if (timer)
++      return sr->interval;
++    mtlk_osal_timer_set(&core->slow_ctx->sched_scan_timer, sr->interval);
+   }
+ 
+   return res;
+@@ -245,8 +259,12 @@
+ uint32 cac_timer_clb_func(mtlk_osal_timer_t *timer, mtlk_handle_t nic)
+ {
+   mtlk_core_t *core = (mtlk_core_t *) nic;
++  struct scan_support *ss = __wave_core_scan_support_get(core);
+ 
+   MTLK_ASSERT(timer == &core->slow_ctx->cac_timer);
++
++  if (READ_ONCE(ss->removal_pending))
++    return 0;
+ 
+   _mtlk_df_user_invoke_core_async(mtlk_vap_get_df(core->vap_handle),
+                                   WAVE_RADIO_REQ_CAC_TIMEOUT, NULL, 0, NULL, 0);
+@@ -266,13 +284,18 @@
+ 
+   MTLK_ASSERT(core == mtlk_core_get_master(core));
+ 
++  ss = mtlk_core_get_scan_support(core);
++  if (READ_ONCE(ss->removal_pending))
++    return MTLK_ERR_OK;
++
+   /* wait for Radar Detection end */
+   wave_radio_radar_detect_end_wait(radio);
++  if (READ_ONCE(ss->removal_pending))
++    return MTLK_ERR_OK;
+ 
+   df = mtlk_vap_get_df(core->vap_handle);
+   df_user = mtlk_df_get_user(df);
+   ndev = mtlk_df_user_get_ndev(df_user);
+-  ss = mtlk_core_get_scan_support(core);
+   current_chandef = __wave_core_chandef_get(core);
+ 
+   ILOG0_V("CAC timer expired");
+@@ -626,6 +649,13 @@
+ void scan_support_prepare_remove(struct scan_support *ss)
+ {
+   WRITE_ONCE(ss->removal_pending, TRUE);
++
++  /* A queued CAC handler may be waiting on this event in the same serializer
++   * needed for the scan abort. Release it before waiting for either timer.
++   */
++  wave_radio_on_rcvry_isolate(wave_vap_radio_get(ss->master_core->vap_handle));
++  mtlk_osal_timer_cancel_sync(&ss->master_core->slow_ctx->cac_timer);
++  mtlk_osal_timer_cancel_sync(&ss->master_core->slow_ctx->sched_scan_timer);
+ }
+ 
+ static int scan_timeout_func(mtlk_core_t *core, mtlk_scan_support_t *ss);
+@@ -1674,6 +1704,8 @@
+ 
+   request = mtlk_clpb_enum_get_next(clpb, &r_size);
+   MTLK_CLPB_TRY(request, r_size)
++    if (READ_ONCE(mtlk_core_get_scan_support(core)->removal_pending))
++      MTLK_CLPB_EXIT(MTLK_ERR_NOT_READY);
+     if (core->slow_ctx->sched_scan_req)
+     {
+       ELOG_V("A scheduled scan has already been set up here");
+@@ -1683,7 +1715,7 @@
+     {
+       core->slow_ctx->sched_scan_req = *request;
+       /* now just do the same as we would on every sched scan timer alarm */
+-      sched_scan_timer_clb_func(&core->slow_ctx->sched_scan_timer, HANDLE_T(core));
++      sched_scan_timer_clb_func(NULL, HANDLE_T(core));
+     }
+   MTLK_CLPB_FINALLY(res)
+     return mtlk_clpb_push_res(clpb, res);

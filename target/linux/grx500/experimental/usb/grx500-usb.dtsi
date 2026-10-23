@@ -1,0 +1,40 @@
+// SPDX-License-Identifier: GPL-2.0-only
+#include <dt-bindings/gpio/gpio.h>
+#include <dt-bindings/clock/intel,grx500-clk.h>
+
+/ {
+	usb_pads: syscon@16c80000 {
+		compatible = "intel,grx500-pad-syscon", "syscon";
+		reg = <0x16c80000 0x100>;
+		native-endian;
+	};
+
+	/* USB0's stock VBUS pin GPIO0.14 is the PCIe2 endpoint reset.
+	 * Preserve the radio connection; only USB1 is enabled on this board.
+	 */
+	usb1_phy: phy@1a600000 {
+		compatible = "intel,grx500-usb-phy";
+		reg = <0x1a600000 0x100000>;
+		#phy-cells = <0>;
+		resets = <&rcu 0x48 5>;
+		reset-names = "phy";
+		vbus-gpios = <&gpio0 2 GPIO_ACTIVE_LOW>;
+		intel,pad-syscon = <&usb_pads 0x8>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SHARED 50 IRQ_TYPE_LEVEL_LOW>;
+	};
+
+	usb1: usb@1a500000 {
+		compatible = "intel,grx500-dwc3";
+		reg = <0x1a500000 0x100000>;
+		interrupt-parent = <&gic>;
+		interrupts = <GIC_SHARED 83 IRQ_TYPE_LEVEL_HIGH>;
+		clocks = <&cgu GCLK_USB1>;
+		intel,syscon = <&chiptop 0x34>;
+		phys = <&usb1_phy>;
+		phy-names = "usb3-phy";
+		dr_mode = "host";
+		snps,dis_rxdet_inp3_quirk;
+		status = "okay";
+	};
+};

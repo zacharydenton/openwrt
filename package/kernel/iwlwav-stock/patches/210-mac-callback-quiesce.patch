@@ -1,0 +1,166 @@
+--- a/wireless/driver/shared/hw_mmb.h
++++ b/wireless/driver/shared/hw_mmb.h
+@@ -155,6 +155,7 @@
+ 
+ /* Submission/completion paths must be quiesced and the MAC reset first. */
+ void __MTLK_IFUNC mtlk_hw_mmb_release_bss_tx(mtlk_hw_t *hw);
++void __MTLK_IFUNC mtlk_hw_mmb_quiesce_mac80211(mtlk_hw_t *hw);
+ 
+ /**************************************************************
+  * Init/cleanup functions - must be called on driver's
+--- a/wireless/driver/shared/hw_mmb.c
++++ b/wireless/driver/shared/hw_mmb.c
+@@ -10632,6 +10632,72 @@
+   wave_bss_tx_release_packets(hw, &hw->bss_mgmt.tx_res_bdr);
+ }
+ 
++/* The normal event gate also stops data confirmations. Let already accepted
++ * data and BSS frames finish while their VAP/core/mac80211 owners are still
++ * present. The TX producer gate is closed before this process-context wait.
++ */
++static void
++_mtlk_hw_mmb_wait_packet_completions(mtlk_hw_t *hw)
++{
++  uint32 data_pending = 0, bss_pending = 0;
++  int attempt;
++
++  for (attempt = 0; attempt < 200; attempt++) {
++    data_pending = 0;
++    bss_pending = 0;
++    if (hw->flags & HW_FLAGS_PREPARED_DATA_REQ_BDR) {
++      mtlk_osal_lock_acquire(&hw->tx.bdr_data.lock);
++      data_pending = mtlk_dlist_size(&hw->tx.bdr_data.used_list);
++      mtlk_osal_lock_release(&hw->tx.bdr_data.lock);
++    }
++    if (hw->flags & HW_FLAGS_PREPARED_BSS_REQ_BDR) {
++      mtlk_osal_lock_acquire(&hw->bss_mgmt.tx_bdr.lock);
++      bss_pending = mtlk_dlist_size(&hw->bss_mgmt.tx_bdr.used_list) +
++                    mtlk_dlist_size(&hw->bss_mgmt.tx_res_bdr.used_list);
++      mtlk_osal_lock_release(&hw->bss_mgmt.tx_bdr.lock);
++    }
++    if (!data_pending && !bss_pending)
++      return;
++    mtlk_osal_msleep(10);
++  }
++  WLOG_DD("Pending packet confirmations during mac80211 removal: data=%u, bss=%u",
++          data_pending, bss_pending);
++}
++
++/* mac80211 unregister removes interfaces while firmware command confirmations
++ * are still needed by their stop paths. Stop packet producers, wait for any
++ * running tasklet, and return accepted management skbs before unregister.
++ * The firmware may still own the separate DMA buffers: they are unmapped only
++ * by the reset/stop path after the device has stopped using them.
++ */
++void __MTLK_IFUNC
++mtlk_hw_mmb_quiesce_mac80211(mtlk_hw_t *hw)
++{
++  mtlk_handle_t lock_val;
++  BOOL resume_irqs = !READ_ONCE(hw->mac_events_stopped_completely);
++
++  if (resume_irqs)
++    _mtlk_hw_mmb_wait_packet_completions(hw);
++  WRITE_ONCE(hw->mac_events_stopped, 1);
++  mtlk_mmb_drv_recovery_irq_quiesce(hw);
++
++  if (hw->flags & HW_FLAGS_PREPARED_BSS_REQ_BDR) {
++    wave_bss_tx_release_packets(hw, &hw->bss_mgmt.tx_bdr);
++    wave_bss_tx_release_packets(hw, &hw->bss_mgmt.tx_res_bdr);
++  }
++
++  if (!resume_irqs)
++    return;
++
++  /* Restore command replies and BSS completion accounting for VAP removal.
++   * mac_events_stopped keeps RX and status callbacks closed.
++   */
++  mtlk_mmb_drv_recovery_irq_resume(hw);
++  lock_val = mtlk_osal_lock_acquire_irq(&hw->reg_lock);
++  mtlk_ccr_enable_interrupts(hw->ccr, MTLK_IRQ_ALL);
++  mtlk_osal_lock_release_irq(&hw->reg_lock, lock_val);
++}
++
+ static int
+ _mtlk_mmb_alloc_bss_eapol_frag_buf (mtlk_bss_rx_eapol *rx_eapol, uint32 size)
+ {
+@@ -11818,6 +11884,11 @@
+   vap_handle = _mtlk_mmb_get_vap_handle_from_vap_id(hw, radio_id, vap_id);
+   if (__UNLIKELY(!vap_handle)) {
+     ELOG_DD("Received bss frame cfm when VAP was removed radio_id:%d vap_id:%d", radio_id, vap_id);
++    /* Removal may have timed out waiting for firmware. Its packet owner was
++     * already released before unregister; leave the DMA mapping for reset.
++     */
++    if (READ_ONCE(hw->mac_events_stopped))
++      return MTLK_ERR_OK;
+     goto the_trap;
+   }
+ 
+@@ -11825,24 +11896,26 @@
+               bss_req->radio_id, bss_req->vap_id, bss_req->cookie, bss_req->virt_addr,
+               bss_req->size, bss_req->dma_addr);
+ 
+-  df = mtlk_vap_get_df(vap_handle); /* this checks vap_handle and df, cannot return NULL */
+-  df_user = mtlk_df_get_user(df);
+-  ndev = mtlk_df_user_get_ndev(df_user);
+-  MTLK_ASSERT(NULL != ndev);
+-  wifi_header = (frame_head_t *)bss_req->virt_addr;
+-
+   wave_bss_tx_unmap(hw, bss_req);
+ 
+-  if (mtlk_vap_is_ap(vap_handle)) {
+-    if (PROCESS_MANAGEMENT == bss_req->extra_processing && bss_req->cookie) {
+-      wdev = mtlk_df_user_get_wdev(df_user);
+-      MTLK_ASSERT(NULL != wdev);
+-      cfg80211_mgmt_tx_status(wdev, bss_req->cookie, bss_req->virt_addr,
+-                              bss_req->size, (BOOL)status, GFP_ATOMIC);
+-    }
+-    if (PROCESS_NULL_DATA_PACKET == bss_req->extra_processing) {
+-      cfg80211_probe_status(ndev, wifi_header->dst_addr.au8Addr, bss_req->cookie,
+-                            (BOOL)status, 0, false, GFP_ATOMIC);
++  if (!READ_ONCE(hw->mac_events_stopped)) {
++    df = mtlk_vap_get_df(vap_handle); /* the interface is still registered */
++    df_user = mtlk_df_get_user(df);
++    ndev = mtlk_df_user_get_ndev(df_user);
++    MTLK_ASSERT(NULL != ndev);
++    wifi_header = (frame_head_t *)bss_req->virt_addr;
++
++    if (mtlk_vap_is_ap(vap_handle)) {
++      if (PROCESS_MANAGEMENT == bss_req->extra_processing && bss_req->cookie) {
++        wdev = mtlk_df_user_get_wdev(df_user);
++        MTLK_ASSERT(NULL != wdev);
++        cfg80211_mgmt_tx_status(wdev, bss_req->cookie, bss_req->virt_addr,
++                                bss_req->size, (BOOL)status, GFP_ATOMIC);
++      }
++      if (PROCESS_NULL_DATA_PACKET == bss_req->extra_processing) {
++        cfg80211_probe_status(ndev, wifi_header->dst_addr.au8Addr, bss_req->cookie,
++                              (BOOL)status, 0, false, GFP_ATOMIC);
++      }
+     }
+   }
+ 
+--- a/wireless/driver/linux/mtlk_mmb_drv.c
++++ b/wireless/driver/linux/mtlk_mmb_drv.c
+@@ -1375,6 +1375,14 @@
+   }
+ }
+ 
++static void
++_mmb_drv_mac80211_deinit(mtlk_mmb_drv_t *obj, wave_radio_descr_t *radio_descr)
++{
++  if (obj->tasklets_initialized)
++    mtlk_hw_mmb_quiesce_mac80211(obj->hw_api->hw);
++  wave_radio_mac80211_deinit(radio_descr);
++}
++
+ /**
+  * MMB device deletion procedure
+  */
+@@ -1406,7 +1414,7 @@
+     MTLK_CLEANUP_STEP(mmb_drv, MMB_RCVRY_INIT_FINALIZE, MTLK_OBJ_PTR(obj),
+                       wave_rcvry_cleanup_finalize, (obj->hw_api->hw));
+     MTLK_CLEANUP_STEP(mmb_drv, MMB_RADIO_MAC80211_INIT, MTLK_OBJ_PTR(obj),
+-                      wave_radio_mac80211_deinit, (radio_descr));
++                      _mmb_drv_mac80211_deinit, (obj, radio_descr));
+     MTLK_CLEANUP_STEP(mmb_drv, MMB_CORE_PREPARE_STOP, MTLK_OBJ_PTR(obj),
+                       wave_radio_prepare_stop, (radio_descr));
+     MTLK_CLEANUP_STEP(mmb_drv, MMB_MAC_EVENTS_START, MTLK_OBJ_PTR(obj),

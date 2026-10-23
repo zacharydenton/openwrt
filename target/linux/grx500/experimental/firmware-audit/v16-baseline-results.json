@@ -1,0 +1,11 @@
+{
+  "schema": 1,
+  "v16_support_page": "https://www.tp-link.com/us/support/download/archer-ax3000/v1.60/",
+  "official_download_url": "https://static.tp-link.com/upload/firmware/2023/202309/20230906/Archer%20AX3000%28US%29_V1_230831.zip",
+  "zip_sha256": "6198caa78034f69a029b1e4009c2a69f4c36ea9e673e75338b50925543198846",
+  "payload_name": "ax3000v1_intel-up-ver1-0-6-P1[20230831-rel67466]_sign.bin",
+  "payload_sha256": "96a9a7a6bd82ea5340a70181c687136eeeba3320c46e923b00ac9acfabcbc10b",
+  "fresh_matches_pinned": true,
+  "router_firmware_version_observed": false,
+  "hardware_tested": false
+}

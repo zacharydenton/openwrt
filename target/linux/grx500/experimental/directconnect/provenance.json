@@ -1,0 +1,34 @@
+{
+  "directconnect": {
+    "url": "https://gitlab.com/prpl-foundation/intel/directconnect_dp.git",
+    "tag": "ugw_8.5.2.10",
+    "commit": "6ceb742215486e690c6c8604f06a81415d12f398",
+    "archive_sha256": "d3bb1780a41a05bb8ad077a83456d91dc1e139e82c05c8bafbeb0fdf9a88e582",
+    "abi": "0x050007"
+  },
+  "wave": {
+    "gpl_archive": "ax3000v1_GPL_3.tar.gz",
+    "sha256": "de5befc72e4198e490ff4205439d4f8407175f92e487afc44071fd5a726be4c6",
+    "version": "6.0.8.0.87.0.7.d24084bd3447",
+    "baseline_patch_sha256": "eca974b67dfa621b8dc5876273794ef1938c397a8f4a64992e8ae47e49aa0ba0"
+  },
+  "stock_board_dtb_sha256": "98872195bcc1e16f8f56b6f21eecee4335dc6c9a788f1c224014432ede48c198",
+  "kernel_baseline_sha256": {
+    "drivers/net/ethernet/lantiq/cqm/grx500/cbm.c": "a2a1342d28de01ded9a37aeba0d79a415dbd6f73619d8dd6918c1a2a3f32a8f2",
+    "drivers/dma/intel/hdma.c": "31d7f2a87de0fcf691b32057b4697a92fc6055899b1924810b6e92c710928b96",
+    "net/bridge/br_fdb.c": "4e420b56c13cc78757e80c404a77442fedc58b87508f4f2f5735e1bfa552af2b",
+    "net/bridge/br_private.h": "a55a91490ca4f973e5d423ab75530ac6ed44d4a73b99c0d775c5a5b753cfdf7e",
+    "drivers/dma/Kconfig": "0eb347befd4d5b47f060871c979e1495d88f013754a1ae956d07639dbea3e43f",
+    "drivers/dma/Makefile": "04320f9d7a0bdf2dcd9e8618a806baa3025c6d366667079a7ccfd701642fc157",
+    "include/linux/ltq_hwmcpy.h": "5dff5cee472f57c5e547866db78b04ff709fbcf397dc9a27c4c3fa8640dcebc6",
+    "include/linux/dma/lantiq_dmax.h": "2349832c8f1b2630ff212ee6bcd3c37f6c31fd924e6beff5c051ccc9fe48834f",
+    "include/net/lantiq_cbm_api.h": "eae9aadd8cd6acd11500d2068c619e0da1a17b3e41e05ba89a21c91b54ef6135"
+  },
+  "new_code": "grx500-umt.c is a native implementation of stock ltq_umt_expand.c register/counter ABI; scheduling uses Linux hrtimer, not stock GPTC/MIPS yield threads. No PPA/MPE port.",
+  "clock_overlay_sha256": "f6557f1c6ad1a0a87843e96565b01deb107cb22d5d05b19000d36e395cc42888",
+  "umt_stock_sources": {
+    "ltq_umt_expand.c": "6af02bb6d2fcbb0cd94ffc16e6c2152b609c9f1c4297ee0b154d7ace0f2932e4",
+    "ltq_hwmcpy.c": "fdbfe542be0cefb036dde22b42505af34f804c6b3cc7e73baaa2d66b2e3acef2",
+    "ltq_hwmcpy_addr.h": "cbb4c7026b7d442ef07767942b8c8ca8c16911795cc0e25fc1175b3fe005b382"
+  }
+}

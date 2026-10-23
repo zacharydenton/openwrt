@@ -1,0 +1,51 @@
+--- a/wireless/driver/shared/hw_mmb.c
++++ b/wireless/driver/shared/hw_mmb.c
+@@ -3374,7 +3374,7 @@
+     int                        ares     = MTLK_ERR_UNKNOWN;
+     mtlk_lslist_entry_t       *lentry   = mtlk_lslist_pop(&hw->rx.pending.lbufs);
+     mtlk_hw_data_ind_mirror_t *data_ind = NULL;
+-    HOST_DSC                   hd;
++    HOST_DSC                   hd = {0};
+ 
+     if (!lentry) /* no more pending entries */
+       break;
+@@ -5099,11 +5099,15 @@
+                                  MTLK_DATA_FROM_DEVICE);
+ 
+       _mtlk_mmb_nbuf_free(data_ind->nbuf);
+-    }
+-  }
+-
+-  /* fragments have also just been released */
+-  hw->rx.first_fragment = hw->rx.last_fragment = NULL;
++      data_ind->nbuf = NULL;
++      data_ind->dma_addr = 0;
++    }
++  }
++
++  /* Received fragments have left their ring slots and are already unmapped.
++   * The slots hold replacement buffers, so release the separate chain too.
++   */
++  _mtlk_mmb_rx_free_all_fragments(hw);
+ 
+   hw->flags &= ~HW_FLAGS_PREPARED_RX_DATA_BUFFERS;
+ 
+@@ -5120,6 +5124,10 @@
+   data_ring_size = hw->chi_area.sBasic.sRdPOOL.u32NumRdsInPool;
+   ares  = MTLK_ERR_OK;
+ 
++  /* Failed start steps are not marked complete by the lifecycle machinery.
++   * Make partial ownership visible, then unwind it here on any failure.
++   */
++  hw->flags |= HW_FLAGS_PREPARED_RX_DATA_BUFFERS;
+   if(!mtlk_mmb_dcdp_path_available(hw)) { /* DataPath driver allocates for FastPath */
+     for (i = 0; i < data_ring_size ; i++) {
+       data_ind =
+@@ -5133,6 +5141,7 @@
+         /* BRD pointer hole produced here (NULL-pointer) */
+          ILOG2_D("WARNING: Can't preallocate buffer of %d bytes.",
+              (int)RX_DATA_FRAME_SIZE);
++         _mtlk_mmb_free_preallocated_rx_data_buffers(hw);
+          return MTLK_ERR_NO_MEM;
+       }
+     }

@@ -1,0 +1,321 @@
+--- a/wireless/driver/shared/hw_mmb.c
++++ b/wireless/driver/shared/hw_mmb.c
+@@ -8,6 +8,9 @@
+ 
+ ******************************************************************************/
+ #include "mtlkinc.h"
++#include <linux/spinlock.h>
++#include <linux/wait.h>
++#include <linux/workqueue.h>
+ 
+ #define SAFE_PLACE_TO_DEFINE_CHIP_INFO
+ #include "hw_mmb.h"
+@@ -847,8 +850,21 @@
+   } card_cfg;
+ } fw_chi_card_cfg_t;
+ 
++/* Covers a complete accepted TX transaction, including descriptor borrowing.
++ * Closing waits for its users, not merely for the last ring write.
++ */
++struct wave_tx_gate {
++  spinlock_t lock;
++  wait_queue_head_t wait;
++  unsigned int users;
++  bool accepting;
++  bool stopping;
++};
++
+ struct _mtlk_hw_t
+ {
++  struct wave_tx_gate tx_gate;
++  struct work_struct reset_work;
+   mtlk_ccr_t            *ccr;
+   mtlk_hw_mmb_t         *mmb;
+   unsigned char         *mmb_base;
+@@ -5315,6 +5331,132 @@
+   mtlk_ccr_clear_boot_from_bus(hw->ccr);
+   mtlk_ccr_put_ctl_to_reset(hw->ccr);
+   ILOG0_V("FW CPU reset is done");
++}
++
++static void
++wave_hw_reset_worker(struct work_struct *work)
++{
++  mtlk_hw_t *hw = container_of(work, mtlk_hw_t, reset_work);
++  unsigned long flags;
++  bool stopping;
++
++  spin_lock_irqsave(&hw->tx_gate.lock, flags);
++  stopping = hw->tx_gate.stopping;
++  spin_unlock_irqrestore(&hw->tx_gate.lock, flags);
++  if (!stopping && !mtlk_hw_is_halted(READ_ONCE(hw->state))) {
++    wave_rcvry_task_initiate(hw);
++    _mtlk_mmb_handle_sw_trap(hw);
++  }
++}
++
++static int
++wave_hw_reset_request(mtlk_hw_t *hw)
++{
++  unsigned long flags;
++  int res = MTLK_ERR_NOT_READY;
++
++  spin_lock_irqsave(&hw->tx_gate.lock, flags);
++  if (!hw->tx_gate.stopping && !mtlk_hw_is_halted(READ_ONCE(hw->state))) {
++    /* Serialize enqueue with permanent stop's cancel_work_sync. Initiation
++     * can take recovery mutexes, so never run it in a TX/IRQ transaction.
++     */
++    schedule_work(&hw->reset_work);
++    res = MTLK_ERR_OK; /* request accepted, not recovery completion */
++  }
++  spin_unlock_irqrestore(&hw->tx_gate.lock, flags);
++  return res;
++}
++
++static void
++wave_hw_tx_gate_init(mtlk_hw_t *hw)
++{
++  spin_lock_init(&hw->tx_gate.lock);
++  init_waitqueue_head(&hw->tx_gate.wait);
++  hw->tx_gate.users = 0;
++  hw->tx_gate.accepting = false;
++  hw->tx_gate.stopping = false;
++  INIT_WORK(&hw->reset_work, wave_hw_reset_worker);
++}
++
++bool __MTLK_IFUNC
++wave_hw_tx_enter(mtlk_hw_t *hw)
++{
++  unsigned long flags;
++  bool accepted;
++
++  spin_lock_irqsave(&hw->tx_gate.lock, flags);
++  accepted = hw->tx_gate.accepting;
++  if (accepted)
++    hw->tx_gate.users++;
++  spin_unlock_irqrestore(&hw->tx_gate.lock, flags);
++  return accepted;
++}
++
++void __MTLK_IFUNC
++wave_hw_tx_exit(mtlk_hw_t *hw)
++{
++  unsigned long flags;
++
++  spin_lock_irqsave(&hw->tx_gate.lock, flags);
++  if (WARN_ON_ONCE(!hw->tx_gate.users)) {
++    spin_unlock_irqrestore(&hw->tx_gate.lock, flags);
++    return;
++  }
++  if (!--hw->tx_gate.users)
++    wake_up_all(&hw->tx_gate.wait);
++  spin_unlock_irqrestore(&hw->tx_gate.lock, flags);
++}
++
++static bool
++wave_hw_tx_idle(mtlk_hw_t *hw)
++{
++  unsigned long flags;
++  bool idle;
++
++  /* Take the lock so drain cannot return while the last exit still touches
++   * the gate (including its waitqueue wakeup).
++   */
++  spin_lock_irqsave(&hw->tx_gate.lock, flags);
++  idle = !hw->tx_gate.users;
++  spin_unlock_irqrestore(&hw->tx_gate.lock, flags);
++  return idle;
++}
++
++static void
++wave_hw_tx_drain(mtlk_hw_t *hw, bool permanent)
++{
++  unsigned long flags;
++
++  spin_lock_irqsave(&hw->tx_gate.lock, flags);
++  if (permanent)
++    hw->tx_gate.stopping = true;
++  hw->tx_gate.accepting = false;
++  spin_unlock_irqrestore(&hw->tx_gate.lock, flags);
++  wait_event(hw->tx_gate.wait, wave_hw_tx_idle(hw));
++}
++
++void __MTLK_IFUNC
++wave_hw_tx_quiesce(mtlk_hw_t *hw)
++{
++  wave_hw_tx_drain(hw, false);
++}
++
++void __MTLK_IFUNC
++wave_hw_tx_stop(mtlk_hw_t *hw)
++{
++  wave_hw_tx_drain(hw, true);
++  cancel_work_sync(&hw->reset_work);
++}
++
++void __MTLK_IFUNC
++wave_hw_tx_resume(mtlk_hw_t *hw)
++{
++  unsigned long flags;
++
++  spin_lock_irqsave(&hw->tx_gate.lock, flags);
++  if (!hw->tx_gate.stopping)
++    hw->tx_gate.accepting = true;
++  spin_unlock_irqrestore(&hw->tx_gate.lock, flags);
+ }
+ 
+ static void
+@@ -8588,13 +8730,7 @@
+     }
+     break;
+   case MTLK_HW_RESET:
+-    {
+-      res = MTLK_ERR_NOT_READY;
+-      if (!mtlk_hw_is_halted(hw->state)) {
+-        res = wave_rcvry_task_initiate(hw);
+-        _mtlk_mmb_handle_sw_trap(hw);
+-      }
+-    }
++    res = wave_hw_reset_request(hw);
+     break;
+   case MTLK_HW_DBG_ASSERT_ALL_MACS:
+     res = _mtlk_mmb_cause_all_macs_assert(hw);
+@@ -9502,6 +9638,7 @@
+ 
+   memset(hw_api, 0, sizeof(*hw_api));
+   memset(hw, 0, sizeof(*hw));
++  wave_hw_tx_gate_init(hw);
+ 
+   hw->mmb = &mtlk_mmb_obj;
+ 
+@@ -9930,6 +10067,7 @@
+ void __MTLK_IFUNC
+ mtlk_hw_mmb_isolate (mtlk_hw_t *hw)
+ {
++  wave_hw_tx_quiesce(hw);
+   _mtlk_mmb_stop_events_completely(hw);
+   mtlk_mmb_drv_recovery_irq_quiesce(hw);
+ 
+@@ -10010,6 +10148,8 @@
+   /* MTLK_ASSERT(hw->vap_manager != NULL); */
+   MTLK_ASSERT(hw->radio_descr != NULL);
+ 
++  /* Stop submissions before resetting or reclaiming their descriptors. */
++  wave_hw_tx_quiesce(hw);
+   /* Reset FW and chip */
+   _mtlk_mmb_stop_events_completely(hw);
+   mtlk_mmb_drv_recovery_irq_quiesce(hw);
+@@ -10229,6 +10369,7 @@
+   }
+ 
+   hw->state = MTLK_HW_STATE_READY;
++  wave_hw_tx_resume(hw);
+ 
+   ILOG2_V("HW layer restored!");
+   return MTLK_ERR_OK;
+@@ -11364,7 +11505,8 @@
+     _mtlk_mmb_dump_bss_mgmt_res_queue(&hw->bss_mgmt);
+ }
+ 
+-int mtlk_mmb_bss_mgmt_tx (mtlk_vap_handle_t vap_handle, const uint8 *buf, size_t len, int channum,
++static int
++_mtlk_mmb_bss_mgmt_tx_submit (mtlk_vap_handle_t vap_handle, const uint8 *buf, size_t len, int channum,
+                           BOOL no_cck, BOOL dont_wait_for_ack, BOOL is_broadcast,
+                           uint64 *cookie, uint32 extra_processing, mtlk_nbuf_t *skb,
+                           BOOL power_mgmt_on, uint32 tid)
+@@ -11585,6 +11727,24 @@
+   return MTLK_ERR_OK;
+ }
+ 
++int
++mtlk_mmb_bss_mgmt_tx (mtlk_vap_handle_t vap_handle, const uint8 *buf, size_t len, int channum,
++                      BOOL no_cck, BOOL dont_wait_for_ack, BOOL is_broadcast,
++                      uint64 *cookie, uint32 extra_processing, mtlk_nbuf_t *skb,
++                      BOOL power_mgmt_on, uint32 tid)
++{
++  mtlk_hw_t *hw = mtlk_vap_get_hw(vap_handle);
++  int res;
++
++  if (!wave_hw_tx_enter(hw))
++    return MTLK_ERR_NOT_READY; /* caller retains its skb */
++  res = _mtlk_mmb_bss_mgmt_tx_submit(vap_handle, buf, len, channum, no_cck,
++                                  dont_wait_for_ack, is_broadcast, cookie,
++                                  extra_processing, skb, power_mgmt_on, tid);
++  wave_hw_tx_exit(hw);
++  return res;
++}
++
+ /* A reserve entry has already been accepted by its caller. Report a
+  * failed submission and consume its skb when no firmware completion will come.
+  */
+--- a/wireless/driver/shared/hw_mmb.h
++++ b/wireless/driver/shared/hw_mmb.h
+@@ -142,6 +142,16 @@
+ 
+ void __MTLK_IFUNC
+ mtlk_hw_mmb_dis_interrupts(mtlk_hw_t *hw);
++
++/* Fast-path enter/exit may run in atomic context. Close/drain must run in
++ * process context outside a transaction. Recovery transitions are serialized
++ * by their caller; permanent stop cannot be undone by a late resume.
++ */
++bool __MTLK_IFUNC wave_hw_tx_enter(mtlk_hw_t *hw);
++void __MTLK_IFUNC wave_hw_tx_exit(mtlk_hw_t *hw);
++void __MTLK_IFUNC wave_hw_tx_quiesce(mtlk_hw_t *hw);
++void __MTLK_IFUNC wave_hw_tx_stop(mtlk_hw_t *hw);
++void __MTLK_IFUNC wave_hw_tx_resume(mtlk_hw_t *hw);
+ 
+ /* Submission/completion paths must be quiesced and the MAC reset first. */
+ void __MTLK_IFUNC mtlk_hw_mmb_release_bss_tx(mtlk_hw_t *hw);
+--- a/wireless/driver/linux/core.c
++++ b/wireless/driver/linux/core.c
+@@ -2136,7 +2136,7 @@
+ **
+ ******************************************************************************/
+ static int
+-_mtlk_core_handle_tx_data (mtlk_core_t *nic, mtlk_core_handle_tx_data_t *data, uint32 nbuf_flags)
++_mtlk_core_handle_tx_data_impl (mtlk_core_t *nic, mtlk_core_handle_tx_data_t *data, uint32 nbuf_flags)
+ {
+   int res = MTLK_ERR_PKT_DROPPED;
+   uint16 sta_sid = TMP_BCAST_DEST_ADDR;
+@@ -2212,6 +2212,20 @@
+ tx_skip:
+   return res;
+ }
++
++static int
++_mtlk_core_handle_tx_data (mtlk_core_t *nic, mtlk_core_handle_tx_data_t *data, uint32 nbuf_flags)
++{
++  mtlk_hw_t *hw = mtlk_vap_get_hw(nic->vap_handle);
++  int res;
++
++  if (!wave_hw_tx_enter(hw))
++    return MTLK_ERR_PKT_DROPPED;
++  res = _mtlk_core_handle_tx_data_impl(nic, data, nbuf_flags);
++  wave_hw_tx_exit(hw);
++  return res;
++}
++
+ 
+ #if MTLK_USE_DIRECTCONNECT_DP_API
+ int __MTLK_IFUNC
+--- a/wireless/driver/linux/mtlk_mmb_drv.c
++++ b/wireless/driver/linux/mtlk_mmb_drv.c
+@@ -1398,6 +1398,8 @@
+   radio_descr = wave_card_radio_descr_get(obj->hw_api->hw);
+ 
+   MTLK_CLEANUP_BEGIN(mmb_drv, MTLK_OBJ_PTR(obj))
++    if (obj->hw_api)
++      wave_hw_tx_stop(obj->hw_api->hw);
+     MTLK_CLEANUP_STEP(mmb_drv, MMB_RCVRY_INIT_FINALIZE, MTLK_OBJ_PTR(obj),
+                       wave_rcvry_cleanup_finalize, (obj->hw_api->hw));
+     MTLK_CLEANUP_STEP(mmb_drv, MMB_RADIO_MAC80211_INIT, MTLK_OBJ_PTR(obj),
+@@ -1642,7 +1644,7 @@
+                    wave_radio_calibrate, (radio_descr, WAVE_RADIO_NO_RCVRY));
+ 
+     MTLK_INIT_STEP_VOID(mmb_drv, MMB_MAC_EVENTS_START, MTLK_OBJ_PTR(obj),
+-                        MTLK_NOACTION, ());
++                        wave_hw_tx_resume, (hw));
+ 
+     MTLK_INIT_STEP_VOID(mmb_drv, MMB_CORE_PREPARE_STOP, MTLK_OBJ_PTR(obj),
+                         MTLK_NOACTION, ());

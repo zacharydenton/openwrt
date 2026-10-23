@@ -1,0 +1,136 @@
+--- a/wireless/driver/shared/hw_mmb.c
++++ b/wireless/driver/shared/hw_mmb.c
+@@ -315,6 +315,7 @@
+   uint64 cookie;
+   uint8 *virt_addr; /* mgmt frame */
+   uint32 dma_addr;
++  bool dma_mapped;
+   uint32 size;      /* size of the valid data in the buffer, not the buffer size */
+   uint32 extra_processing;
+   uint8  vap_id;
+@@ -1512,6 +1513,7 @@
+ static void txdm_on_cfm(mtlk_hw_t *hw, PMSG_OBJ pmsg);
+ 
+ static void _mtlk_mmb_free_unconfirmed_tx_buffers(mtlk_hw_t *hw);
++static void _mtlk_mmb_unmap_bss_tx_buffers(mtlk_hw_t *hw, mtlk_mmb_advanced_bdr_t *control);
+ 
+ #define DATA_REQ_MIRROR_PTR(msg) ((mtlk_hw_data_req_mirror_t *)(msg))
+ #define MAN_IND_MIRROR_PTR(msg)  ((mtlk_hw_man_ind_mirror_t *)(msg))
+@@ -10012,6 +10014,11 @@
+   _mtlk_mmb_free_preallocated_rx_data_buffers(hw);
+   _mtlk_mmb_free_data_tx_buffers(hw);
+   _mtlk_mmb_free_preallocated_rx_mgmt_buffers(hw);
++  /* The old firmware has been reset. Drop its streaming mappings before
++   * restarting it or returning the management descriptors to their pools.
++   */
++  _mtlk_mmb_unmap_bss_tx_buffers(hw, &hw->bss_mgmt.tx_bdr);
++  _mtlk_mmb_unmap_bss_tx_buffers(hw, &hw->bss_mgmt.tx_res_bdr);
+   _mtlk_mmb_cleanup_dbg_ind_bdr(hw);
+   _mtlk_mmb_cleanup_dbg_req_bdr(hw);
+   _mtlk_mmb_cleanup_man_ind_bdr(hw);
+@@ -10356,11 +10363,56 @@
+   }
+ }
+ 
++static int
++wave_bss_tx_map(mtlk_hw_t *hw, struct mtlk_hw_bss_req_mirror *req)
++{
++  /* Never overwrite the ownership record of an outstanding mapping. */
++  if (req->dma_mapped)
++    return MTLK_ERR_UNKNOWN;
++
++  req->dma_addr = mtlk_osal_map_to_phys_addr(mtlk_ccr_get_dev_ctx(hw->ccr),
++                                          req->virt_addr, req->size,
++                                          MTLK_DATA_TO_DEVICE);
++  if (dma_mapping_error(mtlk_ccr_get_dev_ctx(hw->ccr), req->dma_addr)) {
++    req->dma_addr = 0;
++    return MTLK_ERR_NO_MEM;
++  }
++  req->dma_mapped = true;
++  return MTLK_ERR_OK;
++}
++
++static void
++wave_bss_tx_unmap(mtlk_hw_t *hw, struct mtlk_hw_bss_req_mirror *req)
++{
++  if (req->dma_mapped) {
++    mtlk_osal_unmap_phys_addr(mtlk_ccr_get_dev_ctx(hw->ccr), req->dma_addr,
++                            req->size, MTLK_DATA_TO_DEVICE);
++    req->dma_mapped = false;
++  }
++  req->dma_addr = 0;
++}
++
++/* Call only with submission/completion processing quiesced, as for the
++ * existing RX/data-TX cleanup paths. DMA address zero can be a valid mapping.
++ */
++static void
++_mtlk_mmb_unmap_bss_tx_buffers(mtlk_hw_t *hw, mtlk_mmb_advanced_bdr_t *control)
++{
++  int i;
++
++  for (i = 0; i < control->basic.nof_bds; i++) {
++    struct mtlk_hw_bss_req_mirror *req =
++      _mtlk_basic_bdr_get_mirror_bd(&control->basic, i, struct mtlk_hw_bss_req_mirror);
++    wave_bss_tx_unmap(hw, req);
++  }
++}
++
+ static void
+ mtlk_mmb_free_bss_tx_buffers(mtlk_hw_t *hw, mtlk_mmb_advanced_bdr_t *control)
+ {
+   int i;
+ 
++  _mtlk_mmb_unmap_bss_tx_buffers(hw, control);
+   for (i = 0; i < control->basic.nof_bds; i++) {
+     struct mtlk_hw_bss_req_mirror *bss_req =
+       _mtlk_basic_bdr_get_mirror_bd(&control->basic, i, struct mtlk_hw_bss_req_mirror);
+@@ -10980,6 +11032,7 @@
+   unsigned char *dst_addr;
+   uint32 packet_length = bss_req->size;
+   BOOL mcf;
++  int res;
+ 
+ #ifdef BD_DBG
+   if (bss_req->hdr.index >= hw->bss_mgmt.tx_bdr.basic.nof_bds) {
+@@ -11093,12 +11146,9 @@
+   }
+ 
+   /* do not touch the data payload after dma map */
+-  bss_req->dma_addr = mtlk_osal_map_to_phys_addr(mtlk_ccr_get_dev_ctx(hw->ccr), bss_req->virt_addr,
+-                                                 bss_req->size, MTLK_DATA_TO_DEVICE);
+-  if (dma_mapping_error(mtlk_ccr_get_dev_ctx(hw->ccr), bss_req->dma_addr)) {
+-    bss_req->dma_addr = 0;
+-    return MTLK_ERR_NO_MEM;
+-  }
++  res = wave_bss_tx_map(hw, bss_req);
++  if (res != MTLK_ERR_OK)
++    return res;
+   /* leave the u8Reserved, u8Status and retransmissions fields as 0 */
+ 
+   bss_hd.u32BdIndex         = CPU_TO_LE32(bss_req->hdr.index);
+@@ -11572,7 +11622,7 @@
+   MTLK_ASSERT(NULL != ndev);
+   wifi_header = (frame_head_t *)bss_req->virt_addr;
+ 
+-  mtlk_osal_unmap_phys_addr(mtlk_ccr_get_dev_ctx(hw->ccr), bss_req->dma_addr, bss_req->size, MTLK_DATA_TO_DEVICE);
++  wave_bss_tx_unmap(hw, bss_req);
+ 
+   if (PROCESS_MANAGEMENT == bss_req->extra_processing)
+   {
+@@ -11591,6 +11641,7 @@
+         ILOG2_D("handle bss mgmt cfm status = %u", status);
+         MTLK_ASSERT(NULL != mac80211_hw);
+         wv_ieee80211_tx_status(mac80211_hw, bss_req->skb, status);
++        bss_req->skb = NULL;
+       }
+     }
+   }
+@@ -11610,6 +11661,7 @@
+         ILOG2_D("handle bss null data packet cfm status = %u", status);
+         MTLK_ASSERT(NULL != mac80211_hw);
+         wv_ieee80211_tx_status(mac80211_hw, bss_req->skb, status);
++        bss_req->skb = NULL;
+       }
+     }
+   }

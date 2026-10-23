@@ -1,0 +1,179 @@
+--- a/wireless/driver/shared/fw_recovery.h
++++ b/wireless/driver/shared/fw_recovery.h
+@@ -57,6 +57,8 @@
+ int wave_rcvry_cfg_get(mtlk_hw_t *hw_ctx, wave_rcvry_cfg_t *cfg);
+ 
+ rcvry_type_e wave_rcvry_type_current_get(const mtlk_hw_t *hw_ctx);
++int wave_rcvry_vap_change_begin(const mtlk_hw_t *hw_ctx, BOOL *held);
++void wave_rcvry_vap_change_end(const mtlk_hw_t *hw_ctx, BOOL held);
+ void wave_rcvry_type_forced_set(const mtlk_hw_t *hw_ctx, rcvry_type_e type);
+ void wave_rcvry_restart_scan_set(const mtlk_hw_t *hw_ctx,
+                                  const mtlk_vap_manager_t *vap_manager,
+--- a/wireless/driver/shared/fw_recovery.c
++++ b/wireless/driver/shared/fw_recovery.c
+@@ -100,6 +100,7 @@
+   wave_rcvry_radio_ctx_t  radio_ctx[WAVE_CARD_RADIO_NUM_MAX];       /* context for Recovery radio */
+ 
+   mtlk_osal_mutex_t       slave_sync_mutex;                         /* mutex to wait until serializers of Slave VAPs are blocked */
++  mtlk_osal_mutex_t       vap_change_mutex;                         /* serialize VAP lifetime changes with recovery snapshots */
+   mtlk_osal_mutex_t       slave_release_mutex[2];                   /* mutex to release serializers of Slave VAPs after Recovery is done */
+   uint8                   slave_release_mutex_idx;                  /* mutex index */
+ 
+@@ -917,6 +918,7 @@
+ MTLK_INIT_STEPS_LIST_BEGIN(wave_rcvry_task_ctx)
+   MTLK_INIT_STEPS_LIST_ENTRY(wave_rcvry_task_ctx, RCVRY_TASK_CTX_LOCK_INIT)
+   MTLK_INIT_STEPS_LIST_ENTRY(wave_rcvry_task_ctx, RCVRY_TASK_CTX_SYNC_MUTEX_INIT)
++  MTLK_INIT_STEPS_LIST_ENTRY(wave_rcvry_task_ctx, RCVRY_TASK_CTX_VAP_CHANGE_MUTEX_INIT)
+   MTLK_INIT_STEPS_LIST_ENTRY(wave_rcvry_task_ctx, RCVRY_TASK_CTX_RELEASE_MUTEX0_INIT)
+   MTLK_INIT_STEPS_LIST_ENTRY(wave_rcvry_task_ctx, RCVRY_TASK_CTX_RELEASE_MUTEX1_INIT)
+   MTLK_INIT_STEPS_LIST_ENTRY(wave_rcvry_task_ctx, RCVRY_TASK_CTX_WSS_PARENT_GET)
+@@ -949,6 +951,8 @@
+                       mtlk_osal_mutex_cleanup, (&rcvry_ctx->slave_release_mutex[1]));
+     MTLK_CLEANUP_STEP(wave_rcvry_task_ctx, RCVRY_TASK_CTX_RELEASE_MUTEX0_INIT, MTLK_OBJ_PTR(rcvry_ctx),
+                       mtlk_osal_mutex_cleanup, (&rcvry_ctx->slave_release_mutex[0]));
++    MTLK_CLEANUP_STEP(wave_rcvry_task_ctx, RCVRY_TASK_CTX_VAP_CHANGE_MUTEX_INIT, MTLK_OBJ_PTR(rcvry_ctx),
++                      mtlk_osal_mutex_cleanup, (&rcvry_ctx->vap_change_mutex));
+     MTLK_CLEANUP_STEP(wave_rcvry_task_ctx, RCVRY_TASK_CTX_SYNC_MUTEX_INIT, MTLK_OBJ_PTR(rcvry_ctx),
+                       mtlk_osal_mutex_cleanup, (&rcvry_ctx->slave_sync_mutex));
+     MTLK_CLEANUP_STEP(wave_rcvry_task_ctx, RCVRY_TASK_CTX_LOCK_INIT, MTLK_OBJ_PTR(rcvry_ctx),
+@@ -969,6 +973,8 @@
+                    mtlk_osal_lock_init, (&rcvry_ctx->lock));
+     MTLK_INIT_STEP(wave_rcvry_task_ctx, RCVRY_TASK_CTX_SYNC_MUTEX_INIT, MTLK_OBJ_PTR(rcvry_ctx),
+                    mtlk_osal_mutex_init, (&rcvry_ctx->slave_sync_mutex));
++    MTLK_INIT_STEP(wave_rcvry_task_ctx, RCVRY_TASK_CTX_VAP_CHANGE_MUTEX_INIT, MTLK_OBJ_PTR(rcvry_ctx),
++                   mtlk_osal_mutex_init, (&rcvry_ctx->vap_change_mutex));
+     MTLK_INIT_STEP(wave_rcvry_task_ctx, RCVRY_TASK_CTX_RELEASE_MUTEX0_INIT, MTLK_OBJ_PTR(rcvry_ctx),
+                    mtlk_osal_mutex_init, (&rcvry_ctx->slave_release_mutex[0]));
+     MTLK_INIT_STEP(wave_rcvry_task_ctx, RCVRY_TASK_CTX_RELEASE_MUTEX1_INIT, MTLK_OBJ_PTR(rcvry_ctx),
+@@ -1058,6 +1064,38 @@
+     res = __rcvry_type_current_get(rcvry_ctx);
+ 
+   return res;
++}
++
++int wave_rcvry_vap_change_begin (const mtlk_hw_t *hw_ctx, BOOL *held)
++{
++  wave_rcvry_task_ctx_t *rcvry_ctx = _rcvry_task_ctx_get(hw_ctx);
++
++  *held = FALSE;
++  /* Startup and module teardown have no active recovery task. */
++  if (!rcvry_ctx || !_rcvry_is_initialized(rcvry_ctx))
++    return MTLK_ERR_OK;
++
++  mtlk_osal_mutex_acquire(&rcvry_ctx->vap_change_mutex);
++  if (__rcvry_type_current_get(rcvry_ctx) != RCVRY_TYPE_UNDEF ||
++      atomic_read(&rcvry_ctx->is_mac_fatal_pending)) {
++    mtlk_osal_mutex_release(&rcvry_ctx->vap_change_mutex);
++    return MTLK_ERR_RETRY;
++  }
++
++  *held = TRUE;
++  return MTLK_ERR_OK;
++}
++
++void wave_rcvry_vap_change_end (const mtlk_hw_t *hw_ctx, BOOL held)
++{
++  wave_rcvry_task_ctx_t *rcvry_ctx;
++
++  if (!held)
++    return;
++
++  rcvry_ctx = _rcvry_task_ctx_get(hw_ctx);
++  MTLK_ASSERT(rcvry_ctx != NULL);
++  mtlk_osal_mutex_release(&rcvry_ctx->vap_change_mutex);
+ }
+ 
+ void wave_rcvry_type_forced_set (const mtlk_hw_t *hw_ctx, rcvry_type_e type)
+@@ -1919,7 +1957,7 @@
+   return type;
+ }
+ 
+-static int _rcvry_task_initiate (wave_rcvry_card_cfg_t *pcard)
++static int __rcvry_task_initiate (wave_rcvry_card_cfg_t *pcard)
+ {
+   int res;
+   uint8 card_idx;
+@@ -1973,6 +2011,19 @@
+   _rcvry_task_schedule(pcard, rcvry_ctx);
+ 
+   return MTLK_ERR_OK;
++}
++
++static int _rcvry_task_initiate (wave_rcvry_card_cfg_t *pcard)
++{
++  int res;
++  wave_rcvry_task_ctx_t *rcvry_ctx = &pcard->rcvry_ctx;
++
++  /* Publish the recovery type, snapshot VAPs and queue their commands as
++   * one operation with respect to interface creation and deletion. */
++  mtlk_osal_mutex_acquire(&rcvry_ctx->vap_change_mutex);
++  res = __rcvry_task_initiate(pcard);
++  mtlk_osal_mutex_release(&rcvry_ctx->vap_change_mutex);
++  return res;
+ }
+ 
+ int wave_rcvry_task_initiate (mtlk_hw_t *hw_ctx)
+--- a/wireless/driver/linux/core.c
++++ b/wireless/driver/linux/core.c
+@@ -12075,6 +12075,46 @@
+   }
+ 
+   return TRUE;
++}
++
++static int
++_mtlk_core_vap_change_guard (mtlk_handle_t hcore, const void *data,
++                             uint32 data_size, mtlk_core_task_func_t handler)
++{
++  mtlk_core_t *core = HANDLE_T_PTR(mtlk_core_t, hcore);
++  mtlk_hw_t *hw = mtlk_vap_get_hw(core->vap_handle);
++  mtlk_clpb_t *clpb = *(mtlk_clpb_t **)data;
++  BOOL held;
++  int res;
++
++  MTLK_ASSERT(sizeof(mtlk_clpb_t *) == data_size);
++  res = wave_rcvry_vap_change_begin(hw, &held);
++  if (res != MTLK_ERR_OK)
++    return mtlk_clpb_push_res(clpb, res);
++
++  res = handler(hcore, data, data_size);
++  wave_rcvry_vap_change_end(hw, held);
++  return res;
++}
++
++static int _mtlk_core_add_vap_idx_guarded (mtlk_handle_t hcore, const void *data, uint32 data_size)
++{
++  return _mtlk_core_vap_change_guard(hcore, data, data_size, _mtlk_core_add_vap_idx);
++}
++
++static int _mtlk_core_add_vap_name_guarded (mtlk_handle_t hcore, const void *data, uint32 data_size)
++{
++  return _mtlk_core_vap_change_guard(hcore, data, data_size, _mtlk_core_add_vap_name);
++}
++
++static int _mtlk_core_del_vap_idx_guarded (mtlk_handle_t hcore, const void *data, uint32 data_size)
++{
++  return _mtlk_core_vap_change_guard(hcore, data, data_size, _mtlk_core_del_vap_idx);
++}
++
++static int _mtlk_core_del_vap_name_guarded (mtlk_handle_t hcore, const void *data, uint32 data_size)
++{
++  return _mtlk_core_vap_change_guard(hcore, data, data_size, _mtlk_core_del_vap_name);
+ }
+ 
+ void __MTLK_IFUNC
+@@ -12241,10 +12281,10 @@
+     _MTLK_CORE_HANDLE_REQ_SERIALIZABLE(WAVE_RADIO_REQ_SET_MAC_ASSERT,           _mtlk_core_set_mac_assert);
+     _MTLK_CORE_HANDLE_REQ_DUMPABLE(WAVE_RADIO_REQ_GET_BCL_MAC_DATA,             _mtlk_core_bcl_mac_data_get);
+     _MTLK_CORE_HANDLE_REQ_SERIALIZABLE(WAVE_RADIO_REQ_SET_BCL_MAC_DATA,         _mtlk_core_bcl_mac_data_set);
+-    _MTLK_CORE_HANDLE_REQ_SERIALIZABLE(WAVE_RADIO_REQ_MBSS_ADD_VAP_IDX,         _mtlk_core_add_vap_idx);
+-    _MTLK_CORE_HANDLE_REQ_SERIALIZABLE(WAVE_RADIO_REQ_MBSS_ADD_VAP_NAME,        _mtlk_core_add_vap_name);
+-    _MTLK_CORE_HANDLE_REQ_SERIALIZABLE(WAVE_RADIO_REQ_MBSS_DEL_VAP_IDX,         _mtlk_core_del_vap_idx);
+-    _MTLK_CORE_HANDLE_REQ_SERIALIZABLE(WAVE_RADIO_REQ_MBSS_DEL_VAP_NAME,        _mtlk_core_del_vap_name);
++    _MTLK_CORE_HANDLE_REQ_SERIALIZABLE(WAVE_RADIO_REQ_MBSS_ADD_VAP_IDX,         _mtlk_core_add_vap_idx_guarded);
++    _MTLK_CORE_HANDLE_REQ_SERIALIZABLE(WAVE_RADIO_REQ_MBSS_ADD_VAP_NAME,        _mtlk_core_add_vap_name_guarded);
++    _MTLK_CORE_HANDLE_REQ_SERIALIZABLE(WAVE_RADIO_REQ_MBSS_DEL_VAP_IDX,         _mtlk_core_del_vap_idx_guarded);
++    _MTLK_CORE_HANDLE_REQ_SERIALIZABLE(WAVE_RADIO_REQ_MBSS_DEL_VAP_NAME,        _mtlk_core_del_vap_name_guarded);
+     /* Interference Detection */
+     _MTLK_CORE_HANDLE_REQ_SERIALIZABLE(WAVE_RADIO_REQ_SET_INTERFDET_PARAMS_CFG, _mtlk_core_set_interfdet_cfg);
+     _MTLK_CORE_HANDLE_REQ_SERIALIZABLE(WAVE_RADIO_REQ_GET_INTERFDET_MODE_CFG,   _mtlk_core_get_interfdet_mode_cfg);

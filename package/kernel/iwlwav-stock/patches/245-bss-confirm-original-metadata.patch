@@ -1,0 +1,46 @@
+--- a/wireless/driver/shared/hw_mmb.c
++++ b/wireless/driver/shared/hw_mmb.c
+@@ -11840,6 +11840,10 @@
+   uint8  status = MTLK_BFIELD_GET(u32frameInfo0, TX_BSS_EXTRA_STATUS);
+   mtlk_vap_handle_t    vap_handle, vap_handle_res;
+   wave_radio_t *radio;
++  IEEE_ADDR confirmed_dst_addr;
++  uint32 confirmed_extra_processing;
++  uint8 confirmed_subtype;
++  BOOL confirmed_is_broadcast;
+ 
+   MTLK_ASSERT(hw);
+ 
+@@ -11935,6 +11939,14 @@
+     bss_req->skb = NULL;
+   }
+ 
++  /* A reserve entry replaces this mirror's metadata. Preserve the confirmed
++   * frame's identity for the original core's ACK/probe-response bookkeeping.
++   */
++  confirmed_dst_addr = bss_req->dst_addr;
++  confirmed_extra_processing = bss_req->extra_processing;
++  confirmed_subtype = bss_req->subtype;
++  confirmed_is_broadcast = bss_req->is_broadcast;
++
+   /* Note that we don't use the tx_res_bdr.lock but the tx_bdr.lock,
+    * because we want both queues protected by the same lock, because they work together
+    */
+@@ -12017,7 +12029,7 @@
+     /* vap_handle from cfm frame we need to decrease it only after new frame
+        is sent for not having rase condition with waiting of unconf_bss */
+     if (vap_handle)
+-      mtlk_core_on_bss_cfm(mtlk_vap_get_core(vap_handle), &bss_req->dst_addr, bss_req->extra_processing, bss_req->subtype, bss_req->is_broadcast);
++      mtlk_core_on_bss_cfm(mtlk_vap_get_core(vap_handle), &confirmed_dst_addr, confirmed_extra_processing, confirmed_subtype, confirmed_is_broadcast);
+     return MTLK_ERR_OK;
+   }
+ 
+@@ -12026,7 +12038,7 @@
+   mtlk_dlist_push_back(&bss_mgmt->tx_bdr.free_list, &bss_req->hdr.list_entry);
+   mtlk_osal_lock_release(&bss_mgmt->tx_bdr.lock);
+   if (vap_handle)
+-    mtlk_core_on_bss_cfm(mtlk_vap_get_core(vap_handle), &bss_req->dst_addr, bss_req->extra_processing, bss_req->subtype, bss_req->is_broadcast);
++    mtlk_core_on_bss_cfm(mtlk_vap_get_core(vap_handle), &confirmed_dst_addr, confirmed_extra_processing, confirmed_subtype, confirmed_is_broadcast);
+   return MTLK_ERR_OK;
+ 
+ the_trap:

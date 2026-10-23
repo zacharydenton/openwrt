@@ -1,0 +1,17 @@
+{
+  "source_commit": "dc542d0ac6100123552c3a6ea12296061850e20b",
+  "source_host": "drivers/pci/host/pcie-intel.c",
+  "kernel": "6.18.55",
+  "object_compile": "passed",
+  "vmlinux_link": "passed",
+  "dts_compile": "passed",
+  "hardware_tested": false,
+  "interrupt_mode": "INTx (stock CONFIG_LINDRV_GEN6_USE_LEGACY_INT)",
+  "files": {
+    "files/drivers/gpio/gpio-grx500.c": "bbac22cdc458259a427d669e45cc8272e8cc876435744f314debcfec1dc1e1d1",
+    "files/drivers/pci/controller/pcie-grx500.c": "ca4fae5d475437816e9190ca2a1ce92caa878fd5da74ba77177d144e2ddf77e5",
+    "files/drivers/phy/intel/phy-grx500-pcie.c": "caa54230a06d8e7642294398964492aed2ecd47f6c2a6bfbe3b901d0ad540c8e",
+    "files/drivers/reset/reset-grx500.c": "15c330e9ff651859049be62c552704cd855d6fda35515975feaba6d77cb4ebfe"
+  },
+  "kernel_sha256": "6fc93841cfdd8718c3180cb2f63665a60c46d07f8d0e14b6f944d231163ddc38"
+}

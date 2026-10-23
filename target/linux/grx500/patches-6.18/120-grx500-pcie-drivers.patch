@@ -1,0 +1,32 @@
+--- a/drivers/pci/controller/Makefile
++++ b/drivers/pci/controller/Makefile
+@@ -63,3 +63,5 @@
+ obj-$(CONFIG_ARM64) += pci-xgene.o
+ endif
+ endif
++
++obj-$(CONFIG_PCIE_GRX500) += pcie-grx500.o
+--- a/drivers/phy/Makefile
++++ b/drivers/phy/Makefile
+@@ -44,3 +44,5 @@
+ 					   tegra/	\
+ 					   ti/		\
+ 					   xilinx/
++
++obj-$(CONFIG_PHY_GRX500_PCIE) += intel/
+--- a/drivers/reset/Makefile
++++ b/drivers/reset/Makefile
+@@ -49,3 +49,5 @@
+ obj-$(CONFIG_RESET_UNIPHIER_GLUE) += reset-uniphier-glue.o
+ obj-$(CONFIG_RESET_ZYNQ) += reset-zynq.o
+ obj-$(CONFIG_RESET_ZYNQMP) += reset-zynqmp.o
++
++obj-$(CONFIG_RESET_GRX500) += reset-grx500.o
+--- a/drivers/gpio/Makefile
++++ b/drivers/gpio/Makefile
+@@ -218,3 +218,5 @@
+ obj-$(CONFIG_GPIO_ZEVIO)		+= gpio-zevio.o
+ obj-$(CONFIG_GPIO_ZYNQ)			+= gpio-zynq.o
+ obj-$(CONFIG_GPIO_ZYNQMP_MODEPIN)	+= gpio-zynqmp-modepin.o
++
++obj-$(CONFIG_GPIO_GRX500) += gpio-grx500.o

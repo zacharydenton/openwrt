@@ -1,0 +1,37 @@
+{
+  "passed": true,
+  "hardware_tested": false,
+  "radio_operation_verified": false,
+  "patch_sha256": "21ec3dcbf49cfd7a111a7e6d9704536df0f939068d390a03ae7cb14bfd6bbb53",
+  "prepared_source_sha256": "ac5010ddea9ad58560b0cd91b5812f8e5a664d9de25f6a134827ab0650b68116",
+  "unstripped_mtlk_sha256": "8011380a98105c2751eeb395d658f9e82f7415e6daf196a09cd839fd1275ee96",
+  "packaged_mtlk_sha256": "bbfcee28f0a3dd5507180679ed72f3667b2d85a6ba483ee80da3bc8f8a983336",
+  "text_section_sha256": "668a0de714b326e6baa2540a76b634794e8576e5368a632658d013ebce90ee4a",
+  "disassembly_sha256": "01489ce4560c274a209959713540cd5bf0268c29eb5dbe4608e5f3aa4f11fe44",
+  "nm_sha256": "a93dbcd72d7abaf66f1433c5399be8aa7670c6bd306e5548b97b4ca6a6d8e411",
+  "symbols": {
+    "5ghz_band_offset": "0x17d0",
+    "2ghz_band_offset": "0x182c",
+    "5ghz_branch": "0x54e50 -> 0x555f0",
+    "non_5ghz_branch": "0x555e8 -> 0x54e58"
+  },
+  "images": {
+    "development": {
+      "sysupgrade_sha256": "f54a7157b42b7e3234f7b6b2d38e41c83a425012ba509d7bec7e7f93b3fb9dc6",
+      "image_audit_sha256": "1c545475f59d7e09870ca7422357f9735bcd11ce05a766996cceecf06fbd0b04",
+      "packaged_mtlk_sha256": "bbfcee28f0a3dd5507180679ed72f3667b2d85a6ba483ee80da3bc8f8a983336"
+    },
+    "factory": {
+      "sysupgrade_sha256": "102e2f0c8d0532831a7baa8d36ec4648aed0717b7519883f10d60084df87399e",
+      "image_audit_sha256": "2c29e39d3daf8b40fc0455d9ba9f58d2127d65af6d9206290d2e6de9621f313c",
+      "packaged_mtlk_sha256": "bbfcee28f0a3dd5507180679ed72f3667b2d85a6ba483ee80da3bc8f8a983336"
+    }
+  },
+  "build_logs": {
+    "vht160-development-compile.log": "1aed289cf3837694f4908c708a8374cf2514eb814aea087364d40a804af18216",
+    "vht160-factory-compile.log": "3b85377338fa7cd6a519d5d2533a26e9c8ecd446214d9e4dc9f3ed7442f3c72f",
+    "vht160-development-build.log": "5da0aa34f6a0c6ca99559f72ff0d46cd97030adb0b70261ed178f56003c198f5",
+    "vht160-factory-build.log": "c29ed5abd3977c9beeb7162f93ecdd5cbf55286a172f95d0a7b72096aaa14565"
+  },
+  "scope": "Compiled VHT 160 MHz calls are reached only for the 5 GHz band template; packaged module text and both image module hashes match. No RF behavior was exercised."
+}

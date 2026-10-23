@@ -1,0 +1,278 @@
+{
+  "passed": true,
+  "cases": [
+    {
+      "bank": "A",
+      "fault": "none",
+      "passed": true,
+      "exit_code": 0,
+      "calls": [
+        [
+          "write",
+          "kernelB",
+          "13118188"
+        ],
+        [
+          "env",
+          "f_kernel_sizeB",
+          "C82AEC"
+        ],
+        [
+          "env",
+          "active_bank",
+          "B"
+        ],
+        [
+          "env",
+          "update_chk",
+          "1"
+        ]
+      ],
+      "environment_changed_after_injected_env_failure": false
+    },
+    {
+      "bank": "A",
+      "fault": "write",
+      "passed": true,
+      "exit_code": 1,
+      "calls": [
+        [
+          "write",
+          "kernelB",
+          "13118188"
+        ]
+      ],
+      "environment_changed_after_injected_env_failure": false
+    },
+    {
+      "bank": "A",
+      "fault": "f_kernel_sizeB",
+      "passed": true,
+      "exit_code": 0,
+      "calls": [
+        [
+          "write",
+          "kernelB",
+          "13118188"
+        ],
+        [
+          "env",
+          "f_kernel_sizeB",
+          "C82AEC"
+        ],
+        [
+          "env",
+          "active_bank",
+          "B"
+        ],
+        [
+          "env",
+          "update_chk",
+          "1"
+        ]
+      ],
+      "environment_changed_after_injected_env_failure": true
+    },
+    {
+      "bank": "A",
+      "fault": "active_bank",
+      "passed": true,
+      "exit_code": 0,
+      "calls": [
+        [
+          "write",
+          "kernelB",
+          "13118188"
+        ],
+        [
+          "env",
+          "f_kernel_sizeB",
+          "C82AEC"
+        ],
+        [
+          "env",
+          "active_bank",
+          "B"
+        ],
+        [
+          "env",
+          "update_chk",
+          "1"
+        ]
+      ],
+      "environment_changed_after_injected_env_failure": true
+    },
+    {
+      "bank": "A",
+      "fault": "update_chk",
+      "passed": true,
+      "exit_code": 1,
+      "calls": [
+        [
+          "write",
+          "kernelB",
+          "13118188"
+        ],
+        [
+          "env",
+          "f_kernel_sizeB",
+          "C82AEC"
+        ],
+        [
+          "env",
+          "active_bank",
+          "B"
+        ],
+        [
+          "env",
+          "update_chk",
+          "1"
+        ]
+      ],
+      "environment_changed_after_injected_env_failure": false
+    },
+    {
+      "bank": "B",
+      "fault": "none",
+      "passed": true,
+      "exit_code": 0,
+      "calls": [
+        [
+          "write",
+          "kernelA",
+          "13118188"
+        ],
+        [
+          "env",
+          "f_kernel_sizeA",
+          "C82AEC"
+        ],
+        [
+          "env",
+          "active_bank",
+          "A"
+        ],
+        [
+          "env",
+          "update_chk",
+          "3"
+        ]
+      ],
+      "environment_changed_after_injected_env_failure": false
+    },
+    {
+      "bank": "B",
+      "fault": "write",
+      "passed": true,
+      "exit_code": 1,
+      "calls": [
+        [
+          "write",
+          "kernelA",
+          "13118188"
+        ]
+      ],
+      "environment_changed_after_injected_env_failure": false
+    },
+    {
+      "bank": "B",
+      "fault": "f_kernel_sizeA",
+      "passed": true,
+      "exit_code": 0,
+      "calls": [
+        [
+          "write",
+          "kernelA",
+          "13118188"
+        ],
+        [
+          "env",
+          "f_kernel_sizeA",
+          "C82AEC"
+        ],
+        [
+          "env",
+          "active_bank",
+          "A"
+        ],
+        [
+          "env",
+          "update_chk",
+          "3"
+        ]
+      ],
+      "environment_changed_after_injected_env_failure": true
+    },
+    {
+      "bank": "B",
+      "fault": "active_bank",
+      "passed": true,
+      "exit_code": 0,
+      "calls": [
+        [
+          "write",
+          "kernelA",
+          "13118188"
+        ],
+        [
+          "env",
+          "f_kernel_sizeA",
+          "C82AEC"
+        ],
+        [
+          "env",
+          "active_bank",
+          "A"
+        ],
+        [
+          "env",
+          "update_chk",
+          "3"
+        ]
+      ],
+      "environment_changed_after_injected_env_failure": true
+    },
+    {
+      "bank": "B",
+      "fault": "update_chk",
+      "passed": true,
+      "exit_code": 1,
+      "calls": [
+        [
+          "write",
+          "kernelA",
+          "13118188"
+        ],
+        [
+          "env",
+          "f_kernel_sizeA",
+          "C82AEC"
+        ],
+        [
+          "env",
+          "active_bank",
+          "A"
+        ],
+        [
+          "env",
+          "update_chk",
+          "3"
+        ]
+      ],
+      "environment_changed_after_injected_env_failure": false
+    }
+  ],
+  "stock_script_sha256": "7ea7ec9dd7326b346d22909d1051de517d13d38f5778144c48168021265e8208",
+  "function_sha256": "1e6749ff9dd536bf8b3d184a12a2fa9be1f03e8675ddd0c891d2e0b1ed39ad9f",
+  "hardware_tested": false,
+  "flash_operations_performed": false,
+  "observations": [
+    "A failed kernel write prevents the environment-update sequence.",
+    "The three environment writes are separate; earlier failures do not stop later updates.",
+    "The stock updater therefore cannot provide an atomic bank-switch guarantee."
+  ],
+  "limitations": [
+    "Only the exact selected shell function executes; leaf operations are fixtures.",
+    "Host bash, not the router kernel or flash hardware, executes this model."
+  ]
+}

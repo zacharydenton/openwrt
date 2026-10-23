@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "status": "Scheduled-scan/CAC timer drain built and statically verified; hardware qualification and one-shot stock-web safety incomplete.",
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "new_factory_container": false,
+  "changes": [
+    "Use OSAL callback return for periodic scheduled-scan rearm instead of self-canceling timer_set",
+    "Release radar wait and cancel CAC/scheduled scan timers before wiphy removal",
+    "Skip queued CAC cfg80211 and set-channel callbacks after removal begins",
+    "Reject new scheduled scans after removal marker"
+  ],
+  "tests": {
+    "scan_native_asan_ubsan": 21,
+    "scan_mips": 21,
+    "teardown_native": 556,
+    "teardown_mips": 556,
+    "scope": "Selected actual C callbacks with modeled Linux timer, serializer and cfg80211 leaves; no router runtime."
+  },
+  "build": {
+    "clean_wireless_package": "pass",
+    "integrated_openwrt": "pass",
+    "exact_patch_reconstruction": "pass",
+    "initramfs_elf_binding": "pass",
+    "sysupgrade_elf_binding": "pass",
+    "packaged_module_exact_current_build": "pass",
+    "compiled_ro_bootloader_environment_calibration": "pass",
+    "weak_ordering_irq_fence": "pass",
+    "factory_trial_in_current_kernel": false
+  },
+  "sha256": {
+    "patch": "9c799e148d570c56e35a059112c6f1dd136555ed35ca488d2a184b306f2b7c6a",
+    "scan_test": "e25b9dc0634d1e284dfe49c8c6d12f33adbffd443ff6f1a57c09e7a28b6c21e1",
+    "teardown_test": "a9fd2c16bd7481b25f9d78acca1ce9811af8c5aa8bc0a1300b45499f03b7ebd5",
+    "module": "e551fb4d5ed4b9070fefcef60b4578eaf9d9ca1979d5b2f1f5bfdb038bdd5af7",
+    "kernel_config": "8a7db47d826ce756da5d343508358b60013bfe223fd8bb6f2f3589b0fce34be2",
+    "initramfs": "dd52f79cb31f774cf3203524f12391c6125e0e2d51ec62c876547b9a26629cb1",
+    "sysupgrade": "7298891e4574c1538f182a570269f5d377eb59059ff85b52b74b0058f300eb16",
+    "package_build_log": "3a79695a5c389dd5df545e32065be39ce08d6d187fbfe645cf96fe9f8e885bcd",
+    "integrated_build_log": "cc91ecf4458effc4e997844c74c73059a5a438a4d9c84dbe8bfb6bbb01f1634f",
+    "initramfs_check": "50af7673f9ef2ee7782a76f3581da47865593aa2948633b72029ada7613cddaa",
+    "sysupgrade_check": "ccace9dae6445c5261163aedc1e5cdd543a4e54d7ba7eb49b99b246e5ddc92fe",
+    "content_check": "9c0754c18efe684ee3a7581ec9305d3841d4228c3d37a19a8c2cb28062350038",
+    "ordering_check": "67f62e12bf9e6d1e3d1d1832f55fc8712ffc8493df9895eaee3193e1102c39f9"
+  },
+  "remaining": [
+    "Other control/recovery callbacks and cross-interface lifetime audit",
+    "Physical boot, each Ethernet port, both Wi-Fi radios and full stock features",
+    "NAND power-loss and reliable serial-free early-hang fallback",
+    "Stock-web factory container and hardware-validated safe installation"
+  ]
+}

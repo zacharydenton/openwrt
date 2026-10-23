@@ -1,0 +1,20 @@
+{
+  "passed": true,
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "source_commit": "a25fb079b1463cd5d7d69c6d9a1c28d873291ebb",
+  "factory_commit": "a25fb079b1463cd5d7d69c6d9a1c28d873291ebb",
+  "identical_build_input_count": 346,
+  "identical_build_inputs_sha256": "459e82aa7ce70274057e5bde085eb360973b16e5d843e8f5dd6bdf15886408b2",
+  "factory_kernel_config_override": {
+    "target/linux/grx500/config-6.18": {
+      "source_sha256": "33bee3671e1391b210ca5fe16ccf1df166de030864cd7b33cfeb47c3cc7a963d",
+      "factory_sha256": "8a2b6d2781e8e86c63f3a28940730b281e7bfbdfe3072c9af692db75babfd6cc",
+      "only_change": "CONFIG_GRX500_FACTORY_TRIAL=y"
+    }
+  },
+  "factory_extra_package": "CONFIG_PACKAGE_grx500-factory-install=y",
+  "verified_factory_sysupgrade_sha256": "102e2f0c8d0532831a7baa8d36ec4648aed0717b7519883f10d60084df87399e",
+  "scope": "Target, Ethernet, Wi-Fi, package and relocation-loader build inputs match the source except the explicit factory kernel flag and install-marker package.",
+  "limitation": "Source parity and a successful build do not establish hardware operation or stock recovery."
+}

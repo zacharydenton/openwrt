@@ -1,0 +1,426 @@
+{
+  "passed": true,
+  "cases": [
+    {
+      "case": "legacy-stock",
+      "mode": "checker",
+      "passed": true,
+      "exit_code": 0,
+      "input_sha256": "62d27b353a8f796fe4ea0f7aff147af8b7d463543eb714289d0e25dbbc82bdea",
+      "expected_exit_code": 0,
+      "stock_ubusd_present": false,
+      "updater_teardown_failed": false,
+      "input_bytes": 27201423,
+      "flash_device_access_attempted": false,
+      "captured": {},
+      "captured_calls": "",
+      "stdout_sha256": "4f04248eefe07ab34a690284b7a576f8e5d86358f4d8c8b76b935a1118f9dbbb",
+      "strace_sha256": "a43730aec244bf3b5642574fd9379a622e8d639bd895788d607b4dee8577d32f"
+    },
+    {
+      "case": "legacy-bad-digest",
+      "mode": "checker",
+      "passed": true,
+      "exit_code": 255,
+      "input_sha256": "2541dd3fe57037e482f587a39f6865254952737911045c1d27f831254deac1cf",
+      "expected_exit_code": 255,
+      "stock_ubusd_present": false,
+      "updater_teardown_failed": false,
+      "input_bytes": 27201423,
+      "flash_device_access_attempted": false,
+      "captured": {},
+      "captured_calls": "",
+      "stdout_sha256": "252fbaa197a74377804866a34d565122dc3748118f4509f2df9e2a980e7bc707",
+      "strace_sha256": "ca9fbb74229714c0cab15e9b5013c9cbf890f7899f7808a15b7fd427fb9f98fa"
+    },
+    {
+      "case": "legacy-damaged-uimage-checker",
+      "mode": "checker",
+      "passed": true,
+      "exit_code": 0,
+      "input_sha256": "bfa78f1066857ab99dc147eaf771200670850ff0a521a50e25a4803ae842a515",
+      "expected_exit_code": 0,
+      "stock_ubusd_present": false,
+      "updater_teardown_failed": false,
+      "input_bytes": 27201423,
+      "flash_device_access_attempted": false,
+      "captured": {},
+      "captured_calls": "",
+      "stdout_sha256": "4f04248eefe07ab34a690284b7a576f8e5d86358f4d8c8b76b935a1118f9dbbb",
+      "strace_sha256": "a43730aec244bf3b5642574fd9379a622e8d639bd895788d607b4dee8577d32f"
+    },
+    {
+      "case": "legacy-wrong-region",
+      "mode": "checker",
+      "passed": true,
+      "exit_code": 255,
+      "input_sha256": "62d27b353a8f796fe4ea0f7aff147af8b7d463543eb714289d0e25dbbc82bdea",
+      "expected_exit_code": 255,
+      "stock_ubusd_present": false,
+      "updater_teardown_failed": false,
+      "input_bytes": 27201423,
+      "flash_device_access_attempted": false,
+      "captured": {},
+      "captured_calls": "",
+      "stdout_sha256": "a8f373641a766aa0c6c28bf7837d5be7629c119caa5b407bf75d9b88c442252e",
+      "strace_sha256": "a0a4dbdf8df9376bb0f750fbac026fcb899fd5ebf30dede843c5b01c9621b4a0"
+    },
+    {
+      "case": "software-envelope-checker",
+      "mode": "checker",
+      "passed": true,
+      "exit_code": 0,
+      "input_sha256": "4d57dda206782e07543f3c262077b12f5066e90f91361d79b132c9b45c98a9b6",
+      "expected_exit_code": 0,
+      "stock_ubusd_present": false,
+      "updater_teardown_failed": false,
+      "input_bytes": 8503419,
+      "flash_device_access_attempted": false,
+      "captured": {},
+      "captured_calls": "",
+      "stdout_sha256": "951495e9393f88049492ac30e1bbffe2e81960f13a55c18ab48d9ab46870ab3b",
+      "strace_sha256": "3a90a80e0b8a028fd29de7fb30bd3df008d145446d7cf259232e2c8dc3617d0b"
+    },
+    {
+      "case": "software-envelope-writer",
+      "mode": "writer-parser-capture",
+      "passed": true,
+      "exit_code": 255,
+      "input_sha256": "4d57dda206782e07543f3c262077b12f5066e90f91361d79b132c9b45c98a9b6",
+      "expected_exit_code": 255,
+      "stock_ubusd_present": false,
+      "updater_teardown_failed": true,
+      "input_bytes": 8503419,
+      "flash_device_access_attempted": false,
+      "captured": {
+        "kernel": {
+          "bytes": 8499028,
+          "sha256": "0aeff3fea1d6416afe52f13b80adccf5b5c40830f743f77a6213ce858583b2a7"
+        }
+      },
+      "captured_calls": "kernel\t8499028\tMIPS OpenWrt Linux-6.18.55\n",
+      "stdout_sha256": "2c9e0d60e7b16d4961c79c062255980e41cb9f01d172f415c47d696bfe938ca9",
+      "strace_sha256": "81b1980286e1a42bf043e0503c6a614058333f2c9677e053a8003c93c8a8c711"
+    },
+    {
+      "case": "software-bad-crc-writer",
+      "mode": "writer-parser-capture",
+      "passed": true,
+      "exit_code": 255,
+      "input_sha256": "381d3eb7915b9ee47bae134fbaed76a8fad330943cf98806f1d4bb5ace62957d",
+      "expected_exit_code": 255,
+      "stock_ubusd_present": false,
+      "updater_teardown_failed": true,
+      "input_bytes": 8503419,
+      "flash_device_access_attempted": false,
+      "captured": {},
+      "captured_calls": "",
+      "stdout_sha256": "997898786bde901763f88a7c2cf7e756b9353958921ef03ae038e1b33c323f37",
+      "strace_sha256": "5c43f4984361e380fa324817369e77c30fbd301c1b970372ede783dff50f639c"
+    },
+    {
+      "case": "software-writer-with-ubus",
+      "mode": "writer-parser-capture",
+      "passed": true,
+      "exit_code": 0,
+      "input_sha256": "4d57dda206782e07543f3c262077b12f5066e90f91361d79b132c9b45c98a9b6",
+      "expected_exit_code": 0,
+      "stock_ubusd_present": true,
+      "updater_teardown_failed": false,
+      "input_bytes": 8503419,
+      "flash_device_access_attempted": false,
+      "captured": {
+        "kernel": {
+          "bytes": 8499028,
+          "sha256": "0aeff3fea1d6416afe52f13b80adccf5b5c40830f743f77a6213ce858583b2a7"
+        }
+      },
+      "captured_calls": "kernel\t8499028\tMIPS OpenWrt Linux-6.18.55\n",
+      "stdout_sha256": "f43b5930fff8f1cc45df10aac34cdf9321275e6d7fd1e290e3a9ff8a4db76400",
+      "strace_sha256": "e523c068b8458958779970a59816e977d970a8f378873ca04f272f518b9506bc"
+    },
+    {
+      "case": "software-bad-crc-with-ubus",
+      "mode": "writer-parser-capture",
+      "passed": true,
+      "exit_code": 0,
+      "input_sha256": "381d3eb7915b9ee47bae134fbaed76a8fad330943cf98806f1d4bb5ace62957d",
+      "expected_exit_code": 0,
+      "stock_ubusd_present": true,
+      "updater_teardown_failed": false,
+      "input_bytes": 8503419,
+      "flash_device_access_attempted": false,
+      "captured": {},
+      "captured_calls": "",
+      "stdout_sha256": "5b4f0d87b52559de5e2cd5a67753da5f009fe1e142c78248d39196626372d201",
+      "strace_sha256": "c69f1dbf39c51ef196b693c996c3e36d5f2facefdff2cdb1df6b34e7bcaa8bf8"
+    },
+    {
+      "case": "software-relocated-initramfs-checker",
+      "mode": "checker",
+      "passed": true,
+      "exit_code": 0,
+      "input_sha256": "78fea2bd489a261edd650a5ccfca411040d14638fa8094812df3476f215cb8df",
+      "expected_exit_code": 0,
+      "stock_ubusd_present": false,
+      "updater_teardown_failed": false,
+      "input_bytes": 8620963,
+      "flash_device_access_attempted": false,
+      "captured": {},
+      "captured_calls": "",
+      "stdout_sha256": "cecab0e82cb17d605d2a305e852f9d2a8f28daf5080b14a897922b0a7a6ab712",
+      "strace_sha256": "e258873ef7c39960f61c7e2f65750b003c0894e488d2ddcffc66131a491fb42b"
+    },
+    {
+      "case": "software-relocated-initramfs-writer",
+      "mode": "writer-parser-capture",
+      "passed": true,
+      "exit_code": 0,
+      "input_sha256": "78fea2bd489a261edd650a5ccfca411040d14638fa8094812df3476f215cb8df",
+      "expected_exit_code": 0,
+      "stock_ubusd_present": true,
+      "updater_teardown_failed": false,
+      "input_bytes": 8620963,
+      "flash_device_access_attempted": false,
+      "captured": {
+        "kernel": {
+          "bytes": 8616572,
+          "sha256": "69188ed748539f400340dfada90b049b08688134c6d9693a51ea047ba2a90551"
+        }
+      },
+      "captured_calls": "kernel\t8616572\tOpenWrt AX3000 loader EXPERIMENT]\n",
+      "stdout_sha256": "f917f0f371b228bfe51d4107f5d99121f904f320db3a0021204a8db6455d97ae",
+      "strace_sha256": "75f5b9a89dd9b4cf08d16d220a2b0f4635b1c5d7eb22e31b52d165034c1fc6a8"
+    },
+    {
+      "case": "software-relocated-sysupgrade-checker",
+      "mode": "checker",
+      "passed": true,
+      "exit_code": 0,
+      "input_sha256": "3fbe96818a66641622f8f497b5e57c2af77c3051adae6a82ec88afe29e0bcf5f",
+      "expected_exit_code": 0,
+      "stock_ubusd_present": false,
+      "updater_teardown_failed": false,
+      "input_bytes": 9033475,
+      "flash_device_access_attempted": false,
+      "captured": {},
+      "captured_calls": "",
+      "stdout_sha256": "a7481ac7106147df1a50165dfe09bd071da803b95601aa2bf07550b79894e0cc",
+      "strace_sha256": "7e04a1b55843517f3272dd766a2a76e1451a5733696e85a286f1175fdcc5d18d"
+    },
+    {
+      "case": "software-relocated-sysupgrade-writer",
+      "mode": "writer-parser-capture",
+      "passed": true,
+      "exit_code": 0,
+      "input_sha256": "3fbe96818a66641622f8f497b5e57c2af77c3051adae6a82ec88afe29e0bcf5f",
+      "expected_exit_code": 0,
+      "stock_ubusd_present": true,
+      "updater_teardown_failed": false,
+      "input_bytes": 9033475,
+      "flash_device_access_attempted": false,
+      "captured": {
+        "kernel": {
+          "bytes": 3996060,
+          "sha256": "d66d06086faa61e6f2af23a1871dd610558a70ea23c644bee366e4a58690ebf0"
+        },
+        "rootfs": {
+          "bytes": 5032960,
+          "sha256": "02f0e590a32a55befdbdaecb7559bf573d554a2db95c7de5ce44a3f26141b6a5"
+        }
+      },
+      "captured_calls": "rootfs\t5032960\tOpenWrt rootfs\nkernel\t3996060\tOpenWrt AX3000 loader EXPERIMENT]\n",
+      "stdout_sha256": "dfd1538f111a001a0863365b6bc44b7bcf6f8e1359fb078286c65bc88f9c3b4a",
+      "strace_sha256": "4b341f2bffd4660ca809dcd7b93f612c71aea2d394ef8f761a102c58a5c3175d"
+    },
+    {
+      "case": "directconnect-envelope-checker",
+      "mode": "checker",
+      "passed": true,
+      "exit_code": 0,
+      "input_sha256": "8c2e840abbdbde4b34d1cd7429f445e4eeb2d14a12b81a4368ca13d1996ad62d",
+      "expected_exit_code": 0,
+      "stock_ubusd_present": false,
+      "updater_teardown_failed": false,
+      "input_bytes": 8539913,
+      "flash_device_access_attempted": false,
+      "captured": {},
+      "captured_calls": "",
+      "stdout_sha256": "00c7db86ce42945a1235760505cddded4b50c07dee06f7e959a278c1864b0d24",
+      "strace_sha256": "d3b15f15decd54ace3b0772213e223a246d068b0286e1146eda60503db6a0242"
+    },
+    {
+      "case": "directconnect-envelope-writer",
+      "mode": "writer-parser-capture",
+      "passed": true,
+      "exit_code": 255,
+      "input_sha256": "8c2e840abbdbde4b34d1cd7429f445e4eeb2d14a12b81a4368ca13d1996ad62d",
+      "expected_exit_code": 255,
+      "stock_ubusd_present": false,
+      "updater_teardown_failed": true,
+      "input_bytes": 8539913,
+      "flash_device_access_attempted": false,
+      "captured": {
+        "kernel": {
+          "bytes": 8535522,
+          "sha256": "0024809d6e45ad0e6d12ef730a52bb243604349f7bf95a6a8a33d493661dbf81"
+        }
+      },
+      "captured_calls": "kernel\t8535522\tMIPS OpenWrt Linux-6.18.55\n",
+      "stdout_sha256": "67537df2820ee985221333ef58f50488ed8c1e5a89a2d55e1ca7abbb9f138e6d",
+      "strace_sha256": "c57d71524b52669f60920a377a3d1f3bbf360c460e91a33ce54ab7e8a519f0d2"
+    },
+    {
+      "case": "directconnect-bad-crc-writer",
+      "mode": "writer-parser-capture",
+      "passed": true,
+      "exit_code": 255,
+      "input_sha256": "12ec6233e2742857fb2f6dc3792fe5e4c292588ab71072343f1c97faffd6ea54",
+      "expected_exit_code": 255,
+      "stock_ubusd_present": false,
+      "updater_teardown_failed": true,
+      "input_bytes": 8539913,
+      "flash_device_access_attempted": false,
+      "captured": {},
+      "captured_calls": "",
+      "stdout_sha256": "ec854a72071aeb0268020433a3f0d1236b1ef056dd85a296ee3e1b6506ef68fa",
+      "strace_sha256": "6553c9f818e13131acba1245643886d47586339fad41e569247b6d56885f0dad"
+    },
+    {
+      "case": "directconnect-writer-with-ubus",
+      "mode": "writer-parser-capture",
+      "passed": true,
+      "exit_code": 0,
+      "input_sha256": "8c2e840abbdbde4b34d1cd7429f445e4eeb2d14a12b81a4368ca13d1996ad62d",
+      "expected_exit_code": 0,
+      "stock_ubusd_present": true,
+      "updater_teardown_failed": false,
+      "input_bytes": 8539913,
+      "flash_device_access_attempted": false,
+      "captured": {
+        "kernel": {
+          "bytes": 8535522,
+          "sha256": "0024809d6e45ad0e6d12ef730a52bb243604349f7bf95a6a8a33d493661dbf81"
+        }
+      },
+      "captured_calls": "kernel\t8535522\tMIPS OpenWrt Linux-6.18.55\n",
+      "stdout_sha256": "aa237ae9193c182562544d7b50647aca7a50328e5096769f5096cbdf35019d90",
+      "strace_sha256": "38391bb292df796b70f996d4ea279338721842be5b6c0897139655256a8f145b"
+    },
+    {
+      "case": "directconnect-bad-crc-with-ubus",
+      "mode": "writer-parser-capture",
+      "passed": true,
+      "exit_code": 0,
+      "input_sha256": "12ec6233e2742857fb2f6dc3792fe5e4c292588ab71072343f1c97faffd6ea54",
+      "expected_exit_code": 0,
+      "stock_ubusd_present": true,
+      "updater_teardown_failed": false,
+      "input_bytes": 8539913,
+      "flash_device_access_attempted": false,
+      "captured": {},
+      "captured_calls": "",
+      "stdout_sha256": "dd7288c22c9c990fdbebde8c78862613372839ea6fa5eb32987fb0d59e2d6803",
+      "strace_sha256": "ea305ecdbb59d67b8b5d95663338bb8e4ac9da145732d1666a36906b92d46236"
+    },
+    {
+      "case": "directconnect-relocated-initramfs-checker",
+      "mode": "checker",
+      "passed": true,
+      "exit_code": 0,
+      "input_sha256": "d91b4525c642849fe275db3ff8f92869607db3bf1e9b2af22addc03efae0a3a2",
+      "expected_exit_code": 0,
+      "stock_ubusd_present": false,
+      "updater_teardown_failed": false,
+      "input_bytes": 8657907,
+      "flash_device_access_attempted": false,
+      "captured": {},
+      "captured_calls": "",
+      "stdout_sha256": "77110f25ec8aeb2409f8f7506d3f4b8429955c1c167c87c779acedba62499165",
+      "strace_sha256": "c9776e424b9ca87b6e9dbef99c541ce7ea46ecf2086af5b73c78d1d276b3eb0f"
+    },
+    {
+      "case": "directconnect-relocated-initramfs-writer",
+      "mode": "writer-parser-capture",
+      "passed": true,
+      "exit_code": 0,
+      "input_sha256": "d91b4525c642849fe275db3ff8f92869607db3bf1e9b2af22addc03efae0a3a2",
+      "expected_exit_code": 0,
+      "stock_ubusd_present": true,
+      "updater_teardown_failed": false,
+      "input_bytes": 8657907,
+      "flash_device_access_attempted": false,
+      "captured": {
+        "kernel": {
+          "bytes": 8653516,
+          "sha256": "61024eaeb8ff61b9e2e75ea48e71b2f67b181464fd4d3f4c374e033279114640"
+        }
+      },
+      "captured_calls": "kernel\t8653516\tOpenWrt AX3000 loader EXPERIMENT]\n",
+      "stdout_sha256": "669ff14239ef214f8209edb15137e86051d285a948aa5399a12a8505c01a5ec0",
+      "strace_sha256": "4c0ec0539c73005f8e3a77ae2192360427c1896dc05b1386a880feb43d7d4a96"
+    },
+    {
+      "case": "directconnect-relocated-sysupgrade-checker",
+      "mode": "checker",
+      "passed": true,
+      "exit_code": 0,
+      "input_sha256": "3a3ec695c5b1d265b20726beaa2ac335d24b2438e036d43e233ba35b6cfb4802",
+      "expected_exit_code": 0,
+      "stock_ubusd_present": false,
+      "updater_teardown_failed": false,
+      "input_bytes": 9070797,
+      "flash_device_access_attempted": false,
+      "captured": {},
+      "captured_calls": "",
+      "stdout_sha256": "d431562d30bcd1e4ea2802540963c065899dfb6c2ef66e0209ce60a3756e2ce9",
+      "strace_sha256": "119629386be4ba40684dd9d77e7f1d6a2584c6208f29000f6afd6de3746d2232"
+    },
+    {
+      "case": "directconnect-relocated-sysupgrade-writer",
+      "mode": "writer-parser-capture",
+      "passed": true,
+      "exit_code": 0,
+      "input_sha256": "3a3ec695c5b1d265b20726beaa2ac335d24b2438e036d43e233ba35b6cfb4802",
+      "expected_exit_code": 0,
+      "stock_ubusd_present": true,
+      "updater_teardown_failed": false,
+      "input_bytes": 9070797,
+      "flash_device_access_attempted": false,
+      "captured": {
+        "kernel": {
+          "bytes": 3994470,
+          "sha256": "09054837145eabcf9642337dbd03af9f77f21ab6d4eab3cd3ed73b9f8f871ecc"
+        },
+        "rootfs": {
+          "bytes": 5071872,
+          "sha256": "01e9c219478eb87e76a6bd51c948226ca06d0e6c0157f1950ec58b33d623f57c"
+        }
+      },
+      "captured_calls": "rootfs\t5071872\tOpenWrt rootfs\nkernel\t3994470\tOpenWrt AX3000 loader EXPERIMENT]\n",
+      "stdout_sha256": "c1a59115e489dfe2664b2dea6667333ae0666968f0262f14da828b5c8c26d361",
+      "strace_sha256": "b802fecaeb9296dab170f2c3e45461219d0799afc1603e0cb035bcdae9502d35"
+    }
+  ],
+  "stock_sha256": "96a9a7a6bd82ea5340a70181c687136eeeba3320c46e923b00ac9acfabcbc10b",
+  "checker_sha256": "10eb5517fa1556bc5c6b716044b7b2b9c747bf9fe7a6f792d550bf22d771c342",
+  "qemu_sha256": "8d02f418b92f4ddf984ed8352954b0067d1a5cd810d38247aaf5f0fddc31c42e",
+  "harness_sha256": "4950a1de91180c8b97b86a2b7673d64e42b42246612adead91cc94864b8e1cec",
+  "capture_binary_sha256": "ac471feb23233cbd34148607f68bd6df5a3463d3ec76e05add6e9aae6b742938",
+  "ubus_launcher_sha256": "e8852aad6551e670005b5718696580680ba51520a763b496aad77503970ab299",
+  "ubus_launcher_source_sha256": "e5074bea802bc8e6d01c2d03f9e79fe59403f4d67fdf889d950a4e927b98031d",
+  "stock_ubusd_sha256": "7616442b0c7d5c8ca1e18a3491b9bfb19b78661c07edda6a8a69cb1cb42332d3",
+  "capture_source_sha256": "336e3e3ed9f495312e5011561f8cd9e4d7d3f4d9ff529030b1a91e737522f5c9",
+  "hardware_tested": false,
+  "flash_operations_performed": false,
+  "upload_image_emitted": false,
+  "limitations": [
+    "Writer child commands were captured, not executed.",
+    "Without ubusd, the updater exits 255 at pthread_cancel; with the real stock service it exits zero.",
+    "Even with ubusd, child flash/cleanup/reboot commands remain intercepted, not executed.",
+    "No real vol_mgmt, bank switch, volume resize or boot was tested.",
+    "Stock default product-info was used, not a readout from the user device.",
+    "HTTP upload handler and rollback/recovery remain unverified.",
+    "An accepted laboratory envelope is NOT a supported factory image."
+  ]
+}

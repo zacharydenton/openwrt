@@ -1,0 +1,19 @@
+--- a/wireless/driver/linux/mtlk_serializer_osdep.c
++++ b/wireless/driver/linux/mtlk_serializer_osdep.c
+@@ -17,6 +17,7 @@
+ 
+ #include "mtlkinc.h"
+ #include "mtlk_serializer_osdep.h"
++#include <linux/err.h>
+ 
+ #define LOG_LOCAL_GID   GID_SERIALIZER
+ #define LOG_LOCAL_FID   0
+@@ -72,7 +73,7 @@
+   MTLK_START_TRY(szr_osdep, MTLK_OBJ_PTR(osdep))
+     MTLK_START_STEP_EX(szr_osdep, THREAD_START, MTLK_OBJ_PTR(osdep),
+                        kthread_run, (thread, (void*)osdep, name),
+-                       osdep->thread, osdep->thread != NULL, MTLK_ERR_NO_RESOURCES)
++                       osdep->thread, !IS_ERR(osdep->thread), MTLK_ERR_NO_RESOURCES)
+   MTLK_START_FINALLY(szr_osdep, MTLK_OBJ_PTR(osdep))
+   MTLK_START_RETURN(szr_osdep, MTLK_OBJ_PTR(osdep), _mtlk_serializer_osdep_stop, (osdep))
+ }

@@ -1,0 +1,93 @@
+{
+  "schema": 1,
+  "status": "Recovery unresolved; no factory upload recommended",
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "firmware_changed": false,
+  "stock_configuration": {
+    "schema": 1,
+    "authority": "CRC-checked static extraction from pinned stock update",
+    "firmware_sha256": "96a9a7a6bd82ea5340a70181c687136eeeba3320c46e923b00ac9acfabcbc10b",
+    "kernel_uimage": {
+      "offset": "0x16f0f8f",
+      "name": "MIPS LTQCPE Linux-3.10.104",
+      "payload_size": 3145664,
+      "load": "0xa0020000",
+      "entry": "0xa002df00",
+      "os": 5,
+      "architecture": 5,
+      "type": 2,
+      "compression_header": 3,
+      "payload_sha256": "6b3cd0b6694811f852c364b7b70325f5443cc5d98210185b25f3703afe7ee47b",
+      "header_crc": "passed",
+      "payload_crc": "passed"
+    },
+    "kernel_sha256": "4a1906cec4d0c66b492aa397d18f92e111cb21acc9c086360382715c35ef511c",
+    "config_sha256": "fe638a76e0757468a9201dbdd9840a96b73a3563f5027ef834f0f404fd62f540",
+    "config_bytes": 90367,
+    "config_gzip_offset_in_kernel": "0x71e574",
+    "config_gzip_end_in_kernel": "0x7234d5",
+    "config_gzip_crc_checked": true,
+    "settings_count": 2823,
+    "selected_settings": {
+      "CONFIG_IKCONFIG": "y",
+      "CONFIG_IKCONFIG_PROC": "y",
+      "CONFIG_KALLSYMS_UNCOMPRESSED": "n",
+      "CONFIG_KALLSYMS": "y",
+      "CONFIG_KALLSYMS_ALL": "n",
+      "CONFIG_WATCHDOG": "n",
+      "CONFIG_LOCKUP_DETECTOR": "n",
+      "CONFIG_PANIC_ON_OOPS": "n",
+      "CONFIG_PANIC_ON_OOPS_VALUE": "0",
+      "CONFIG_DETECT_HUNG_TASK": "n"
+    },
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "limitations": [
+      "Configuration identifies this downloaded kernel, not the running router.",
+      "Disabled Linux watchdog support does not exclude independent bootcore or bootloader reset mechanisms.",
+      "No reset, boot, networking, flash operation or fallback was executed."
+    ]
+  },
+  "independent_extraction": {
+    "result": "pass",
+    "method": "Linux scripts/extract-ikconfig output matches byte-for-byte",
+    "extractor_sha256": "070020a9c5a0b9e6f7e24f5728073e8e62155be49133a9f3f37e8fc19230a9b1",
+    "config_sha256": "fe638a76e0757468a9201dbdd9840a96b73a3563f5027ef834f0f404fd62f540",
+    "bytes": 90367,
+    "hardware_tested": false
+  },
+  "current_kernel": {
+    "CONFIG_WATCHDOG": "y",
+    "CONFIG_WATCHDOG_CORE": "n",
+    "CONFIG_PANIC_ON_OOPS": "y",
+    "CONFIG_PANIC_TIMEOUT": "1",
+    "CONFIG_SOFTLOCKUP_DETECTOR": "n",
+    "CONFIG_HARDLOCKUP_DETECTOR": "n"
+  },
+  "findings": [
+    "Downloaded stock kernel has CONFIG_WATCHDOG disabled; generic SDK patches do not demonstrate shipped watchdog operation.",
+    "Current trial timeout relies on commands and a running kernel; it is not an independent reset mechanism.",
+    "Early loader/kernel hang and hard lockup recovery are unverified.",
+    "Bank fallback, power-loss safety and Ethernet/Wi-Fi traffic remain hardware requirements."
+  ],
+  "inputs": {
+    "/home/zach/code/openwrt/target/linux/grx500/experimental/firmware-audit/extract-stock-config.py": "81ad68c431a9b1cb503ab1781f81c48bada10c579eb75565854febbb4e7f11f1",
+    "/home/zach/code/openwrt/target/linux/grx500/experimental/firmware-audit/extract-stock.py": "fbb388d94b8e890589cfc9bd64ad8466bea661d1ea268aa2bff496fb07ad9d1b",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/.config": "5dcaac903d75c33dd1929c034e10afbf364bf46d94533afbbf4c063b1ea7fd04",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/scripts/extract-ikconfig": "070020a9c5a0b9e6f7e24f5728073e8e62155be49133a9f3f37e8fc19230a9b1",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/drivers/irqchip/irq-mips-gic.c": "a74b24838af2040300257a879a4aa093ab7d070421889b45b66eedcb90bfc480",
+    "/home/zach/code/archer-ax3000-bringup/vendor/intel_GRX350/sdk/7.5.1.50/ugw/target/linux/lantiq/patches-3.10/8019-GRX500-lantiq-wdt.patch": "854e10f8c68010c0d6c07ed7cfb434360b77b524a15f47cbdcb08b0995893f13",
+    "/home/zach/code/archer-ax3000-bringup/vendor/intel_GRX350/sdk/7.5.1.50/ugw/target/linux/lantiq/patches-3.10/8026-WDT-framework-improvements.patch": "d5e818c1493c5976d609dd45ef5cbb4ed07a5a71563750ee49f9c7a3aeedc959",
+    "/home/zach/code/archer-ax3000-bringup/stock-device-tree.json": "689d113d479db0181102b077308101095ceca4f0eef41cf420cec51dde5afdc5",
+    "/home/zach/code/archer-ax3000-bringup/vendor/Iplatform/build/product_configs/ax3000v1/kernel.config": "31ebce41e4cbeeefd6a7ee10eb3e370ee870aeae1a21e4ce18b34b2c43594acd",
+    "/home/zach/code/archer-ax3000-bringup/vendor/Iplatform/build/product_configs/ax3000v1/sdk.config": "525f0876824170e5a571a6f4f69c8c87e3f845bebe415014b1d39089be6094f7",
+    "/home/zach/code/openwrt/target/linux/grx500/base-files/usr/libexec/grx500-trial": "b2f54be96241eebb4ad621d41dc2c347560e2c1e7f72d142a69052d842f62108",
+    "/home/zach/code/openwrt/target/linux/grx500/base-files/lib/functions/grx500-trial.sh": "03d1bcb0c85d752b55f547ef92243fe32b33c88940be02dbc422a952eb57eeed"
+  },
+  "retained_files": {
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/stock-config-evidence/independent-extraction.json": "60f9a5c4091001cd6f7db66902c2476b4b88eee4684918dd9ea7f7054f6ee673",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/stock-config-evidence/manifest.json": "103799815c2a5139cb82c8d91fff1dcb6f87a5e56546f06ec935ce73b7697289",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/stock-config-evidence/stock-kernel.config": "fe638a76e0757468a9201dbdd9840a96b73a3563f5027ef834f0f404fd62f540"
+  }
+}

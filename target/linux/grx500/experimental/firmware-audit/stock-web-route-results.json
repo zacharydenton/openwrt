@@ -1,0 +1,54 @@
+{
+  "passed": true,
+  "hardware_tested": false,
+  "http_request_performed": false,
+  "flash_operations_performed": false,
+  "stock_lua_multipart_parser_executed": true,
+  "stock_sha256": "96a9a7a6bd82ea5340a70181c687136eeeba3320c46e923b00ac9acfabcbc10b",
+  "stock_rootfs_sha256": {
+    "usr/bin/lua": "e63e3a6ee64769d2c74085f692a93f0cfa793660efbafdb5f617d1277e61c9f0",
+    "usr/lib/lua/luci/controller/admin/firmware.lua": "d52bddc4cb7946f86f151740068245f4269b6c4145031a02544baf6b4051f59a",
+    "usr/lib/lua/luci/model/fmup.lua": "81ac85c424a31c38ef8dbd715f993842b07eade97122600cef56eeaa7bd85a02",
+    "usr/lib/lua/luci/util.lua": "edb2f35ad7d5e2ff68a449e0ae07350a4e210636a050081387d5be2640546ded",
+    "usr/lib/lua/luci/ltn12.lua": "c6a24c93f5a6817850a18c7f92904ca0dfab720bca7f7b22ba724708a96dccb5",
+    "usr/lib/lua/luci/http.lua": "43d5fb551112d64119b08c8f84e3fc6cca46ce415e59d8aa26638e2c13185088",
+    "usr/lib/lua/luci/http/protocol.lua": "b3451af4a30048efc1635420d8c099cb5cfa35f1a42d38c9ea664b53c4b88d71",
+    "www/webpages/pages/userrpm/firmwareUpgrade.1693532644203.html": "66e6f9cde3aeb60a3f6c4da6b9cef0d02dee5438309f16888bd3fd818dd57be8"
+  },
+  "stock_lua_interpreter_sha256": "e63e3a6ee64769d2c74085f692a93f0cfa793660efbafdb5f617d1277e61c9f0",
+  "qemu_sha256": "8d02f418b92f4ddf984ed8352954b0067d1a5cd810d38247aaf5f0fddc31c42e",
+  "fixture_sha256": "b61c726bf55af5ddcef40fc2186d41461fc01f9b11747934246f3c6b8bb45316",
+  "harness_sha256": "21ed2c75f98e15e46c43c7c4ea14cda4ba1f6ddad3070123f2b7b1177e2d06ba",
+  "candidate_sha256": "d917a62080d3c179f79241066a6fe515c31ce21f9551441d259a06042cd95169",
+  "candidate_bytes": 9038110,
+  "multipart_bytes": 9038490,
+  "multipart_sha256": "0714489d0e6437af066df4373dbbc6f1a8604b6c363ab73cd94cc51fe37aa630",
+  "multipart_fields": [
+    "operation",
+    "keep",
+    "image"
+  ],
+  "stock_default_upload_limit_bytes": 33560596,
+  "captured_sha256": "d917a62080d3c179f79241066a6fe515c31ce21f9551441d259a06042cd95169",
+  "captured_bytes": 9038110,
+  "checker_writer_report_sha256": "27ae27ed24c0ae6c0bf0b522731e70c10d59fc73170fe6e4c57f2cd7dbf63dcc",
+  "external_commands_intercepted": [
+    "CHECK nvrammanager -c \"/tmp/firmware.bin\"",
+    "WRITE nvrammanager -u \"/tmp/firmware.bin\""
+  ],
+  "checker_rejection_writer_blocked": true,
+  "rejection_commands_intercepted": [
+    "CHECK nvrammanager -c \"/tmp/firmware.bin\"",
+    "CALL rm -f /tmp/firmware_lock.lua"
+  ],
+  "exit_code": 0,
+  "stdout_sha256": "2a280fb7fbec76b154c30ae5e91262f30a34f53e54c5f2180710b3cc5eda999f",
+  "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "scope": "Genuine stock LuCI HTTP multipart parser, request object, controller, fmup and util bytecode ran under isolated MIPS QEMU. The browser-form fields delivered the exact container and reached checker then writer dispatch.",
+  "limitations": [
+    "The HTTP server, authentication and actual network request were not run.",
+    "The UCI upload-size profile was stubbed to its bytecode default; a user device may override it.",
+    "External checker/writer commands were intercepted here and tested separately; no flash ran.",
+    "No router boot, Ethernet, Wi-Fi or stock fallback was tested."
+  ]
+}

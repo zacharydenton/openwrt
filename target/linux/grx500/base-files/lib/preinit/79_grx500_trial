@@ -1,0 +1,24 @@
+#!/bin/sh
+# Run before mount_root so it can find the new persistent UBIFS overlay.
+grx500_trial_preinit() {
+	[ "$INITRAMFS" = 1 ] && return 0
+	[ "$(board_name)" = "tplink,archer-ax3000-v1" ] || return 0
+	# Only opt-in factory builds permit boot-environment updates.
+	[ -f /etc/grx500-factory-install ] || return 0
+	. /lib/upgrade/nand.sh
+	. /lib/functions/grx500-factory.sh
+	. /lib/functions/grx500-trial.sh
+	mkdir -p /var/lock
+	GRX500_TRIAL_CONFIG="$(mktemp /tmp/grx500-env.XXXXXX)" || {
+		# The late worker only starts when one of these markers exists.
+		# A failed mktemp must not leave a trial boot running indefinitely.
+		touch /tmp/grx500-trial-failed
+		return 0
+	}
+	if ! grx500_trial_config > "$GRX500_TRIAL_CONFIG" || ! grx500_trial_prepare; then
+		echo "grx500: trial preparation failed; boot bank remains uncommitted" > /dev/kmsg
+		touch /tmp/grx500-trial-failed
+	fi
+	rm -f "$GRX500_TRIAL_CONFIG"
+}
+boot_hook_add preinit_main grx500_trial_preinit

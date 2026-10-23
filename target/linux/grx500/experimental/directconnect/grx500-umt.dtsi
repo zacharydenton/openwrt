@@ -1,0 +1,12 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/* Exact stock DTB: simple-bus 0xa0000000 + MCPY offset0x02800000. */
+/ {
+	umt: mcpy@a2800000 {
+		compatible = "lantiq,mcpy-xrx500";
+		reg = <0xa2800000 0x800000>;
+		lantiq,umt0-dmacid = <7>;
+		lantiq,umt1-dmacid = <8>;
+		lantiq,umt2-dmacid = <9>;
+		lantiq,umt3-dmacid = <10>;
+	};
+};

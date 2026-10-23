@@ -1,0 +1,56 @@
+--- a/wireless/driver/linux/wave_radio.c
++++ b/wireless/driver/linux/wave_radio.c
+@@ -3998,6 +3998,7 @@ int wave_radio_unconnected_sta_get(
+ {
+   int res = MTLK_ERR_OK;
+   mtlk_df_t *master_df;
++  mtlk_clpb_t *clpb = NULL;
+   mtlk_vap_handle_t vap_handle;
+   struct vendor_unconnected_sta_req_data_internal sta_req_data_internal;
+   struct vendor_unconnected_sta_req_data *sta_req_data =
+@@ -4057,9 +4058,14 @@ int wave_radio_unconnected_sta_get(
+   sta_req_data_internal.cf2 = sta_req_data->cf2;
+   sta_req_data_internal.chan_width = sta_req_data->chan_width;
+   sta_req_data_internal.wdev = wdev;
+-  _mtlk_df_user_invoke_core_async(master_df,
+-    WAVE_CORE_REQ_GET_UNCONNECTED_STATION, &sta_req_data_internal, sizeof(sta_req_data_internal),
+-    NULL, 0);
++  /* The request carries the callback's wdev and emits an event through it.
++   * Keep the cfg80211 vendor-command callback (and its wiphy/netdev lifetime)
++   * active until the serialized measurement has consumed that pointer. */
++  res = _mtlk_df_user_invoke_core(master_df,
++    WAVE_CORE_REQ_GET_UNCONNECTED_STATION, &clpb,
++    &sta_req_data_internal, sizeof(sta_req_data_internal));
++  res = _mtlk_df_user_process_core_retval_void(res, clpb,
++    WAVE_CORE_REQ_GET_UNCONNECTED_STATION, TRUE);
+ 
+ end:
+   return _mtlk_df_mtlk_to_linux_error_code(res);
+--- a/wireless/driver/linux/core.c
++++ b/wireless/driver/linux/core.c
+@@ -16052,6 +16052,12 @@ _mtlk_core_get_unconnected_station (mtl
+ 
+   sta_req_data = mtlk_clpb_enum_get_next(clpb, &sta_req_data_size);
+   MTLK_CLPB_TRY(sta_req_data, sta_req_data_size)
++    /* Every error path below still reports an event. Never expose stale
++     * kernel-stack contents when the originating interface disappeared. */
++    memset(&sta_res_data, 0, sizeof(sta_res_data));
++    sta_res_data.addr = sta_req_data->addr;
++    for (i = 0; i < ARRAY_SIZE(sta_res_data.rssi); i++)
++      sta_res_data.rssi[i] = MIN_RSSI;
+     df_user = mtlk_df_user_from_wdev(sta_req_data->wdev);
+     if (NULL == df_user) {
+       res = MTLK_ERR_UNKNOWN;
+@@ -16061,11 +16067,7 @@ _mtlk_core_get_unconnected_station (mtl
+     vap_handle = mtlk_df_get_vap_handle(mtlk_df_user_get_df(df_user));
+     caller_core = mtlk_vap_get_core(vap_handle);
+ 
+-    memset(&cd, 0, sizeof(cd));
+-    memset(&sta_res_data, 0, sizeof(sta_res_data));
+-    sta_res_data.addr = sta_req_data->addr;
+-    for (i = 0; i < ARRAY_SIZE(sta_res_data.rssi); i++)
+-      sta_res_data.rssi[i] = MIN_RSSI;
++    memset(&cd, 0, sizeof(cd));
+ 
+     c = ieee80211_get_channel(sta_req_data->wdev->wiphy, sta_req_data->center_freq);
+     if (!c) {

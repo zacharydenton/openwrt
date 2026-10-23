@@ -1,0 +1,4159 @@
+--- a/tools/mtlkroot/linux/logdrv_osdep.c
++++ b/tools/mtlkroot/linux/logdrv_osdep.c
+@@ -168,7 +168,7 @@
+ struct file_operations mtlk_log_fops =
+ {
+   .owner =     THIS_MODULE,
+-  .llseek =    no_llseek,
++  .llseek =    NULL,
+   .open =      cdev_log_open,
+   .release =   cdev_log_release,
+   .read =      cdev_log_read,
+@@ -266,21 +266,19 @@
+   MTLK_CLEANUP_END(logdrv_osdep, MTLK_OBJ_PTR(&log_data_osdep));
+ }
+ 
+-static const struct file_operations logger_debug_fops = {
+-  .owner      = THIS_MODULE,
+-  .open       = logger_debug_open,
+-  .read       = seq_read,
+-  .llseek     = seq_lseek,
+-  .release    = single_release,
+-  .write      = logger_debug_write
++static const struct proc_ops logger_debug_fops = {
++  .proc_open       = logger_debug_open,
++  .proc_read       = seq_read,
++  .proc_lseek     = seq_lseek,
++  .proc_release    = single_release,
++  .proc_write      = logger_debug_write
+ };
+ 
+-static struct file_operations logger_stat_fops = {
+-  .owner      = THIS_MODULE,
+-  .open       = logger_stat_open,
+-  .read       = seq_read,
+-  .llseek     = seq_lseek,
+-  .release    = single_release,
++static struct proc_ops logger_stat_fops = {
++  .proc_open       = logger_stat_open,
++  .proc_read       = seq_read,
++  .proc_lseek     = seq_lseek,
++  .proc_release    = single_release,
+ };
+ 
+ /* --- HW RT-Logger --------------------------------------------- */
+@@ -323,13 +321,12 @@
+   return result;
+ }
+ 
+-static const struct file_operations logger_rtlog_fops = {
+-  .owner      = THIS_MODULE,
+-  .open       = logger_rtlog_open,
+-  .read       = seq_read,
+-  .llseek     = seq_lseek,
+-  .release    = single_release,
+-  .write      = logger_rtlog_write
++static const struct proc_ops logger_rtlog_fops = {
++  .proc_open       = logger_rtlog_open,
++  .proc_read       = seq_read,
++  .proc_lseek     = seq_lseek,
++  .proc_release    = single_release,
++  .proc_write      = logger_rtlog_write
+ };
+ 
+ static int
+--- a/tools/mtlkroot/linux/mtlkcdev.c
++++ b/tools/mtlkroot/linux/mtlkcdev.c
+@@ -292,7 +292,7 @@
+ static struct file_operations _mtlk_cdev_fops =
+ {
+   .owner          = THIS_MODULE,
+-  .llseek         = no_llseek,
++  .llseek         = NULL,
+   .open           = _mtlk_cdev_open,
+   .release        = _mtlk_cdev_release,
+ 
+--- a/tools/mtlkroot/linux/nlmsgs.c
++++ b/tools/mtlkroot/linux/nlmsgs.c
+@@ -67,7 +67,7 @@
+ 
+ /* family structure */
+ static struct genl_family mtlk_genl_family = {
+-        .id = GENL_ID_GENERATE,
++        .module = THIS_MODULE,
+         .name = MTLK_GENL_FAMILY_NAME,
+         .version = MTLK_GENL_FAMILY_VERSION,
+         .maxattr = MTLK_GENL_ATTR_MAX,
+@@ -137,7 +137,7 @@
+   bt_acs_nl_cfg.groups = NETLINK_BT_ACS_GROUP_LAST;
+   bt_acs_nl_cfg.flags = 0;
+   bt_acs_nl_cfg.input = &bt_acs_nl_input;
+-  bt_acs_nl_cfg.cb_mutex = &bt_acs_nl_mutex;
++  /* The receive callback is empty; no legacy callback mutex is needed. */
+   bt_acs_nl_cfg.bind = &bt_acs_nl_bind;
+ 
+   bt_acs_nl_sock = netlink_kernel_create(&init_net, NETLINK_BT_ACS, &bt_acs_nl_cfg);
+@@ -392,6 +392,12 @@
+ 
+   attr = info->attrs[MTLK_GENL_ATTR_EVENT];
+   if (attr) {
++    struct mtlk_nl_msghdr *hdr;
++    if (nla_len(attr) < sizeof(*hdr))
++      return -EINVAL;
++    hdr = nla_data(attr);
++    if (hdr->data_len > nla_len(attr) - sizeof(*hdr))
++      return -EINVAL;
+     data = nla_data(attr);
+     if (NULL == data) {
+       ELOG_V("Fail to receive Notification message from application: payload is absent.");
+@@ -412,7 +418,7 @@
+ static struct genl_ops wave_genl_ops[] = {
+   {
+     .cmd = MTLK_GENL_CMD_EVENT,
+-    .flags = 0,
++    .flags = GENL_ADMIN_PERM,
+     .policy = wave_genl_policy,
+     .doit = _wave_nl_parse_brd_msg_cb,
+     .dumpit = NULL,
+@@ -429,11 +435,14 @@
+   nl_socket->receive_callback_ctx[cmd] = rx_clb_fn_params;
+ 
+   if(mtlk_genl_family_id) {
+-    mtlk_genl_family.id = mtlk_genl_family_id;
++    /* Native generic netlink allocates family IDs dynamically. */
++    return MTLK_ERR_NOT_SUPPORTED;
+   }
+ 
+ #if defined(MTCFG_LINUX_BACKPORT) || LINUX_VERSION_CODE >= KERNEL_VERSION(3,13,0)
+-  result = genl_register_family_with_ops_groups(&mtlk_genl_family, wave_genl_ops, mtlk_mcgrps);
++  mtlk_genl_family.ops = wave_genl_ops;
++  mtlk_genl_family.n_ops = ARRAY_SIZE(wave_genl_ops);
++  result = genl_register_family(&mtlk_genl_family);
+   if (result) {
+     mtlk_osal_emergency_print("Failed to register Netlink family with ops: res=%d", result);
+     return MTLK_ERR_UNKNOWN;
+--- a/wireless/driver/linux/beacon_manager.c
++++ b/wireless/driver/linux/beacon_manager.c
+@@ -27,6 +27,7 @@
+ #include "hw_mmb.h"
+ #include "mtlk_df.h"
+ #include "wave_radio.h"
++#include "wave_he_compat.h"
+ 
+ #define MTLK_PACK_ON
+ #include "mtlkpack.h"
+@@ -99,7 +100,7 @@
+ 
+   if (bmgr_priv->tmpl.dma_addr) {
+     mtlk_osal_unmap_phys_addr(mtlk_ccr_get_dev_ctx(mtlk_hw_mmb_get_ccr(hw)),
+-                              bmgr_priv->tmpl.dma_addr, bmgr_priv->tmpl.alloced_size, MTLK_DATA_TO_DEVICE);
++                              bmgr_priv->tmpl.dma_addr, bmgr_priv->tmpl.head_len + bmgr_priv->tmpl.tail_len, MTLK_DATA_TO_DEVICE);
+     bmgr_priv->tmpl.dma_addr = 0;
+   }
+ 
+@@ -115,7 +116,7 @@
+     beacon_template_t *tmpl = bmgr->tmpl + i;
+     if (tmpl->dma_addr)
+       mtlk_osal_unmap_phys_addr(mtlk_ccr_get_dev_ctx(mtlk_hw_mmb_get_ccr(mtlk_vap_get_hw(vap_handle))),
+-                                tmpl->dma_addr, tmpl->alloced_size, MTLK_DATA_TO_DEVICE);
++                                tmpl->dma_addr, tmpl->head_len + tmpl->tail_len, MTLK_DATA_TO_DEVICE);
+     if (tmpl->ptr)
+       mtlk_osal_mem_free(tmpl->ptr);
+   }
+@@ -312,7 +313,9 @@
+                                               tmpl->ptr, tmpl->head_len + tmpl->tail_len, MTLK_DATA_TO_DEVICE);
+ 
+ 
+-  if (0 == tmpl->dma_addr) {
++  if (dma_mapping_error(mtlk_ccr_get_dev_ctx(mtlk_hw_mmb_get_ccr(mtlk_vap_get_hw(core->vap_handle))),
++                        tmpl->dma_addr)) {
++    tmpl->dma_addr = 0;
+     ELOG_D("CID-%04x: Mem map for beacon data failed", oid);
+     return MTLK_ERR_NO_MEM;
+   }
+@@ -324,7 +327,7 @@
+     ELOG_DD("CID-%04x: UM_MAN_SET_BEACON_TEMPLATE_REQ init failed, err=%i", oid, err);
+     /* DMA unmap */
+     mtlk_osal_unmap_phys_addr(mtlk_ccr_get_dev_ctx(mtlk_hw_mmb_get_ccr(mtlk_vap_get_hw(core->vap_handle))),
+-                              tmpl->dma_addr, tmpl->alloced_size, MTLK_DATA_TO_DEVICE);
++                              tmpl->dma_addr, tmpl->head_len + tmpl->tail_len, MTLK_DATA_TO_DEVICE);
+     tmpl->dma_addr = 0;
+     return MTLK_ERR_NO_RESOURCES;
+   }
+@@ -439,33 +442,21 @@
+     }
+   }
+ 
+-  /* HE Capabilities IE */
++  /* Match the extension ID, not merely the first extension element. */
+   {
+-    /* Find first occurrence of IE_EXTENSION out of three for each,
+-                                        capabilities, operation and EDCA elements. */
+-    const u8 *he_cap_ie = cfg80211_find_ie(IE_EXTENSION, beacon_data->tail, beacon_data->tail_len);
+-
+-    if (he_cap_ie)
+-    {
+-      if (WLAN_EID_HE_CAP_EXT == he_cap_ie[WLAN_EID_EXTENSION_ID_OFFSET]) {
+-        set_bss_flags |= MTLK_BFIELD_VALUE(VAP_ADD_FLAGS_HE, 1, uint8);
+-        /* Check the B2 of the Channel Width Set, size of NSS MCS depends on it */
+-        if(MTLK_U_BITS_GET(he_cap_ie[IE_HE_PHY_CHANNEL_WIDTH_SET_OFFSET], HE_PHY_CHANNEL_WIDTH_SET_B2, 1)) {
+-          wave_pdb_set_binary(param_db_core, PARAM_DB_CORE_HE_MCS_NSS, he_cap_ie + IE_HE_MCS_NSS_OFFSET, HE_MCS_NSS_160MHZ_LEN);
+-          mtlk_dump(1, &he_cap_ie[IE_HE_MCS_NSS_OFFSET], HE_MCS_NSS_160MHZ_LEN, "dump of 160MHz HE_MCS_NSS:");
+-        } else {
+-          wave_pdb_set_binary(param_db_core, PARAM_DB_CORE_HE_MCS_NSS, he_cap_ie + IE_HE_MCS_NSS_OFFSET, HE_MCS_NSS_80MHZ_LEN);
+-          mtlk_dump(1, &he_cap_ie[IE_HE_MCS_NSS_OFFSET], HE_MCS_NSS_80MHZ_LEN, "dump of HE_MCS_NSS:");
+-        }
+-
+-        if(MTLK_U_BITS_GET(he_cap_ie[IE_HE_MAC_TWT_RESPONDER_OFFSET], HE_MAC_TWT_RESPONDER_SUPPORT, HE_MAC_TWT_RESPONDER_SUPPORT_WIDTH)) {
+-            wave_pdb_set_int(param_db_core, PARAM_DB_CORE_TWT_OPERATION_MODE, HE_MAC_TWT_RESPONDER_SUPPORTED);
+-            ILOG2_D("CID-%04x: PARAM_DB_CORE_TWT_OPERATION_MODE = 1", mtlk_vap_get_oid(core->vap_handle));
+-        }
+-
+-      } else {
+-        ELOG_DDD("Extension ID %d Offset %d Expected %d", he_cap_ie[WLAN_EID_EXTENSION_ID_OFFSET], WLAN_EID_EXTENSION_ID_OFFSET, WLAN_EID_HE_CAP_EXT);
+-      }
++    const u8 *he = cfg80211_find_ext_ie(WLAN_EID_EXT_HE_CAPABILITY,
++                                       beacon_data->tail, beacon_data->tail_len);
++    const u8 *op = cfg80211_find_ext_ie(WLAN_EID_EXT_HE_OPERATION,
++                                       beacon_data->tail, beacon_data->tail_len);
++    u8 cap[18], mcs[8], ppe[13];
++    wave_pdb_set_int(param_db_core, PARAM_DB_CORE_TWT_OPERATION_MODE, 0);
++    wave_pdb_set_int(param_db_core, PARAM_DB_CORE_HE_BSS_COLOR, 0);
++    if (he && he[1] > 1 && !wave_he_pack(cap, mcs, ppe, he + 3, he[1] - 1)) {
++      set_bss_flags |= MTLK_BFIELD_VALUE(VAP_ADD_FLAGS_HE, 1, uint8);
++      wave_pdb_set_binary(param_db_core, PARAM_DB_CORE_HE_MCS_NSS, mcs, sizeof(mcs));
++      if (op && op[1] >= 7)
++        wave_pdb_set_int(param_db_core, PARAM_DB_CORE_HE_BSS_COLOR,
++                         get_unaligned_le32(op + 3) >> 24);
+     }
+   }
+ 
+@@ -573,6 +564,8 @@
+   unsigned              beacon_data_size;
+   int                   res = MTLK_ERR_OK;
+   uint32                vap_idx;
++  u8 *merged_beacon = NULL;
++  mtlk_beacon_data_t merged_data;
+ 
+   MTLK_ASSERT(sizeof(mtlk_clpb_t*) == data_size);
+   beacon_data = mtlk_clpb_enum_get_next(clpb, &beacon_data_size);
+@@ -616,12 +609,32 @@
+       mtlk_osal_lock_release(&core->slow_ctx->probe_resp_lock); /* all set, now we have the new one in place */
+     }
+ 
+-    /* head or tail can be NULL if not changed? */
+-    if ((NULL == beacon_data->head) || (NULL == beacon_data->tail)) {
+-      /* nothing to update, keep old template */
+-      ELOG_DPP("CID-%04x: No update for beacon template: head = %p, tail = %p",
+-               mtlk_vap_get_oid(mcore->vap_handle), beacon_data->head, beacon_data->tail);
+-      MTLK_CLPB_EXIT(res);
++    /* Native CHANGE_BEACON may update only one part. Merge under the
++     * serializer before replacing the saved template, so pointers never refer
++     * into a buffer that template_save may free/reallocate. */
++    if (!beacon_data->head || !beacon_data->tail) {
++      beacon_template_t *old = &core->slow_ctx->beacon_man_data.tmpl[MTLK_BEACON_MAN_RCVRY_TMPL_IDX];
++      unsigned int total;
++      if (!old->ptr)
++        MTLK_CLPB_EXIT(MTLK_ERR_PARAMS);
++      merged_data = *beacon_data;
++      if (!merged_data.head) {
++        merged_data.head = old->ptr;
++        merged_data.head_len = old->head_len;
++      }
++      if (!merged_data.tail) {
++        merged_data.tail = old->ptr + old->head_len;
++        merged_data.tail_len = old->tail_len;
++      }
++      total = merged_data.head_len + merged_data.tail_len;
++      merged_beacon = mtlk_osal_mem_alloc(total, MTLK_MEM_TAG_BEACON_MNGR);
++      if (!merged_beacon)
++        MTLK_CLPB_EXIT(MTLK_ERR_NO_MEM);
++      memcpy(merged_beacon, merged_data.head, merged_data.head_len);
++      memcpy(merged_beacon + merged_data.head_len, merged_data.tail, merged_data.tail_len);
++      merged_data.head = merged_beacon;
++      merged_data.tail = merged_beacon + merged_data.head_len;
++      beacon_data = &merged_data;
+     }
+ 
+     /* We need to fish some things out of the beacon and save until the set_bss time */
+@@ -638,6 +651,8 @@
+ 
+   }
+   MTLK_CLPB_FINALLY(res)
++    if (merged_beacon)
++      mtlk_osal_mem_free(merged_beacon);
+     return mtlk_clpb_push_res(clpb, res);
+   MTLK_CLPB_END;
+ }
+@@ -688,7 +703,7 @@
+   /* DMA unmap */
+   if (tmpl->dma_addr) {
+     mtlk_osal_unmap_phys_addr(mtlk_ccr_get_dev_ctx(mtlk_hw_mmb_get_ccr(mtlk_vap_get_hw(vap_handle))),
+-                              tmpl->dma_addr, tmpl->alloced_size, MTLK_DATA_TO_DEVICE);
++                              tmpl->dma_addr, tmpl->head_len + tmpl->tail_len, MTLK_DATA_TO_DEVICE);
+     tmpl->dma_addr = 0;
+   }
+ 
+@@ -793,7 +808,7 @@
+     beacon_template_t *tmpl = bmgr->tmpl + i;
+     if (tmpl->dma_addr) {
+       mtlk_osal_unmap_phys_addr(mtlk_ccr_get_dev_ctx(mtlk_hw_mmb_get_ccr(mtlk_vap_get_hw(core->vap_handle))),
+-                                tmpl->dma_addr, tmpl->alloced_size, MTLK_DATA_TO_DEVICE);
++                                tmpl->dma_addr, tmpl->head_len + tmpl->tail_len, MTLK_DATA_TO_DEVICE);
+       tmpl->dma_addr = 0;
+     }
+ 
+@@ -817,7 +832,7 @@
+ 
+     if (bmgr_priv->tmpl.dma_addr)
+       mtlk_osal_unmap_phys_addr(mtlk_ccr_get_dev_ctx(mtlk_hw_mmb_get_ccr(mtlk_vap_get_hw(core->vap_handle))),
+-                                bmgr_priv->tmpl.dma_addr, bmgr_priv->tmpl.alloced_size, MTLK_DATA_TO_DEVICE);
++                                bmgr_priv->tmpl.dma_addr, bmgr_priv->tmpl.head_len + bmgr_priv->tmpl.tail_len, MTLK_DATA_TO_DEVICE);
+ 
+     if (bmgr_priv->tmpl.ptr)
+       mtlk_osal_mem_free(bmgr_priv->tmpl.ptr);
+--- a/wireless/driver/linux/cfg80211.c
++++ b/wireless/driver/linux/cfg80211.c
+@@ -63,10 +63,58 @@
+ struct _wv_cfg80211_t
+ {
+   BOOL registered;
++  char regulatory_alpha2[2];
++  spinlock_t notify_lock;
++  struct list_head notify_list;
+   /* mtlk_vap_manager_t *vap_manager;*/
+   wave_radio_t *radio;
+   struct wiphy *wiphy;
+ };
++
++
++struct wave618_ch_event {
++  struct wiphy_work work;
++  struct list_head list;
++  struct net_device *ndev;
++  struct cfg80211_chan_def chandef;
++};
++
++static void wave618_ch_event_run(struct wiphy *wiphy, struct wiphy_work *work)
++{
++  struct wave618_ch_event *event = container_of(work, struct wave618_ch_event, work);
++  wv_cfg80211_t *cfg = wiphy_priv(wiphy);
++  unsigned long flags;
++  spin_lock_irqsave(&cfg->notify_lock, flags);
++  list_del(&event->list);
++  spin_unlock_irqrestore(&cfg->notify_lock, flags);
++  if (cfg->registered && event->ndev->reg_state == NETREG_REGISTERED &&
++      event->ndev->ieee80211_ptr && event->ndev->ieee80211_ptr->wiphy == wiphy)
++    cfg80211_ch_switch_notify(event->ndev, &event->chandef, 0);
++  dev_put(event->ndev);
++  kfree(event);
++}
++
++/* No cross-wiphy nested mutexes: notifications run under their own wiphy lock.
++ * Stop producers and cancel every owned work item before wiphy teardown. */
++static void wave618_ch_events_stop(wv_cfg80211_t *cfg)
++{
++  struct wave618_ch_event *event;
++  unsigned long flags;
++  wiphy_lock(cfg->wiphy);
++  spin_lock_irqsave(&cfg->notify_lock, flags);
++  cfg->registered = FALSE;
++  while (!list_empty(&cfg->notify_list)) {
++    event = list_first_entry(&cfg->notify_list, struct wave618_ch_event, list);
++    list_del(&event->list);
++    spin_unlock_irqrestore(&cfg->notify_lock, flags);
++    wiphy_work_cancel(cfg->wiphy, &event->work);
++    dev_put(event->ndev);
++    kfree(event);
++    spin_lock_irqsave(&cfg->notify_lock, flags);
++  }
++  spin_unlock_irqrestore(&cfg->notify_lock, flags);
++  wiphy_unlock(cfg->wiphy);
++}
+ 
+ /* Must be aligned with HostAPDs wv_wds_sta_info structure */
+ struct wv_wds_sta_info
+@@ -92,6 +140,9 @@
+   WLAN_CIPHER_SUITE_CCMP,
+   WLAN_CIPHER_SUITE_WEP104,
+   WLAN_CIPHER_SUITE_AES_CMAC,
++  WLAN_CIPHER_SUITE_BIP_CMAC_256,
++  WLAN_CIPHER_SUITE_BIP_GMAC_128,
++  WLAN_CIPHER_SUITE_BIP_GMAC_256,
+   WLAN_CIPHER_SUITE_SMS4
+ };
+ 
+@@ -102,6 +153,9 @@
+   WLAN_CIPHER_SUITE_CCMP,
+   WLAN_CIPHER_SUITE_WEP104,
+   WLAN_CIPHER_SUITE_AES_CMAC,
++  WLAN_CIPHER_SUITE_BIP_CMAC_256,
++  WLAN_CIPHER_SUITE_BIP_GMAC_128,
++  WLAN_CIPHER_SUITE_BIP_GMAC_256,
+   WLAN_CIPHER_SUITE_SMS4,
+   WLAN_CIPHER_SUITE_GCMP,
+   WLAN_CIPHER_SUITE_GCMP_256
+@@ -560,7 +614,16 @@
+   struct cfg80211_ap_settings *info)
+ {
+   wv_cfg80211_t *cfg80211 = wiphy_priv(wiphy);
+-  MTLK_ASSERT(NULL != cfg80211);
++  mtlk_core_t *core = wave_radio_master_core_get(cfg80211->radio);
++  int res;
++
++  if (!core)
++    return -ENODEV;
++  /* Registration may have notified the country before the master VAP
++   * existed. Apply the cached domain before native channel/TPC setup. */
++  res = core_cfg_country_code_set_by_str(core, cfg80211->regulatory_alpha2, 2);
++  if (res != MTLK_ERR_OK)
++    return _mtlk_df_mtlk_to_linux_error_code(res);
+   return wave_radio_ap_start(wiphy, cfg80211->radio, ndev, info);
+ }
+ 
+@@ -1126,8 +1189,17 @@
+   mac_addr = mac_addr ? mac_addr : _bcast_addr ;
+   ILOG2_Y(" mac_addr = %Y", mac_addr);
+ 
+-  /* FW doesn't support delete key */
+-  return _mtlk_df_mtlk_to_linux_error_code(MTLK_ERR_OK);
++  if (key_index >= 4) {
++    mtlk_df_user_t *user = mtlk_df_user_from_ndev(ndev);
++    if (!user || pairwise)
++      return -EINVAL;
++    return wave_pmf_key_del(mtlk_vap_get_core(mtlk_df_get_vap_handle(
++                              mtlk_df_user_get_df(user))), key_index);
++  }
++
++  /* Exact firmware has no CLEAR_KEY command. Peer/VAP removal clears keys;
++   * installing a replacement rotates GTK/PTK. Do not report a fake deletion. */
++  return -EOPNOTSUPP;
+ }
+ 
+ static int API_WRAPPER( _wave_cfg80211_op_del_key) (
+@@ -1278,7 +1350,14 @@
+                                   u32 cac_time_ms)
+ {
+   wv_cfg80211_t *cfg80211 = wiphy_priv(wiphy);
+-  MTLK_ASSERT(NULL != cfg80211);
++  mtlk_core_t *core = wave_radio_master_core_get(cfg80211->radio);
++  int res;
++
++  if (!core)
++    return -ENODEV;
++  res = core_cfg_country_code_set_by_str(core, cfg80211->regulatory_alpha2, 2);
++  if (res != MTLK_ERR_OK)
++    return _mtlk_df_mtlk_to_linux_error_code(res);
+   return wave_radio_radar_detection_start(wiphy, cfg80211->radio, ndev, chandef, cac_time_ms);
+ }
+ #else
+@@ -1491,13 +1570,47 @@
+   return res;
+ }
+ 
++static struct wireless_dev *wave618_add_virtual_intf(struct wiphy *w, const char *n, unsigned char a, enum nl80211_iftype t, struct vif_params *p)
++{ return API_WRAPPER(_wave_cfg80211_op_add_virtual_iface)(w,n,a,t,NULL,p); }
++
++static int wave618_change_virtual_intf(struct wiphy *w, struct net_device *n, enum nl80211_iftype t, struct vif_params *p) { return API_WRAPPER(_wave_cfg80211_op_change_virtual_intf)(w,n,t,NULL,p); }
++
++static int wave618_change_beacon(struct wiphy *w, struct net_device *n, struct cfg80211_ap_update *p) { return API_WRAPPER(_wave_cfg80211_op_change_beacon)(w,n,&p->beacon); }
++
++static int wave618_stop_ap(struct wiphy *w, struct net_device *n, unsigned int l) { if(l) return -EOPNOTSUPP; return API_WRAPPER(_wave_cfg80211_op_stop_ap)(w,n); }
++
++static int wave618_set_wiphy_params(struct wiphy *w, int r, u32 p) { if(r > 0) return -EOPNOTSUPP; return API_WRAPPER(_wave_cfg80211_op_set_wiphy_params)(w,p); }
++
++static int wave618_sched_scan_stop(struct wiphy *w, struct net_device *n, u64 reqid) { return API_WRAPPER(_wave_cfg80211_op_sched_scan_stop)(w,n); }
++
++static int wave618_add_key(struct wiphy *w, struct net_device *n, int l, u8 i, bool p, const u8 *m, struct key_params *k) { if(l > 0) return -EOPNOTSUPP; return API_WRAPPER(_wave_cfg80211_op_add_key)(w,n,i,p,m,k); }
++
++static int wave618_del_key(struct wiphy *w, struct net_device *n, int l, u8 i, bool p, const u8 *m) { if(l > 0) return -EOPNOTSUPP; return API_WRAPPER(_wave_cfg80211_op_del_key)(w,n,i,p,m); }
++
++static int wave618_get_key(struct wiphy *w, struct net_device *n, int l, u8 i, bool p, const u8 *m, void *c, void (*cb)(void *,struct key_params *)) { if(l > 0) return -EOPNOTSUPP; return API_WRAPPER(_wave_cfg80211_op_get_key)(w,n,i,p,m,c,cb); }
++
++static int wave618_set_default_key(struct wiphy *w, struct net_device *n, int l, u8 i, bool u, bool m) { if(l > 0) return -EOPNOTSUPP; return API_WRAPPER(_wave_cfg80211_op_set_default_key)(w,n,i,u,m); }
++
++static int wave618_set_default_mgmt_key(struct wiphy *w, struct net_device *n, int l, u8 i) { if(l > 0) return -EOPNOTSUPP; return API_WRAPPER(_wave_cfg80211_op_set_default_mgmt_key)(w,n,i); }
++
++static int wave618_set_ap_chanwidth(struct wiphy *w, struct net_device *n, unsigned int l, struct cfg80211_chan_def *c) { if(l) return -EOPNOTSUPP; return API_WRAPPER(_wave_cfg80211_op_set_ap_chanwidth)(w,n,c); }
++
++static int wave618_start_radar_detection(struct wiphy *w, struct net_device *n, struct cfg80211_chan_def *c, u32 t, int l) { if(l > 0) return -EOPNOTSUPP; return API_WRAPPER(_wave_cfg80211_op_start_radar_detection)(w,n,c,t); }
++
++static int wave618_set_antenna(struct wiphy *w, int r, u32 t, u32 x) { if(r > 0) return -EOPNOTSUPP; return API_WRAPPER(_wave_cfg80211_op_set_antenna)(w,t,x); }
++
++static int wave618_get_antenna(struct wiphy *w, int r, u32 *t, u32 *x) { if(r > 0) return -EOPNOTSUPP; return API_WRAPPER(_wave_cfg80211_op_get_antenna)(w,t,x); }
++
++static void wave618_update_mgmt(struct wiphy *w, struct wireless_dev *d, struct mgmt_frame_regs *r)
++{ unsigned int i; for(i=0;i<16;i++) _wave_cfg80211_op_mgmt_frame_register(w,d,i<<4,!!(r->interface_stypes & BIT(i))); }
++
+ static struct cfg80211_ops wv_cfg80211_ops = {
+-  .add_virtual_intf = API_WRAPPER(_wave_cfg80211_op_add_virtual_iface),
++  .add_virtual_intf = wave618_add_virtual_intf,
+   .del_virtual_intf = API_WRAPPER(_wave_cfg80211_op_del_virtual_iface),
+-  .change_virtual_intf = API_WRAPPER(_wave_cfg80211_op_change_virtual_intf),
++  .change_virtual_intf = wave618_change_virtual_intf,
+   .start_ap = API_WRAPPER(_wave_cfg80211_op_start_ap),
+-  .change_beacon = API_WRAPPER(_wave_cfg80211_op_change_beacon),
+-  .stop_ap = API_WRAPPER(_wave_cfg80211_op_stop_ap),
++  .change_beacon = wave618_change_beacon,
++  .stop_ap = wave618_stop_ap,
+   .add_station = API_WRAPPER(_wave_cfg80211_op_add_station),
+   .del_station = API_WRAPPER(_wave_cfg80211_op_del_station),
+   .change_station = API_WRAPPER(_wave_cfg80211_op_change_station),
+@@ -1509,54 +1622,71 @@
+   .assoc = API_WRAPPER(_wave_cfg80211_op_assoc),
+   .deauth = API_WRAPPER(_wave_cfg80211_op_deauth),
+   .disassoc = API_WRAPPER(_wave_cfg80211_op_disassoc),
+-  .set_wiphy_params = API_WRAPPER(_wave_cfg80211_op_set_wiphy_params),
++  .set_wiphy_params = wave618_set_wiphy_params,
+   .mgmt_tx = API_WRAPPER(_wave_cfg80211_op_mgmt_tx),
+-  .mgmt_frame_register = API_WRAPPER(_wave_cfg80211_op_mgmt_frame_register),
++  .update_mgmt_frame_registrations = wave618_update_mgmt,
+   .sched_scan_start = API_WRAPPER(_wave_cfg80211_op_sched_scan_start),
+-  .sched_scan_stop = API_WRAPPER(_wave_cfg80211_op_sched_scan_stop),
++  .sched_scan_stop = wave618_sched_scan_stop,
+   .probe_client = API_WRAPPER(_wave_cfg80211_op_probe_client),
+-  .add_key = API_WRAPPER(_wave_cfg80211_op_add_key),
+-  .del_key = API_WRAPPER(_wave_cfg80211_op_del_key),
+-  .get_key = API_WRAPPER(_wave_cfg80211_op_get_key),
+-  .set_default_key = API_WRAPPER(_wave_cfg80211_op_set_default_key),
+-  .set_default_mgmt_key = API_WRAPPER(_wave_cfg80211_op_set_default_mgmt_key),
++  .add_key = wave618_add_key,
++  .del_key = wave618_del_key,
++  .get_key = wave618_get_key,
++  .set_default_key = wave618_set_default_key,
++  .set_default_mgmt_key = wave618_set_default_mgmt_key,
+   .set_txq_params = API_WRAPPER(_wave_cfg80211_op_set_txq_params),
+-  .set_ap_chanwidth = API_WRAPPER(_wave_cfg80211_op_set_ap_chanwidth),
++  .set_ap_chanwidth = wave618_set_ap_chanwidth,
+   .dump_survey = API_WRAPPER(_wave_cfg80211_op_dump_survey),
+-  .start_radar_detection = API_WRAPPER(_wave_cfg80211_op_start_radar_detection),
++  .start_radar_detection = wave618_start_radar_detection,
+   .channel_switch = API_WRAPPER(_wave_cfg80211_op_channel_switch),
+   .set_qos_map = API_WRAPPER(_wave_cfg80211_op_set_qos_map),
+-  .set_antenna = API_WRAPPER(_wave_cfg80211_op_set_antenna),
+-  .get_antenna = API_WRAPPER(_wave_cfg80211_op_get_antenna),
++  .set_antenna = wave618_set_antenna,
++  .get_antenna = wave618_get_antenna,
+ };
+ 
+-/* Send flush stations request to Hostapd. */
++/* Native hostapd consumes standard DEL_STATION notifications.  Recovery
++ * invokes this before destroying the station DB.  A NULL payload means every
++ * AP on this radio; the 4addr configuration caller supplies a single VAP. */
++static void wave618_flush_vap_stations(mtlk_vap_handle_t vap)
++{
++  mtlk_core_t *core = mtlk_vap_get_core(vap);
++  mtlk_df_user_t *user = mtlk_df_get_user(mtlk_vap_get_df(vap));
++  struct net_device *ndev = mtlk_df_user_get_ndev(user);
++  mtlk_stadb_iterator_t iter;
++  sta_entry *sta;
++
++  if (!mtlk_vap_is_ap(vap) || !ndev || ndev->reg_state != NETREG_REGISTERED)
++    return;
++  sta = mtlk_stadb_iterate_first(&core->slow_ctx->stadb, &iter);
++  if (!sta)
++    return;
++  do {
++    cfg80211_del_sta(ndev, mtlk_sta_get_addr(sta)->au8Addr, GFP_KERNEL);
++    sta = mtlk_stadb_iterate_next(&iter);
++  } while (sta);
++  mtlk_stadb_iterate_done(&iter);
++}
++
+ int __MTLK_IFUNC
+-wv_cfg80211_handle_flush_stations(
+-  mtlk_vap_handle_t vap_handle,
+-  void *data, int data_len)
+-{
+-  mtlk_df_t *df               = mtlk_vap_get_df(vap_handle);
+-  mtlk_df_user_t *df_user     = mtlk_df_get_user(df);
+-  struct wireless_dev *wdev   = mtlk_df_user_get_wdev(df_user);
+-  mtlk_nbuf_t *evt_nbuf;
+-
+-  MTLK_ASSERT(NULL != wdev);
+-
+-  evt_nbuf = wv_cfg80211_vendor_event_alloc(wdev, data_len,
+-                                            LTQ_NL80211_VENDOR_EVENT_FLUSH_STATIONS);
+-  if (!evt_nbuf)
+-  {
+-    ELOG_D("Malloc event fail. data_len = %d", data_len);
+-    return MTLK_ERR_NO_MEM;
+-  }
+-
+-  if (data != NULL && data_len > 0) {
+-    uint8 *cp = mtlk_df_nbuf_put(evt_nbuf, data_len);
+-    wave_memcpy(cp, data_len, data, data_len);
+-  }
+-  wv_cfg80211_vendor_event(evt_nbuf);
+-
++wv_cfg80211_handle_flush_stations(mtlk_vap_handle_t vap_handle,
++                                  void *data, int data_len)
++{
++  mtlk_vap_manager_t *manager = mtlk_vap_get_manager(vap_handle);
++  mtlk_vap_handle_t vap;
++  unsigned int i, count;
++  if (data && data_len == sizeof(s32)) {
++    s32 id;
++    memcpy(&id, data, sizeof(id));
++    if (id < 0 || mtlk_vap_manager_get_vap_handle(manager, id, &vap) != MTLK_ERR_OK)
++      return MTLK_ERR_PARAMS;
++    wave618_flush_vap_stations(vap);
++    return MTLK_ERR_OK;
++  }
++  if (data || data_len)
++    return MTLK_ERR_PARAMS;
++  count = mtlk_vap_manager_get_max_vaps_count(manager);
++  for (i = 0; i < count; i++)
++    if (mtlk_vap_manager_get_vap_handle(manager, i, &vap) == MTLK_ERR_OK)
++      wave618_flush_vap_stations(vap);
+   return MTLK_ERR_OK;
+ }
+ 
+@@ -1629,6 +1759,8 @@
+   cfg80211 = wiphy_priv(wiphy);
+ 
+   memset(cfg80211, 0, sizeof(*cfg80211));
++  spin_lock_init(&cfg80211->notify_lock);
++  INIT_LIST_HEAD(&cfg80211->notify_list);
+ 
+   /* link cfg80211 with WIPHY */
+   cfg80211->wiphy = wiphy;
+@@ -1711,13 +1843,71 @@
+   }
+ }
+ 
+-static void set_he_support(mtlk_handle_t hw_handle, struct ieee80211_supported_band *cfg80211_band, char *band_str)
+-{
+-  BOOL is_supported = hw_get_he_support(hw_handle);
+-
+-  ILOG1_SS("he %s supported for %s band", is_supported ? "is" : "not", band_str);
+-
+-  cfg80211_band->he_cap.he_supported = is_supported;
++/* Gen6 A0/B0 capabilities: stock HE flags and the Intel A/B capability
++ * tables, bounded by the EEPROM antenna count and hardware width support.
++ * No TWT or 80+80 advertisement: matching firmware explicitly lacks them. */
++static void set_he_support(mtlk_handle_t hw_handle,
++                          struct ieee80211_supported_band *band,
++                          bool band_5ghz, u32 num_sts)
++{
++  struct ieee80211_sband_iftype_data *ifdata = (void *)(band + 1);
++  struct ieee80211_sta_he_cap *he = &ifdata->he_cap;
++  u8 *mac = he->he_cap_elem.mac_cap_info;
++  u8 *phy = he->he_cap_elem.phy_cap_info;
++  unsigned int i, nss = clamp_t(unsigned int, num_sts, 1, 4);
++  u16 mcs = 0xffff;
++  bool width160 = band_5ghz && hw_get_vht_160mhz_support(hw_handle);
++
++  BUILD_BUG_ON(sizeof(struct ieee80211_he_cap_elem) != 17);
++  memset(ifdata, 0, sizeof(*ifdata));
++  if (!hw_get_he_support(hw_handle))
++    return;
++  ifdata->types_mask = BIT(NL80211_IFTYPE_AP) | BIT(NL80211_IFTYPE_STATION);
++  he->has_he = true;
++  mac[0] = IEEE80211_HE_MAC_CAP0_HTC_HE;
++  mac[2] = IEEE80211_HE_MAC_CAP2_ACK_EN;
++  mac[3] = IEEE80211_HE_MAC_CAP3_OMI_CONTROL |
++           IEEE80211_HE_MAC_CAP3_MAX_AMPDU_LEN_EXP_EXT_2;
++  mac[4] = IEEE80211_HE_MAC_CAP4_AMSDU_IN_AMPDU;
++  mac[5] = IEEE80211_HE_MAC_CAP5_OM_CTRL_UL_MU_DATA_DIS_RX;
++  if (band_5ghz)
++    mac[5] |= IEEE80211_HE_MAC_CAP5_UL_2x996_TONE_RU;
++  phy[0] = band_5ghz ? IEEE80211_HE_PHY_CAP0_CHANNEL_WIDTH_SET_40MHZ_80MHZ_IN_5G :
++                      IEEE80211_HE_PHY_CAP0_CHANNEL_WIDTH_SET_40MHZ_IN_2G |
++                      IEEE80211_HE_PHY_CAP0_CHANNEL_WIDTH_SET_RU_MAPPING_IN_2G;
++  if (width160)
++    phy[0] |= IEEE80211_HE_PHY_CAP0_CHANNEL_WIDTH_SET_160MHZ_IN_5G;
++  phy[1] = IEEE80211_HE_PHY_CAP1_DEVICE_CLASS_A |
++           IEEE80211_HE_PHY_CAP1_LDPC_CODING_IN_PAYLOAD;
++  phy[2] = IEEE80211_HE_PHY_CAP2_NDP_4x_LTF_AND_3_2US;
++  phy[3] = IEEE80211_HE_PHY_CAP3_SU_BEAMFORMER;
++  phy[4] = IEEE80211_HE_PHY_CAP4_SU_BEAMFORMEE |
++           IEEE80211_HE_PHY_CAP4_MU_BEAMFORMER |
++           IEEE80211_HE_PHY_CAP4_BEAMFORMEE_MAX_STS_UNDER_80MHZ_4 |
++           IEEE80211_HE_PHY_CAP4_BEAMFORMEE_MAX_STS_ABOVE_80MHZ_4;
++  phy[5] = (nss - 1) | ((nss - 1) << 3) |
++           IEEE80211_HE_PHY_CAP5_NG16_SU_FEEDBACK;
++  phy[6] = IEEE80211_HE_PHY_CAP6_TRIG_SU_BEAMFORMING_FB |
++           IEEE80211_HE_PHY_CAP6_PPE_THRESHOLD_PRESENT;
++  phy[7] = IEEE80211_HE_PHY_CAP7_HE_SU_MU_PPDU_4XLTF_AND_08_US_GI |
++           ((nss - 1) << 3);
++  for (i = 0; i < nss; i++)
++    mcs = (mcs & ~(3U << (2 * i))) | (2U << (2 * i)); /* MCS0-11 */
++  he->he_mcs_nss_supp.rx_mcs_80 = cpu_to_le16(mcs);
++  he->he_mcs_nss_supp.tx_mcs_80 = cpu_to_le16(mcs);
++  he->he_mcs_nss_supp.rx_mcs_160 = cpu_to_le16(width160 ? mcs : 0xffff);
++  he->he_mcs_nss_supp.tx_mcs_160 = cpu_to_le16(width160 ? mcs : 0xffff);
++  he->he_mcs_nss_supp.rx_mcs_80p80 = cpu_to_le16(0xffff);
++  he->he_mcs_nss_supp.tx_mcs_80p80 = cpu_to_le16(0xffff);
++  /* Stock PPET16=0, PPET8=7 for all four RU sizes and supported NSS. */
++  he->ppe_thres[0] = (nss - 1) | 0x78;
++  for (i = 0; i < nss * 4; i++) {
++    unsigned int bit = 7 + i * 6 + 3, j;
++    for (j = 0; j < 3; j++)
++      he->ppe_thres[(bit + j) / 8] |= BIT((bit + j) % 8);
++  }
++  band->iftype_data = ifdata;
++  band->n_iftype_data = 1;
+ }
+ 
+ static void
+@@ -1755,7 +1945,7 @@
+   MTLK_ASSERT(hw);
+ 
+   /* Allocate memory for struct ieee80211_supported_band and copy initial data from a template */
+-  *cfg80211_band = mtlk_osal_mem_alloc(sizeof(struct ieee80211_supported_band), MTLK_MEM_TAG_CFG80211);
++  *cfg80211_band = mtlk_osal_mem_alloc(sizeof(struct ieee80211_supported_band) + sizeof(struct ieee80211_sband_iftype_data), MTLK_MEM_TAG_CFG80211);
+   if (*cfg80211_band == NULL)
+     return MTLK_ERR_NO_MEM;
+   **cfg80211_band = *cfg80211_band_template;
+@@ -1767,7 +1957,7 @@
+   set_vht_support         (hw_handle, *cfg80211_band, band_str);
+   set_vht_cap_160mhz      (hw_handle, *cfg80211_band, band_str);
+   set_vht_160mhz_short_gi (hw_handle, *cfg80211_band, band_str);
+-  set_he_support          (hw_handle, *cfg80211_band, band_str);
++  set_he_support          (hw_handle, *cfg80211_band, cfg80211_band_template == &_cfg80211_band_5ghz, num_sts);
+ 
+   /* Initialize the list of supported channels */
+   (*cfg80211_band)->channels = mtlk_osal_mem_alloc(channels_size, MTLK_MEM_TAG_CFG80211);
+@@ -1830,6 +2020,21 @@
+   }
+ 
+   return MTLK_ERR_OK;
++}
++
++/* Native hostapd updates the regulatory domain through nl80211.  The
++ * vendor INITIAL_DATA command formerly copied this into firmware, and the
++ * optional station wiphy must not be required for AP regulatory updates. */
++static void wave_cfg80211_reg_notifier(struct wiphy *wiphy,
++                                     struct regulatory_request *request)
++{
++  wv_cfg80211_t *cfg = wiphy_priv(wiphy);
++  mtlk_df_t *df = wave_radio_df_get(cfg->radio);
++
++  memcpy(cfg->regulatory_alpha2, request->alpha2, 2);
++  if (df)
++    core_cfg_country_code_set_by_str(mtlk_vap_get_core(mtlk_df_get_vap_handle(df)),
++                                    request->alpha2, sizeof(request->alpha2));
+ }
+ 
+ /**
+@@ -1866,16 +2071,21 @@
+ 
+   /* link cfg80211 with radio module */
+   cfg80211->radio = radio;
++  memcpy(cfg80211->regulatory_alpha2, "00", 2);
+   radio_id = wave_radio_id_get(radio);
+ 
+   /* initialize WIPHY */
+   /********************/
+   wiphy->mgmt_stypes = wv_mgmt_stypes;
++  wiphy->reg_notifier = wave_cfg80211_reg_notifier;
+ 
+   /* set device pointer for WIPHY */
+   set_wiphy_dev(wiphy, dev);
+ 
+   wiphy->interface_modes = BIT(NL80211_IFTYPE_AP);
++  res = wave_radio_permanent_address_get(radio, wiphy->perm_addr);
++  if (res != MTLK_ERR_OK)
++    return res;
+ 
+   hw_get_fw_version(hw_handle, wiphy->fw_version, sizeof(wiphy->fw_version));
+ 
+@@ -1939,7 +2149,6 @@
+   wiphy->flags |= (WIPHY_FLAG_REPORTS_OBSS
+                    | WIPHY_FLAG_AP_PROBE_RESP_OFFLOAD
+                    | WIPHY_FLAG_AP_UAPSD
+-                   | WIPHY_FLAG_SUPPORTS_SCHED_SCAN
+                    | WIPHY_FLAG_HAS_CHANNEL_SWITCH);
+ 
+   /* unset WIPHY flags */
+@@ -1969,7 +2178,7 @@
+                     WIPHY_FLAG_PS_ON_BY_DEFAULT);
+ 
+   /* set WIPHY features */
+-  wiphy->features = (NL80211_FEATURE_SK_TX_STATUS |
++  wiphy->features = (NL80211_FEATURE_SAE | NL80211_FEATURE_SK_TX_STATUS |
+                      NL80211_FEATURE_AP_MODE_CHAN_WIDTH_CHANGE |
+                      NL80211_FEATURE_STATIC_SMPS
+     );
+@@ -1979,6 +2188,7 @@
+   wiphy->features &= ~NL80211_FEATURE_INACTIVITY_TIMER;
+ 
+   wiphy->max_scan_ssids = MAX_SCAN_SSIDS;
++  wiphy->max_sched_scan_reqs = 1;
+   wiphy->max_sched_scan_ssids = MAX_SCAN_SSIDS;
+   wiphy->max_match_sets = MAX_MATCH_SETS;
+   wiphy->max_scan_ie_len = MAX_SCAN_IE_LEN;
+@@ -2008,6 +2218,8 @@
+     return;
+   }
+ 
++  wave618_ch_events_stop(cfg80211);
++
+   /* unregister hardware */
+   wiphy_unregister(cfg80211->wiphy);
+ 
+@@ -2080,7 +2292,7 @@
+ void __MTLK_IFUNC
+ wv_cfg80211_class3_error_notify (struct wireless_dev *wdev, const u8 *addr)
+ {
+-  cfg80211_rx_spurious_frame(wdev->netdev, addr, GFP_ATOMIC);
++  cfg80211_rx_spurious_frame(wdev->netdev, addr, -1, GFP_ATOMIC);
+ }
+ 
+ BOOL __MTLK_IFUNC
+@@ -2091,11 +2303,11 @@
+ 
+   if (mtlk_df_user_get_mngmnt_filter(df_user, subtype)) {
+ #if (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 18, 0))
+-    return cfg80211_rx_mgmt(wdev, freq, DBM_TO_MBM(sig_dbm), data, size, GFP_ATOMIC);
++    return cfg80211_rx_mgmt(wdev, freq, sig_dbm, data, size, 0);
+ #elif (LINUX_VERSION_CODE >= KERNEL_VERSION(3, 12, 0))
+     return cfg80211_rx_mgmt(wdev, freq, DBM_TO_MBM(sig_dbm), data, size, 0, GFP_ATOMIC);
+ #else
+-    return cfg80211_rx_mgmt(wdev, freq, DBM_TO_MBM(sig_dbm), data, size, GFP_ATOMIC);
++    return cfg80211_rx_mgmt(wdev, freq, sig_dbm, data, size, 0);
+ #endif
+   } else {
+     return TRUE;
+@@ -2458,22 +2670,7 @@
+ 
+ static bool wv_cfg80211_reg_dfs_domain_same(struct wiphy *wiphy1, struct wiphy *wiphy2)
+ {
+- const struct ieee80211_regdomain *wiphy1_regd = NULL;
+- const struct ieee80211_regdomain *wiphy2_regd = NULL;
+- const struct ieee80211_regdomain *cfg80211_regd = NULL;
+-
+- cfg80211_regd = get_cfg80211_regdom();
+- if (cfg80211_regd == NULL)
+-   return FALSE;
+- wiphy1_regd = get_wiphy_regdom(wiphy1);
+- if (!wiphy1_regd)
+-   wiphy1_regd = cfg80211_regd;
+-
+- wiphy2_regd = get_wiphy_regdom(wiphy2);
+- if (!wiphy2_regd)
+-   wiphy2_regd = cfg80211_regd;
+-
+- return wiphy1_regd->dfs_region == wiphy2_regd->dfs_region;
++  return wiphy1 == wiphy2; /* obsolete vendor propagation helper */
+ }
+ 
+ bool wv_cfg80211_get_chans_dfs_required(struct wiphy *wiphy,
+@@ -2535,86 +2732,8 @@
+            enum nl80211_radar_event event,
+            uint8 rbm)
+ {
+-  struct cfg80211_registered_device *rdev;
+-  struct wireless_dev *wdev2;
+-  uint32 width;
+-  BOOL devices_exist = FALSE;
+-  BOOL update_dfs_wq;
+-
+-  ASSERT_RTNL();
+-
+-  if (!cfg80211_chandef_valid(chandef)) {
+-    ELOG_S("%s: Invalid chandef", wdev->netdev->name);
+-    return;
+-  }
+-  if (!wv_cfg80211_chandef_dfs_required(wdev->wiphy, chandef)) {
+-    ILOG1_S("%s: No DFS channels", wdev->netdev->name);
+-    return;
+-  }
+-
+-  list_for_each_entry(rdev, &cfg80211_rdev_list, list) {
+-    update_dfs_wq = FALSE;
+-    if (wdev->wiphy == &rdev->wiphy)
+-      continue;
+-
+-    if (!wv_cfg80211_reg_dfs_domain_same(wdev->wiphy, &rdev->wiphy))
+-      continue;
+-
+-    if (!ieee80211_get_channel(&rdev->wiphy,
+-      chandef->chan->center_freq))
+-      continue;
+-
+-    width = wave_radio_chandef_width_get(chandef);
+-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,11,0)
+-    mutex_lock(&rdev->devlist_mtx);
+-#endif
+-#if LINUX_VERSION_CODE < KERNEL_VERSION(4,7,0)
+-    list_for_each_entry(wdev2, &rdev->wdev_list, list) {
+-#else
+-    list_for_each_entry(wdev2, &rdev->wiphy.wdev_list, list) {
+-#endif
+-
+-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,15,0)
+-      struct ieee80211_channel *wdev2_chan = wdev2->channel;
+-#else
+-      struct ieee80211_channel *wdev2_chan = wdev2->chandef.chan;
+-#endif
+-
+-      if (wdev2->iftype != NL80211_IFTYPE_AP || wdev2_chan == NULL)
+-        continue;
+-
+-      devices_exist = update_dfs_wq = TRUE;
+-
+-      /* If radar detected on our channel */
+-      if ((event == NL80211_RADAR_DETECTED) &&
+-          (chandef->center_freq1 - width / 2 < wdev2_chan->center_freq &&
+-           chandef->center_freq1 + width / 2 > wdev2_chan->center_freq))
+-        wdev2->cac_started = false;
+-    }
+-#if LINUX_VERSION_CODE < KERNEL_VERSION(3,11,0)
+-    mutex_unlock(&rdev->devlist_mtx);
+-#endif
+-    if (update_dfs_wq) {
+-      cancel_delayed_work_sync(&rdev->dfs_update_channels_wk);
+-      queue_delayed_work(cfg80211_get_cfg80211_wq(), &rdev->dfs_update_channels_wk, 0);
+-    }
+-
+-    /* no state change on CAC aborted */
+-    if (update_dfs_wq && (event != NL80211_RADAR_CAC_ABORTED)) {
+-      if (rbm)
+-        cfg80211_set_dfs_state_bit_map(&rdev->wiphy, chandef, rbm, dfs_state);
+-      else
+-        cfg80211_set_dfs_state(&rdev->wiphy, chandef, dfs_state);
+-    }
+-  }
+-  /* Only CAC finished event needs to be propagated, the other events are
+-   * already global. */
+-  if (devices_exist && event == NL80211_RADAR_CAC_FINISHED)
+-#if !defined(MTCFG_LINUX_BACKPORT) && LINUX_VERSION_CODE < KERNEL_VERSION(3, 16, 0)
+-    nl80211_radar_notify(wiphy_to_dev(wdev->wiphy), chandef, event, NULL, 0, GFP_KERNEL);
+-#else
+-    nl80211_radar_notify(wiphy_to_rdev(wdev->wiphy), chandef, event, NULL, 0, GFP_KERNEL);
+-#endif
++  /* cfg80211_radar_event/cac_event in 6.18 propagate DFS state across wiphys.
++   * Repeating the old private-regulatory walk would race the native work. */
+ }
+ 
+ void wv_cfg80211_radar_event(struct wireless_dev *wdev, struct cfg80211_chan_def *chandef,
+@@ -2623,7 +2742,7 @@
+   wv_cfg80211_t *cfg80211 = wiphy_priv(wdev->wiphy);
+   mtlk_scan_support_t *scan_support = wave_radio_scan_support_get(cfg80211->radio);
+ 
+-  cfg80211_radar_event(wdev->wiphy, chandef, rbm, GFP_ATOMIC);
++  cfg80211_radar_event(wdev->wiphy, chandef, GFP_ATOMIC);
+ 
+   /* Change kernel dfs flags for radar simulation, so that kernel code allows
+    * HostAPD to switch back to any DFS required channel. */
+@@ -2637,39 +2756,8 @@
+       wv_cfg80211_debug_change_kernel_dfs_state(wdev->wiphy, NL80211_DFS_USABLE); /* To do CAC */
+   }
+ 
+-#ifndef MTCFG_X86_HOST_PC
+-  /* Use debug non occupancy period */
+-  if (scan_support->dfs_debug_params.nop) {
+-    struct ieee80211_channel *c;
+-    uint32 low_freq, high_freq, cur_freq;
+-#if !defined(MTCFG_LINUX_BACKPORT) && LINUX_VERSION_CODE < KERNEL_VERSION(3, 16, 0)
+-    struct cfg80211_registered_device *rdev = wiphy_to_dev(wdev->wiphy);
+-#else
+-    struct cfg80211_registered_device *rdev = wiphy_to_rdev(wdev->wiphy);
+-#endif
+-    uint32 non_ocup_prd_ms = scan_support->dfs_debug_params.nop * MTLK_OSAL_MSEC_IN_MIN;
+-    low_freq = freq2lowfreq(chandef->center_freq1, nlcw2mtlkcw(chandef->width));
+-    high_freq = freq2highfreq(chandef->center_freq1, nlcw2mtlkcw(chandef->width));
+-
+-    ILOG1_D("Setting debug non occupancy period for %d seconds",
+-            scan_support->dfs_debug_params.nop * MTLK_OSAL_SEC_IN_MIN);
+-
+-    for (cur_freq = low_freq; cur_freq <= high_freq; cur_freq += 20) {
+-      c = ieee80211_get_channel(wdev->wiphy, cur_freq);
+-
+-      if (!c || !(c->flags & IEEE80211_CHAN_RADAR) || (c->dfs_state != NL80211_DFS_UNAVAILABLE))
+-        continue;
+-
+-      if (non_ocup_prd_ms < IEEE80211_DFS_MIN_NOP_TIME_MS)
+-        c->dfs_state_entered -= msecs_to_jiffies(IEEE80211_DFS_MIN_NOP_TIME_MS - non_ocup_prd_ms);
+-      else
+-        c->dfs_state_entered += msecs_to_jiffies(non_ocup_prd_ms - IEEE80211_DFS_MIN_NOP_TIME_MS);
+-    }
+-
+-    cancel_delayed_work_sync(&rdev->dfs_update_channels_wk);
+-    queue_delayed_work(cfg80211_get_cfg80211_wq(), &rdev->dfs_update_channels_wk, 0);
+-  }
+-#endif
++
++
+ }
+ 
+ void wv_cfg80211_cac_event(struct net_device *ndev, const struct mtlk_chan_def *mcd, int finished)
+@@ -2692,32 +2780,9 @@
+   chandef.center_freq1 = mcd->center_freq1;
+   chandef.center_freq2 = mcd->center_freq2;
+ 
+-  if (finished) {
+-    unsigned long timeout, cur_jiffies;
+-
+-    /* Kernel doesn't allow CAC time less than 60 seconds.
+-     * This changes the wdev->cac_start_time to allow
+-     * CAC time less than than 60 seconds*/
+-    if (scan_support->dfs_debug_params.cac_time != -1) {
+-      uint32 cac_time_ms = scan_support->dfs_debug_params.cac_time * MTLK_OSAL_MSEC_IN_SEC;
+-      if (cac_time_ms < IEEE80211_DFS_MIN_CAC_TIME_MS)
+-        wdev->cac_start_time -= msecs_to_jiffies(IEEE80211_DFS_MIN_CAC_TIME_MS);
+-    }
+-
+-    timeout = wdev->cac_start_time + msecs_to_jiffies(IEEE80211_DFS_MIN_CAC_TIME_MS);
+-    cur_jiffies = jiffies;
+-
+-    if (!time_after_eq(cur_jiffies, timeout)) {
+-      WLOG_DDDDD("CAC time was less than minimal %u seconds, jiffies %u, cac start time %u + cac time in jiffies %u = timeout %u",
+-                 IEEE80211_DFS_MIN_CAC_TIME_MS / MTLK_OSAL_MSEC_IN_SEC, cur_jiffies, wdev->cac_start_time,
+-                 msecs_to_jiffies(IEEE80211_DFS_MIN_CAC_TIME_MS), timeout);
+-      /* To eliminate possible kernel warning */
+-      wdev->cac_start_time -= msecs_to_jiffies(IEEE80211_DFS_MIN_CAC_TIME_MS);
+-    }
+-  }
+ 
+ #if defined(MTCFG_LINUX_BACKPORT) || LINUX_VERSION_CODE >= KERNEL_VERSION(3, 14, 0)
+-  cfg80211_cac_event(ndev, &chandef, finished ? NL80211_RADAR_CAC_FINISHED : NL80211_RADAR_CAC_ABORTED, GFP_ATOMIC);
++  cfg80211_cac_event(ndev, &chandef, finished ? NL80211_RADAR_CAC_FINISHED : NL80211_RADAR_CAC_ABORTED, GFP_ATOMIC, 0);
+ #else
+   cfg80211_cac_event_2(ndev, &chandef, finished ? NL80211_RADAR_CAC_FINISHED : NL80211_RADAR_CAC_ABORTED, GFP_ATOMIC);
+ #endif
+@@ -2731,40 +2796,8 @@
+ void wv_cfg80211_nop_finished_send(struct wiphy *wiphy, mtlk_df_t *df,
+   struct mtlk_chan_def *mcd)
+ {
+-  struct cfg80211_chan_def chandef;
+-  struct cfg80211_registered_device *rdev;
+-
+-  chandef.chan = ieee80211_get_channel(wiphy, mcd->chan.center_freq);
+-  if (!chandef.chan) {
+-    ILOG1_V("Cannot get channel info, exit");
+-    return;
+-  }
+-  if (!(chandef.chan->flags & IEEE80211_CHAN_RADAR)) {
+-    ILOG1_V("Not DFS channel, exit");
+-    return;
+-  }
+-  if (chandef.chan->dfs_state == NL80211_DFS_UNAVAILABLE) {
+-    ILOG1_V("DFS channel in unavailable state, exit");
+-    return;
+-  }
+-
+-  chandef.width = mtlkcw2nlcw(mcd->width, mcd->is_noht);
+-  chandef.center_freq1 = mcd->center_freq1;
+-  chandef.center_freq2 = mcd->center_freq2;
+-
+-  ILOG1_DDDD("center_freq1=%u, center_freq2=%u, width=%u, chan.center_freq=%u",
+-    chandef.center_freq1, chandef.center_freq2, chandef.width,
+-    chandef.chan->center_freq);
+-
+-  cfg80211_set_dfs_state(wiphy, &chandef, NL80211_DFS_USABLE);
+-#if !defined(MTCFG_LINUX_BACKPORT) && LINUX_VERSION_CODE < KERNEL_VERSION(3, 16, 0)
+-    rdev = wiphy_to_dev(wiphy);
+-#else
+-    rdev = wiphy_to_rdev(wiphy);
+-#endif
+-  nl80211_radar_notify(rdev, &chandef, NL80211_RADAR_NOP_FINISHED, NULL, 0, GFP_KERNEL);
+-
+-  mtlk_df_user_add_propagate_event(mtlk_df_get_user(df), &chandef, NL80211_DFS_USABLE, NL80211_RADAR_NOP_FINISHED, 0, 0);
++  /* Native cfg80211 owns NOP expiration and its notification. Drivers must
++   * not force a channel usable when an AP stops or switches channels. */
+ }
+ 
+ /* Make channel uncertain and set state to USABLE if we were on DFS channels */
+@@ -2813,41 +2846,41 @@
+ 
+ void wv_cfg80211_ch_switch_notify(struct net_device *ndev, const struct mtlk_chan_def *mcd, bool sta_exist)
+ {
+-  struct cfg80211_chan_def chandef;
+   struct wireless_dev *wdev = ndev->ieee80211_ptr;
+-  mtlk_df_user_t *df_user = mtlk_df_user_from_ndev(ndev);
+-
+-  /* df_user shouldn't be NULL in a normal situation */
+-  MTLK_CHECK_DF_USER_NORES(df_user);
+-
+-  chandef.chan = ieee80211_get_channel(wdev->wiphy, mcd->chan.center_freq);
+-  chandef.width = mtlkcw2nlcw(mcd->width, mcd->is_noht);
+-  chandef.center_freq1 = mcd->center_freq1;
+-  chandef.center_freq2 = mcd->center_freq2;
+-
+-  if (sta_exist) {
+-    cfg80211_set_dfs_state(wdev->wiphy, &chandef, NL80211_DFS_AVAILABLE);
+-    mtlk_df_user_add_propagate_event(df_user, &chandef, NL80211_DFS_AVAILABLE, NL80211_RADAR_CAC_FINISHED, 0, 0);
+-    mtlk_df_user_schedule_prop_dfs_wq(df_user);
+-  }
+-
+-  cfg80211_ch_switch_notify(ndev, &chandef);
+-}
+-
+-void wv_cfg80211_set_scan_expire_time(struct wireless_dev *wdev, uint32 time)
+-{
+-  MTLK_ASSERT(wdev);
+-  MTLK_ASSERT(wdev->wiphy);
+-
+-  cfg80211_set_scan_expire_time(wdev->wiphy, time * HZ);
++  wv_cfg80211_t *cfg = wiphy_priv(wdev->wiphy);
++  struct wave618_ch_event *event;
++  unsigned long flags;
++  event = kzalloc(sizeof(*event), GFP_ATOMIC);
++  if (!event) return;
++  event->chandef.chan = ieee80211_get_channel(wdev->wiphy, mcd->chan.center_freq);
++  event->chandef.width = mtlkcw2nlcw(mcd->width, mcd->is_noht);
++  event->chandef.center_freq1 = mcd->center_freq1;
++  event->chandef.center_freq2 = mcd->center_freq2;
++  if (!cfg80211_chandef_valid(&event->chandef)) { kfree(event); return; }
++  event->ndev = ndev;
++  dev_hold(ndev);
++  wiphy_work_init(&event->work, wave618_ch_event_run);
++  spin_lock_irqsave(&cfg->notify_lock, flags);
++  if (!cfg->registered) {
++    spin_unlock_irqrestore(&cfg->notify_lock, flags);
++    dev_put(ndev);
++    kfree(event);
++    return;
++  }
++  list_add_tail(&event->list, &cfg->notify_list);
++  wiphy_work_queue(wdev->wiphy, &event->work);
++  spin_unlock_irqrestore(&cfg->notify_lock, flags);
++}
++
++int wv_cfg80211_set_scan_expire_time(struct wireless_dev *wdev, uint32 time)
++{
++  /* No public API to change cfg80211 BSS expiry on 6.18. */
++  return MTLK_ERR_NOT_SUPPORTED;
+ }
+ 
+ uint32 wv_cfg80211_get_scan_expire_time(struct wireless_dev *wdev)
+ {
+-  MTLK_ASSERT(wdev);
+-  MTLK_ASSERT(wdev->wiphy);
+-
+-  return cfg80211_get_scan_expire_time(wdev->wiphy) / HZ;
++  return 30; /* CFG80211_SCAN_RESULT_EXPIRE in native net/wireless/scan.c */
+ }
+ 
+ void __MTLK_IFUNC
+--- a/wireless/driver/linux/cfg80211.h
++++ b/wireless/driver/linux/cfg80211.h
+@@ -64,7 +64,7 @@
+ 
+ void wv_cfg80211_set_chan_dfs_state(struct wiphy *wiphy, uint32 center_freq, uint32 bandwidth, enum nl80211_dfs_state dfs_state);
+ 
+-void wv_cfg80211_set_scan_expire_time(struct wireless_dev *wdev, uint32 time);
++int wv_cfg80211_set_scan_expire_time(struct wireless_dev *wdev, uint32 time);
+ uint32 wv_cfg80211_get_scan_expire_time(struct wireless_dev *wdev);
+ 
+ int wave_cfg80211_vendor_send_eapol(struct wiphy *wiphy, struct wireless_dev *wdev, const void *data, int data_len);
+@@ -120,7 +120,7 @@
+ static __INLINE
+ void wv_cfg80211_sched_scan_results(struct mtlk_scan_request *request)
+ {
+-  cfg80211_sched_scan_results(((struct cfg80211_scan_request *) request->saved_request)->wiphy);
++  cfg80211_sched_scan_results(request->wiphy, ((struct cfg80211_sched_scan_request *)request->saved_request)->reqid);
+ }
+ 
+ #ifdef MTCFG_DBG_DRV_UTEST
+--- a/wireless/driver/linux/core.c
++++ b/wireless/driver/linux/core.c
+@@ -17,6 +17,11 @@
+  *
+  */
+ #include "mtlkinc.h"
++#include <crypto/hash.h>
++#include <crypto/aead.h>
++#include <linux/scatterlist.h>
++#include <crypto/algapi.h>
++#include <linux/unaligned.h>
+ 
+ #include "core_priv.h"
+ #include "mtlk_df.h"
+@@ -1084,6 +1089,11 @@
+   /* Send indication if STA has been disconnected from AP */
+   _mtlk_core_on_peer_disconnect(nic, sta, reason);
+ 
++  /* Native hostapd has no vendor FREE_AID operation. Release the firmware
++   * SID after removing the peer, independently of the BSS-local AID. */
++  if (MTLK_BFIELD_GET(sta->info.flags, STA_FLAGS_NATIVE_SID))
++    res = core_remove_sid(nic, mtlk_sta_get_sid(sta));
++
+   cleanup_on_disconnect(nic);
+   /* update disconnections statistics */
+   nic->pstats.num_disconnects++;
+@@ -1093,6 +1103,294 @@
+ 
+ finish:
+   return res;
++}
++
++/* BIP is handled by the host: the stock receive path already delegates BIP
++ * verification to mac80211. Keep IGTKs separate from the four firmware GTKs. */
++static void wave_pmf_reset(mtlk_core_t *core)
++{
++  struct crypto_shash *old[2];
++  struct crypto_aead *old_gmac[2];
++  unsigned int i;
++
++  mtlk_osal_lock_acquire(&core->net_state_lock);
++  for (i = 0; i < 2; i++) {
++    old[i] = core->slow_ctx->igtk_tfm[i];
++    old_gmac[i] = core->slow_ctx->igtk_gmac[i];
++    core->slow_ctx->igtk_gmac[i] = NULL;
++    core->slow_ctx->igtk_tfm[i] = NULL;
++    core->slow_ctx->igtk_ipn[i] = 0;
++    core->slow_ctx->igtk_cipher_suite[i] = 0;
++    memzero_explicit(core->slow_ctx->igtk_key[i], sizeof(core->slow_ctx->igtk_key[i]));
++  }
++  core->slow_ctx->default_mgmt_key = 0;
++  core->slow_ctx->igtk_configured = false;
++  mtlk_osal_lock_release(&core->net_state_lock);
++  for (i = 0; i < 2; i++) {
++    if (old[i])
++      crypto_free_shash(old[i]);
++    if (old_gmac[i])
++      crypto_free_aead(old_gmac[i]);
++  }
++}
++
++int wave_pmf_key_add(mtlk_core_t *core, u8 index, struct key_params *params)
++{
++  struct crypto_shash *tfm = NULL, *old;
++  struct crypto_aead *gmac = NULL, *old_gmac;
++  bool is_gmac;
++  int err;
++  u64 ipn = 0;
++  unsigned int slot, i, key_len;
++
++  if (index < 4 || index > 5 || !params || !params->key)
++    return -EINVAL;
++  is_gmac = params->cipher == WLAN_CIPHER_SUITE_BIP_GMAC_128 ||
++            params->cipher == WLAN_CIPHER_SUITE_BIP_GMAC_256;
++  if (params->cipher == WLAN_CIPHER_SUITE_AES_CMAC ||
++      params->cipher == WLAN_CIPHER_SUITE_BIP_GMAC_128)
++    key_len = 16;
++  else if (params->cipher == WLAN_CIPHER_SUITE_BIP_CMAC_256 ||
++           params->cipher == WLAN_CIPHER_SUITE_BIP_GMAC_256)
++    key_len = 32;
++  else
++    return -EOPNOTSUPP;
++  if (params->key_len != key_len ||
++      (params->seq_len && (params->seq_len != 6 || !params->seq)))
++    return -EINVAL;
++  for (i = 0; i < params->seq_len; i++)
++    ipn |= (u64)params->seq[i] << (8 * i);
++  if (is_gmac) {
++    /* Exclude asynchronous implementations: management TX may run atomic. */
++    gmac = crypto_alloc_aead("gcm(aes)", 0, CRYPTO_ALG_ASYNC);
++    if (IS_ERR(gmac))
++      return PTR_ERR(gmac);
++    err = crypto_aead_setkey(gmac, params->key, key_len);
++    if (!err)
++      err = crypto_aead_setauthsize(gmac, 16);
++    if (err) {
++      crypto_free_aead(gmac);
++      return err;
++    }
++  } else {
++    tfm = crypto_alloc_shash("cmac(aes)", 0, 0);
++    if (IS_ERR(tfm))
++      return PTR_ERR(tfm);
++    if (crypto_shash_setkey(tfm, params->key, key_len)) {
++      crypto_free_shash(tfm);
++      return -EINVAL;
++    }
++  }
++  slot = index - 4;
++  mtlk_osal_lock_acquire(&core->net_state_lock);
++  old = core->slow_ctx->igtk_tfm[slot];
++  old_gmac = core->slow_ctx->igtk_gmac[slot];
++  /* Reinstallation of the same key must never reset its packet number. */
++  if ((old || old_gmac) && core->slow_ctx->igtk_cipher_suite[slot] == params->cipher &&
++      !crypto_memneq(core->slow_ctx->igtk_key[slot], params->key, key_len))
++    ipn = max(ipn, core->slow_ctx->igtk_ipn[slot]);
++  core->slow_ctx->igtk_configured = true;
++  core->slow_ctx->igtk_tfm[slot] = tfm;
++  core->slow_ctx->igtk_gmac[slot] = gmac;
++  core->slow_ctx->igtk_ipn[slot] = ipn;
++  core->slow_ctx->igtk_cipher_suite[slot] = params->cipher;
++  memcpy(core->slow_ctx->igtk_key[slot], params->key, key_len);
++  mtlk_osal_lock_release(&core->net_state_lock);
++  if (old)
++    crypto_free_shash(old);
++  if (old_gmac)
++    crypto_free_aead(old_gmac);
++  return 0;
++}
++
++int wave_pmf_key_del(mtlk_core_t *core, u8 index)
++{
++  struct crypto_shash *old;
++  struct crypto_aead *old_gmac;
++  unsigned int slot;
++
++  if (index < 4 || index > 5)
++    return -EINVAL;
++  slot = index - 4;
++  mtlk_osal_lock_acquire(&core->net_state_lock);
++  old = core->slow_ctx->igtk_tfm[slot];
++  old_gmac = core->slow_ctx->igtk_gmac[slot];
++  core->slow_ctx->igtk_gmac[slot] = NULL;
++  core->slow_ctx->igtk_tfm[slot] = NULL;
++  core->slow_ctx->igtk_ipn[slot] = 0;
++  core->slow_ctx->igtk_cipher_suite[slot] = 0;
++  memzero_explicit(core->slow_ctx->igtk_key[slot], sizeof(core->slow_ctx->igtk_key[slot]));
++  if (core->slow_ctx->default_mgmt_key == index)
++    core->slow_ctx->default_mgmt_key = 0;
++  mtlk_osal_lock_release(&core->net_state_lock);
++  if (old)
++    crypto_free_shash(old);
++  if (old_gmac)
++    crypto_free_aead(old_gmac);
++  return 0;
++}
++
++int wave_pmf_key_default(mtlk_core_t *core, u8 index)
++{
++  int res = -ENOENT;
++
++  if (index < 4 || index > 5)
++    return -EINVAL;
++  mtlk_osal_lock_acquire(&core->net_state_lock);
++  if (core->slow_ctx->igtk_tfm[index - 4] || core->slow_ctx->igtk_gmac[index - 4]) {
++    core->slow_ctx->default_mgmt_key = index;
++    res = 0;
++  }
++  mtlk_osal_lock_release(&core->net_state_lock);
++  return res;
++}
++
++int wave_pmf_key_get(mtlk_core_t *core, u8 index, void *cookie,
++                     void (*callback)(void *, struct key_params *))
++{
++  struct key_params params = {};
++  u8 key[32], seq[6];
++  u64 ipn;
++  unsigned int i, slot;
++  int res = -ENOENT;
++
++  if (index < 4 || index > 5)
++    return -EINVAL;
++  slot = index - 4;
++  mtlk_osal_lock_acquire(&core->net_state_lock);
++  if (core->slow_ctx->igtk_tfm[slot] || core->slow_ctx->igtk_gmac[slot]) {
++    params.cipher = core->slow_ctx->igtk_cipher_suite[slot];
++    params.key_len = (params.cipher == WLAN_CIPHER_SUITE_AES_CMAC ||
++                      params.cipher == WLAN_CIPHER_SUITE_BIP_GMAC_128) ? 16 : 32;
++    memcpy(key, core->slow_ctx->igtk_key[slot], params.key_len);
++    ipn = core->slow_ctx->igtk_ipn[slot];
++    for (i = 0; i < 6; i++)
++      seq[i] = ipn >> (8 * i);
++    res = 0;
++  }
++  mtlk_osal_lock_release(&core->net_state_lock);
++  if (!res) {
++    params.key = key;
++    params.seq = seq;
++    params.seq_len = 6;
++    callback(cookie, &params);
++  }
++  memzero_explicit(key, sizeof(key));
++  return res;
++}
++
++/* Synchronous GMAC with no plaintext. Authenticate AAD || management body
++ * (including the zero MIC), then obtain the 16-byte tag. All SG storage is
++ * heap-backed so this also works with VMAP_STACK. */
++static int wave_pmf_gmac(struct crypto_aead *tfm, const u8 *aad, const u8 *body,
++                         size_t body_len, const u8 *sa, u64 ipn, u8 *mic)
++{
++  struct aead_request *req;
++  struct scatterlist sg;
++  u8 iv[16] = {}, *input;
++  unsigned int i;
++  int err;
++
++  input = kmalloc(20 + body_len + 16, GFP_ATOMIC);
++  if (!input)
++    return -ENOMEM;
++  req = aead_request_alloc(tfm, GFP_ATOMIC);
++  if (!req) {
++    kfree(input);
++    return -ENOMEM;
++  }
++  memcpy(input, aad, 20);
++  memcpy(input + 20, body, body_len);
++  memcpy(iv, sa, 6);
++  for (i = 0; i < 6; i++)
++    iv[6 + i] = ipn >> (8 * (5 - i));
++  iv[15] = 1;
++  sg_init_one(&sg, input, 20 + body_len + 16);
++  aead_request_set_callback(req, 0, NULL, NULL);
++  aead_request_set_crypt(req, &sg, &sg, 0, iv);
++  aead_request_set_ad(req, 20 + body_len);
++  err = crypto_aead_encrypt(req);
++  if (!err)
++    memcpy(mic, input + 20 + body_len, 16);
++  aead_request_free(req);
++  kfree_sensitive(input);
++  return err;
++}
++
++static int wave_pmf_protect(mtlk_core_t *core, const u8 *frame, size_t len,
++                            u8 **protected_frame, size_t *protected_len)
++{
++  struct ieee80211_hdr *hdr = (void *)frame;
++  struct crypto_shash *tfm;
++  SHASH_DESC_ON_STACK(desc, NULL);
++  u8 aad[20], mic[16], *buf, *mmie;
++  unsigned int index, slot, i, mic_len, mmie_len;
++  u64 ipn;
++  int err;
++
++  *protected_frame = NULL;
++  *protected_len = len;
++  if (len < 25 || !is_multicast_ether_addr(hdr->addr1) ||
++      !_ieee80211_is_robust_mgmt_frame(hdr))
++    return MTLK_ERR_OK;
++  /* Max MMIE length is 26 for BIP-CMAC-256. The ring path checks final length. */
++  buf = kmalloc(len + 26, GFP_ATOMIC);
++  if (!buf)
++    return MTLK_ERR_NO_MEM;
++  memcpy(buf, frame, len);
++  mtlk_osal_lock_acquire(&core->net_state_lock);
++  index = core->slow_ctx->default_mgmt_key;
++  if (index < 4 || index > 5 || (!core->slow_ctx->igtk_tfm[index - 4] && !core->slow_ctx->igtk_gmac[index - 4])) {
++    /* After PMF key configuration, loss of the active IGTK must never
++     * silently downgrade a robust multicast frame to unprotected traffic. */
++    err = core->slow_ctx->igtk_configured ? MTLK_ERR_NOT_READY : MTLK_ERR_OK;
++    mtlk_osal_lock_release(&core->net_state_lock);
++    kfree(buf);
++    return err;
++  }
++  slot = index - 4;
++  tfm = core->slow_ctx->igtk_tfm[slot];
++  mic_len = core->slow_ctx->igtk_cipher_suite[slot] == WLAN_CIPHER_SUITE_AES_CMAC ? 8 : 16;
++  mmie_len = 10 + mic_len;
++  if (core->slow_ctx->igtk_ipn[slot] == 0xffffffffffffULL) {
++    mtlk_osal_lock_release(&core->net_state_lock);
++    kfree(buf);
++    return MTLK_ERR_PKT_DROPPED;
++  }
++  ipn = ++core->slow_ctx->igtk_ipn[slot];
++  mmie = buf + len;
++  memset(mmie, 0, mmie_len);
++  mmie[0] = WLAN_EID_MMIE;
++  mmie[1] = mmie_len - 2;
++  put_unaligned_le16(index, mmie + 2);
++  for (i = 0; i < 6; i++)
++    mmie[4 + i] = ipn >> (8 * i);
++  /* BIP authenticates the masked frame control, A1/A2/A3 and the complete
++   * management body with a zeroed MIC. Sequence control is excluded. */
++  put_unaligned_le16(le16_to_cpu(hdr->frame_control) &
++                    ~(IEEE80211_FCTL_RETRY | IEEE80211_FCTL_PM | IEEE80211_FCTL_MOREDATA), aad);
++  memcpy(aad + 2, hdr->addr1, 18);
++  if (core->slow_ctx->igtk_gmac[slot]) {
++    err = wave_pmf_gmac(core->slow_ctx->igtk_gmac[slot], aad, buf + 24,
++                        len - 24 + mmie_len, hdr->addr2, ipn, mic);
++  } else {
++    desc->tfm = tfm;
++    err = crypto_shash_init(desc);
++    if (!err)
++      err = crypto_shash_update(desc, aad, sizeof(aad));
++    if (!err)
++      err = crypto_shash_finup(desc, buf + 24, len - 24 + mmie_len, mic);
++    shash_desc_zero(desc);
++  }
++  mtlk_osal_lock_release(&core->net_state_lock);
++  if (err) {
++    kfree(buf);
++    return MTLK_ERR_PKT_DROPPED;
++  }
++  memcpy(mmie + 10, mic, mic_len);
++  *protected_frame = buf;
++  *protected_len = len + mmie_len;
++  return MTLK_ERR_OK;
+ }
+ 
+ static int
+@@ -1109,6 +1407,7 @@
+   nic->slow_ctx->group_cipher   = IW_ENCODE_ALG_NONE;
+ 
+   /* 802.11W */
++  wave_pmf_reset(nic);
+   memset(&nic->slow_ctx->igtk_key, 0, sizeof(nic->slow_ctx->igtk_key));
+   nic->slow_ctx->igtk_cipher    = IW_ENCODE_ALG_NONE;
+   nic->slow_ctx->igtk_key_len   = 0;
+@@ -1805,6 +2104,7 @@
+ tx_skip:
+     /* release hw message and record error's statistic */
+     if (msg) {
++      mtlk_osal_atomic_dec(&nic->unconfirmed_data);
+       mtlk_hw_release_msg_to_send(hw_api, HW_MSG_PTR(msg));
+     }
+ 
+@@ -2473,7 +2773,7 @@
+       memset(req->u8HE_Mcs_Nss, 0xff, sizeof(req->u8HE_Mcs_Nss));
+       wave_pdb_get_binary(param_db_core, PARAM_DB_CORE_HE_MCS_NSS, &req->u8HE_Mcs_Nss, &mcs_len);
+       mtlk_dump(1, &req->u8HE_Mcs_Nss, mcs_len, "dump of u8HE_Mcs_Nss:");
+-	  req->u8HE_Bss_Color = HE_BSS_COLOR;
++	  req->u8HE_Bss_Color = MTLK_CORE_PDB_GET_INT(core, PARAM_DB_CORE_HE_BSS_COLOR);
+     }
+ }
+ 
+@@ -2552,7 +2852,7 @@
+     if(TRUE == twt_operation_mode)
+       ILOG2_V("NOT setting twt_operation_mode due to lack of support in FW");
+ #endif
+-    req->u8HE_Bss_Color = HE_BSS_COLOR;
++    req->u8HE_Bss_Color = MTLK_CORE_PDB_GET_INT(core, PARAM_DB_CORE_HE_BSS_COLOR);
+     ILOG1_D("UMI_SET_BSS->u8HE_Bss_Color:%d", req->u8HE_Bss_Color);
+ 
+     finish_and_prevent_fw_set_chan(context_core, TRUE); /* set_bss is a "process", so need this; core is the core on which we're running */
+@@ -2634,8 +2934,8 @@
+     wave_pdb_set_int(param_db_core, PARAM_DB_CORE_AP_FORWARDING, FALSE);
+   }
+ 
+-  /* Propagate down the he_bss_color to FW via param db */
+-  wave_pdb_set_int(param_db_core, PARAM_DB_CORE_HE_BSS_COLOR, params->he_bss_color);
++  /* Native cfg80211 supplies HE color in the beacon operation element;
++   * beacon_manager stores it without resetting it on unrelated CHANGE_BSS. */
+ 
+   /* Fill UMI_SET_BSS FW request */
+   _mtlk_core_fill_set_bss_request(core, &fw_request, params);
+@@ -3805,11 +4105,15 @@
+   sta_entry *sta = NULL;
+   const unsigned char *dst_addr;
+   unsigned frame_ctrl, subtype;
++  u8 *protected_frame = NULL;
++  size_t protected_len;
+ 
+   MTLK_ASSERT(sizeof(mtlk_clpb_t*) == data_size);
+   mtp = mtlk_clpb_enum_get_next(clpb, &mtp_size);
+   MTLK_CLPB_TRY(mtp, mtp_size)
+   {
++    if (!mtp->buf || mtp->len < (mtp->extra_processing == PROCESS_EAPOL ? ETH_HLEN : 24))
++      MTLK_CLPB_EXIT(MTLK_ERR_PARAMS);
+     dst_addr   = WLAN_GET_ADDR1(mtp->buf);
+     frame_ctrl = mtlk_wlan_pkt_get_frame_ctl((uint8 *)mtp->buf);
+     subtype    = (frame_ctrl & FRAME_SUBTYPE_MASK) >> FRAME_SUBTYPE_SHIFT;
+@@ -3840,7 +4144,13 @@
+       }
+     }
+ 
+-    res = mtlk_mmb_bss_mgmt_tx(core->vap_handle, mtp->buf, mtp->len, mtp->channum,
++    protected_len = mtp->len;
++    if (PROCESS_MANAGEMENT == mtp->extra_processing && mtlk_vap_is_ap(core->vap_handle)) {
++      res = wave_pmf_protect(core, mtp->buf, mtp->len, &protected_frame, &protected_len);
++      if (res != MTLK_ERR_OK)
++        MTLK_CLPB_EXIT(res);
++    }
++    res = mtlk_mmb_bss_mgmt_tx(core->vap_handle, protected_frame ? protected_frame : mtp->buf, protected_len, mtp->channum,
+                                  mtp->no_cck, mtp->dont_wait_for_ack, FALSE, /* unicast */
+                                mtp->cookie, mtp->extra_processing, mtp->skb,
+                                FALSE, NTS_TID_USE_DEFAULT);
+@@ -3864,6 +4174,7 @@
+     }
+   }
+   MTLK_CLPB_FINALLY(res) {
++    kfree(protected_frame);
+     if (sta) mtlk_sta_decref(sta);                           /* De-reference of find */
+     return mtlk_clpb_push_res(clpb, res);
+   }
+@@ -5849,9 +6160,9 @@
+                                    (hcore, scan_and_calib_cfg->rbm), res);
+       MTLK_CFG_CHECK_ITEM_AND_CALL(scan_and_calib_cfg, radar_detect, _mtlk_core_set_radar_detect,
+                                    (core, !!scan_and_calib_cfg->radar_detect), res);
+-      MTLK_CFG_CHECK_ITEM_AND_CALL_VOID(scan_and_calib_cfg, scan_expire_time, wv_cfg80211_set_scan_expire_time,
++      MTLK_CFG_CHECK_ITEM_AND_CALL(scan_and_calib_cfg, scan_expire_time, wv_cfg80211_set_scan_expire_time,
+                                         (mtlk_df_user_get_wdev(mtlk_df_get_user(mtlk_vap_get_df(core->vap_handle))),
+-                                        scan_and_calib_cfg->scan_expire_time));
++                                        scan_and_calib_cfg->scan_expire_time), res);
+     MTLK_CFG_END_CHEK_ITEM_AND_CALL()
+   MTLK_CLPB_FINALLY(res)
+     return mtlk_clpb_push_res(clpb, res);
+@@ -9648,7 +9959,21 @@
+       res = MTLK_ERR_NOT_READY;
+     }
+     else {
+-      res = _mtlk_core_ap_connect_sta_by_info(core, info);
++      BOOL native_sid = MTLK_BFIELD_GET(info->flags, STA_FLAGS_NATIVE_SID);
++      if (native_sid) {
++        sta_entry *existing = mtlk_stadb_find_sta(&core->slow_ctx->stadb, info->addr.au8Addr);
++        if (existing) {
++          mtlk_sta_decref(existing);
++          res = MTLK_ERR_ALREADY_EXISTS;
++        } else {
++          res = core_cfg_internal_request_sid(core, &info->addr, &info->sid);
++        }
++      }
++      if (res == MTLK_ERR_OK) {
++        res = _mtlk_core_ap_connect_sta_by_info(core, info);
++        if (res != MTLK_ERR_OK && native_sid)
++          core_remove_sid(core, info->sid);
++      }
+     }
+     _mtlk_core_on_peer_connect(core, info, res ? FM_STATUSCODE_FAILURE : FM_STATUSCODE_SUCCESSFUL);
+   MTLK_CLPB_FINALLY(res)
+@@ -9835,6 +10160,7 @@
+   if (sta) {
+     do {
+       uint16 sid = mtlk_sta_get_sid(sta);
++      BOOL native_sid = MTLK_BFIELD_GET(sta->info.flags, STA_FLAGS_NATIVE_SID);
+       res = _mtlk_core_ap_disconnect_sta_blocked(core,
+                                                  mtlk_sta_get_addr(sta),
+                                                  FM_STATUSCODE_USER_REQUEST);
+@@ -9845,7 +10171,8 @@
+         break;
+       }
+ 
+-      core_remove_sid(core, sid);
++      if (!native_sid)
++        core_remove_sid(core, sid);
+       sta = mtlk_stadb_iterate_next(&iter);
+     } while (sta);
+     mtlk_stadb_iterate_done(&iter);
+@@ -10160,12 +10487,16 @@
+ {
+ struct nic_slow_ctx *slow_ctx = core->slow_ctx;
+ 
++  wave_pmf_reset(core);
++
+   if(slow_ctx->wep_rx){
+-    crypto_free_cipher(slow_ctx->wep_rx);
++    kfree_sensitive(slow_ctx->wep_rx);
++    slow_ctx->wep_rx = NULL;
+   }
+ 
+   if(slow_ctx->wep_tx){
+-    crypto_free_cipher(slow_ctx->wep_tx);
++    kfree_sensitive(slow_ctx->wep_tx);
++    slow_ctx->wep_tx = NULL;
+   }
+ 
+   return MTLK_ERR_OK;
+@@ -10179,16 +10510,17 @@
+   /* start WEP IV from a random value */
+   get_random_bytes(&slow_ctx->wep_iv, IEEE80211_WEP_IV_LEN);
+ 
+-  slow_ctx->wep_rx = crypto_alloc_cipher("arc4", 0, CRYPTO_ALG_ASYNC);
++  slow_ctx->wep_rx = kzalloc(sizeof(struct arc4_ctx), GFP_KERNEL);
+   if(!slow_ctx->wep_rx){
+     ELOG_D("CID-%04x: Can't allocate wep cipher RX", mtlk_vap_get_oid(core->vap_handle));
+     return MTLK_ERR_UNKNOWN;
+   }
+ 
+-  slow_ctx->wep_tx = crypto_alloc_cipher("arc4", 0, CRYPTO_ALG_ASYNC);
++  slow_ctx->wep_tx = kzalloc(sizeof(struct arc4_ctx), GFP_KERNEL);
+   if(!slow_ctx->wep_tx){
+     ELOG_D("CID-%04x: Can't allocate wep cipher TX", mtlk_vap_get_oid(core->vap_handle));
+-    crypto_free_cipher(slow_ctx->wep_rx);
++    kfree_sensitive(slow_ctx->wep_rx);
++    slow_ctx->wep_rx = NULL;
+     return MTLK_ERR_UNKNOWN;
+   }
+ 
+@@ -10221,9 +10553,9 @@
+   wave_memcpy(rc4key + IEEE80211_WEP_IV_WO_IDX_LEN, sizeof(rc4key) - IEEE80211_WEP_IV_WO_IDX_LEN,
+       slow_ctx->keys[key_idx].key, slow_ctx->keys[key_idx].key_len);
+ 
+-  crypto_cipher_setkey(slow_ctx->wep_rx, rc4key, key_len);
++  arc4_setkey(slow_ctx->wep_rx, rc4key, key_len);
+   for (i = 0; i < data_len + IEEE80211_WEP_ICV_LEN; i++) {
+-    crypto_cipher_decrypt_one(slow_ctx->wep_rx, data + i, data + i);
++    arc4_crypt(slow_ctx->wep_rx, data + i, data + i, 1);
+   }
+ 
+   crc = cpu_to_le32(~crc32_le(~0, data, data_len));
+@@ -11400,7 +11732,7 @@
+ static int
+ _mtlk_core_sta_req_bss_change (mtlk_core_t *master_core, struct mtlk_sta_bss_change_parameters *bss_change_params)
+ {
+-  struct cfg80211_chan_def *chandef = &bss_change_params->info->chandef;
++  struct cfg80211_chan_def *chandef = &bss_change_params->info->chanreq.oper;
+   struct ieee80211_channel *channel = chandef->chan;
+   struct mtlk_bss_parameters bp;
+   unsigned long basic_rates = bss_change_params->info->basic_rates;
+@@ -12869,6 +13201,11 @@
+   }
+ 
+   key_indx = encext_cfg->key_idx;
++  if (key_indx >= ARRAY_SIZE(core->slow_ctx->keys) ||
++      key_len > sizeof(encext_cfg->key)) {
++    res = MTLK_ERR_PARAMS;
++    goto FINISH;
++  }
+ 
+   /* Set Ciper Suite */
+   alg_type = encext_cfg->alg_type;
+@@ -12958,6 +13295,11 @@
+     goto FINISH;
+   }
+ 
++  if (MAC_TO_HOST16(umi_key->u16Status) != UMI_OK) {
++    res = MTLK_ERR_MAC;
++    goto FINISH;
++  }
++
+   /* Store the key */
+   wave_memcpy(core->slow_ctx->keys[key_indx].key, sizeof(core->slow_ctx->keys[key_indx].key),
+       encext_cfg->key, key_len);
+@@ -14767,10 +15109,8 @@
+     res = _mtlk_core_recover_interfdet_threshold(core);
+     if (res != MTLK_ERR_OK) {goto ERR_END;}
+ 
+-    RECOVERY_INFO("Sync HOSTAPD STA database", core_oid);
+-    mtlk_mmb_set_sync_hostapd_done(mtlk_vap_get_hw(core->vap_handle), FALSE);
+-    res = wv_cfg80211_handle_flush_stations(core->vap_handle, NULL, 0);
+-    if (res != MTLK_ERR_OK) {goto ERR_END;}
++    /* Peer deletion is reported before reset; the native synchronization
++     * gate is reopened by card finalization after all radios are restored. */
+   }
+ 
+   /* If FW crashed e.g. during SET_CHAN procedure, recovery could end up
+--- a/wireless/driver/linux/core.h
++++ b/wireless/driver/linux/core.h
+@@ -515,11 +515,16 @@
+   bool rsn_enabled;
+   u8 group_cipher;
+   u8 group_rsc[4][6]; /* Replay Sequence Counters per key index */
+-  struct crypto_cipher *wep_tx; /* crypto engine */
+-  struct crypto_cipher *wep_rx; /* crypto engine */
++  struct arc4_ctx *wep_tx; /* crypto engine */
++  struct arc4_ctx *wep_rx; /* crypto engine */
+   uint32 wep_iv;                /* crypto engine */
+ 
+   /* 802.11w IGTK */
++  bool igtk_configured;
++  struct crypto_shash *igtk_tfm[2];
++  struct crypto_aead *igtk_gmac[2];
++  u64 igtk_ipn[2];
++  u32 igtk_cipher_suite[2];
+   uint16 igtk_cipher;
+   uint16 igtk_key_len;
+   uint8  igtk_key[2][UMI_RSN_TK1_LEN + UMI_RSN_TK2_LEN];
+@@ -958,4 +963,10 @@
+ #undef LOG_LOCAL_GID
+ #undef LOG_LOCAL_FID
+ 
++/* Native nl80211 PMF keys are separate from firmware data GTK slots. */
++int wave_pmf_key_add(mtlk_core_t *, u8, struct key_params *);
++int wave_pmf_key_del(mtlk_core_t *, u8);
++int wave_pmf_key_default(mtlk_core_t *, u8);
++int wave_pmf_key_get(mtlk_core_t *, u8, void *, void (*)(void *, struct key_params *));
++
+ #endif
+--- a/wireless/driver/linux/core_config.c
++++ b/wireless/driver/linux/core_config.c
+@@ -5841,8 +5841,8 @@
+     return res;
+ 
+   /* wdev_lock not needed, lock taken by nl80211_set_beacon */
+-  wave_memcpy(wdev->ssid, sizeof(wdev->ssid), ssid, ssid_len);
+-  wdev->ssid_len = ssid_len;
++  wave_memcpy(wdev->u.ap.ssid, sizeof(wdev->u.ap.ssid), ssid, ssid_len);
++  wdev->u.ap.ssid_len = ssid_len;
+   return MTLK_ERR_OK;
+ }
+ 
+--- a/wireless/driver/linux/l2nat.c
++++ b/wireless/driver/linux/l2nat.c
+@@ -19,7 +19,10 @@
+ 
+ #include <linux/if_arp.h>
+ #include <linux/udp.h>
+-#include <net/ipx.h>
++#define IPX_NODE_LEN 6
++struct ipx_address { __be32 net; __u8 node[IPX_NODE_LEN]; __be16 sock; } __packed;
++struct ipxhdr { __be16 ipx_checksum; __be16 ipx_pktsize; __u8 ipx_tctrl; __u8 ipx_type;
++  struct ipx_address ipx_dest; struct ipx_address ipx_source; } __packed;
+ #include <asm/checksum.h>
+ 
+ #include "mtlk_df.h"
+@@ -374,9 +377,9 @@
+ }
+ 
+ 
+-static void entry_aging_timer_function(unsigned long data)
+-{
+-  struct l2nat_hash_entry *ent = (struct l2nat_hash_entry *)data;
++static void entry_aging_timer_function(struct timer_list *data)
++{
++  struct l2nat_hash_entry *ent = container_of(data, struct l2nat_hash_entry, timer);
+   unsigned long delta, next_time_offset, send_arp_timeout, get_info_timeout;
+   struct nic *nic = ent->nic;
+   mtlk_l2nat_t *l2nat = &nic->l2nat;
+@@ -553,9 +556,7 @@
+       list_add_tail(&ent->list, &mtlk_l2nat->l2nat_free_entries);
+       ent->nic = nic;
+       MTLK_INIT_STEP_VOID_LOOP(l2nat, TIMER_INIT, MTLK_OBJ_PTR(mtlk_l2nat),
+-                               init_timer, (&ent->timer));
+-      ent->timer.function = entry_aging_timer_function;
+-      ent->timer.data = (unsigned long)ent;
++                               timer_setup, (&ent->timer, entry_aging_timer_function, 0));
+     }
+ 
+     MTLK_INIT_STEP_IF(!mtlk_vap_is_ap(nic->vap_handle), l2nat, REG_ABILITIES, MTLK_OBJ_PTR(mtlk_l2nat),
+--- a/wireless/driver/linux/mac80211.c
++++ b/wireless/driver/linux/mac80211.c
+@@ -25,6 +25,7 @@
+ #include "mtlk_df.h"
+ #include "cfg80211.h"
+ #include "mac80211.h"
++#include "wave_he_compat.h"
+ #include "mtlkaux.h"
+ #include "frame.h"
+ #include "mtlk_packets.h"
+@@ -104,6 +105,12 @@
+ };
+ 
+ 
++/* OpenWrt auto-detection assumes AP-capable PHYs.  Keep optional station
++ * PHY registration opt-in; the allocated context still serves shared helpers. */
++static bool sta_phy;
++module_param(sta_phy, bool, 0444);
++MODULE_PARM_DESC(sta_phy, "Expose auxiliary station-only mac80211 PHYs");
++
+ static const uint32 _cipher_suites[] = {
+   WLAN_CIPHER_SUITE_USE_GROUP,
+   WLAN_CIPHER_SUITE_WEP40,
+@@ -111,6 +118,9 @@
+   WLAN_CIPHER_SUITE_CCMP,
+   WLAN_CIPHER_SUITE_WEP104,
+   WLAN_CIPHER_SUITE_AES_CMAC,
++  WLAN_CIPHER_SUITE_BIP_CMAC_256,
++  WLAN_CIPHER_SUITE_BIP_GMAC_128,
++  WLAN_CIPHER_SUITE_BIP_GMAC_256,
+   WLAN_CIPHER_SUITE_SMS4
+ };
+ 
+@@ -508,7 +518,7 @@
+   ieee80211_free_txskb(hw, skb);
+ }
+ 
+-static void _wv_ieee80211_op_stop (struct ieee80211_hw *hw)
++static void _wv_ieee80211_op_stop (struct ieee80211_hw *hw, bool suspend)
+ {
+   wv_mac80211_t *mac80211;
+ 
+@@ -524,7 +534,7 @@
+ }
+ 
+ static int
+-_wv_ieee80211_op_config (struct ieee80211_hw *hw, u32 changed)
++_wv_ieee80211_op_config (struct ieee80211_hw *hw, int radio_idx, u32 changed)
+ {
+   struct ieee80211_conf     *conf = &hw->conf;
+   struct cfg80211_chan_def  *chandef = &conf->chandef;
+@@ -633,10 +643,8 @@
+     }
+ 
+     original_cd = *__wv_mac80211_chandef_get(mac80211);
+-    wdev_lock(cpd.ndev->ieee80211_ptr);
+     res = _mtlk_df_user_invoke_core(master_df, WAVE_RADIO_REQ_SET_CHAN, &clpb, &cpd, sizeof(cpd));
+     res = _mtlk_df_user_process_core_retval(res, clpb, WAVE_RADIO_REQ_SET_CHAN, TRUE);
+-    wdev_unlock(cpd.ndev->ieee80211_ptr);
+     if (res != MTLK_ERR_OK)
+       ELOG_V("wv_ieee80211_config - error setting channel");
+     else {
+@@ -798,10 +806,8 @@
+   }
+ 
+   original_cd = *__wv_mac80211_chandef_get(mac80211);
+-  wdev_lock(cpd.ndev->ieee80211_ptr);
+   res = _mtlk_df_user_invoke_core(master_df, WAVE_RADIO_REQ_SET_CHAN, &clpb, &cpd, sizeof(cpd));
+   res = _mtlk_df_user_process_core_retval(res, clpb, WAVE_RADIO_REQ_SET_CHAN, TRUE);
+-  wdev_unlock(cpd.ndev->ieee80211_ptr);
+   if (res != MTLK_ERR_OK){
+     if (ccd->wait_for_beacon == FALSE &&
+         master_core->slow_ctx->is_block_tx == TRUE) {
+@@ -830,7 +836,7 @@
+       continue;
+     }
+ 
+-    ieee80211_chswitch_done(curr_vif_priv->vif, res == MTLK_ERR_OK ? TRUE : FALSE);
++    ieee80211_chswitch_done(curr_vif_priv->vif, res == MTLK_ERR_OK, 0);
+   }
+ }
+ 
+@@ -1242,7 +1248,7 @@
+   memset(&sta_info, 0, sizeof(sta_info));
+ 
+   for (band = 0; band < NUM_SUPPORTED_BANDS; band++) {
+-    unsigned long basic_rates = sta->supp_rates[band];
++    unsigned long basic_rates = sta->deflink.supp_rates[band];
+     for_each_set_bit(i, &basic_rates, BITS_PER_LONG) {
+       int bitrate = hw->wiphy->bands[band]->bitrates[i].bitrate / 5;
+       sta_info.rates[sta_info.supported_rates_len++] = bitrate;
+@@ -1278,31 +1284,58 @@
+   MTLK_BFIELD_SET(sta_info.flags, STA_FLAGS_MFP, sta->mfp ? 1 : 0);
+   MTLK_BFIELD_SET(sta_info.flags, STA_FLAGS_WMM, sta->wme ? 1 : 0);
+ 
+-  if (sta->ht_cap.ht_supported) {
+-    if(memcmp(sta_info.rx_mcs_bitmask, sta->ht_cap.mcs.rx_mask,
++  if (sta->deflink.ht_cap.ht_supported) {
++    if(memcmp(sta_info.rx_mcs_bitmask, sta->deflink.ht_cap.mcs.rx_mask,
+         sizeof(sta_info.rx_mcs_bitmask)) != 0) {
+-      sta_info.ht_cap_info = MAC_TO_HOST16(sta->ht_cap.cap);
++      sta_info.ht_cap_info = MAC_TO_HOST16(sta->deflink.ht_cap.cap);
+       sta_info.ampdu_param =
+-          sta->ht_cap.ampdu_density << 2 | sta->ht_cap.ampdu_factor;
++          sta->deflink.ht_cap.ampdu_density << 2 | sta->deflink.ht_cap.ampdu_factor;
+       MTLK_BFIELD_SET(sta_info.flags, STA_FLAGS_11n, 1);
+       MTLK_BIT_SET(sta_info.sta_net_modes, MTLK_WSSA_11N_SUPPORTED, 1);
+       wave_memcpy(sta_info.rx_mcs_bitmask, sizeof(sta_info.rx_mcs_bitmask),
+-                  sta->ht_cap.mcs.rx_mask, sizeof(sta->ht_cap.mcs.rx_mask));
+-    }
+-  }
+-
+-  if (sta->vht_cap.vht_supported) {
+-    if(memcmp(&sta_info.vht_mcs_info, &sta->vht_cap.vht_mcs,
++                  sta->deflink.ht_cap.mcs.rx_mask, sizeof(sta->deflink.ht_cap.mcs.rx_mask));
++    }
++  }
++
++  if (sta->deflink.vht_cap.vht_supported) {
++    if(memcmp(&sta_info.vht_mcs_info, &sta->deflink.vht_cap.vht_mcs,
+         sizeof(sta_info.vht_mcs_info)) != 0) {
+-      sta_info.vht_cap_info = MAC_TO_HOST32(sta->vht_cap.cap);
++      sta_info.vht_cap_info = MAC_TO_HOST32(sta->deflink.vht_cap.cap);
+       MTLK_BFIELD_SET(sta_info.flags, STA_FLAGS_11ac, 1);
+       MTLK_BIT_SET(sta_info.sta_net_modes, MTLK_WSSA_11AC_SUPPORTED, 1);
+       wave_memcpy(&sta_info.vht_mcs_info, sizeof(sta_info.vht_mcs_info),
+-                  &sta->vht_cap.vht_mcs,  sizeof(sta->vht_cap.vht_mcs));
+-    }
+-  }
+-
+-  if (sta->vendor_wds)
++                  &sta->deflink.vht_cap.vht_mcs,  sizeof(sta->deflink.vht_cap.vht_mcs));
++    }
++  }
++
++  if (sta->deflink.he_cap.has_he) {
++    const struct ieee80211_sta_he_cap *he = &sta->deflink.he_cap;
++    u8 raw[sizeof(he->he_cap_elem) + sizeof(he->he_mcs_nss_supp) +
++           sizeof(he->ppe_thres)];
++    unsigned int len = sizeof(he->he_cap_elem), ppe_len;
++    memcpy(raw, &he->he_cap_elem, len);
++    memcpy(raw + len, &he->he_mcs_nss_supp.rx_mcs_80, 4);
++    len += 4;
++    if (he->he_cap_elem.phy_cap_info[0] & IEEE80211_HE_PHY_CAP0_CHANNEL_WIDTH_SET_160MHZ_IN_5G) {
++      memcpy(raw + len, &he->he_mcs_nss_supp.rx_mcs_160, 4);
++      len += 4;
++    }
++    if (he->he_cap_elem.phy_cap_info[0] & IEEE80211_HE_PHY_CAP0_CHANNEL_WIDTH_SET_80PLUS80_MHZ_IN_5G) {
++      memcpy(raw + len, &he->he_mcs_nss_supp.rx_mcs_80p80, 4);
++      len += 4;
++    }
++    ppe_len = ieee80211_he_ppe_size(he->ppe_thres[0], he->he_cap_elem.phy_cap_info);
++    if (ppe_len > sizeof(he->ppe_thres))
++      return -EINVAL;
++    memcpy(raw + len, he->ppe_thres, ppe_len);
++    if (wave_he_pack(sta_info.he_mac_phy_cap_info, sta_info.he_mcs_nss_info,
++                     sta_info.he_ppe_th_info, raw, len + ppe_len))
++      return -EINVAL;
++    MTLK_BFIELD_SET(sta_info.flags, STA_FLAGS_11ax, 1);
++    MTLK_BIT_SET(sta_info.sta_net_modes, MTLK_WSSA_11AX_SUPPORTED, 1);
++  }
++
++  if (ieee80211_vif_to_wdev(vif)->use_4addr)
+     sta_info.WDS_client_type = FOUR_ADDRESSES_STATION;
+ 
+   res = _mtlk_df_user_invoke_core(mtlk_df_user_get_df(df_user),
+@@ -1498,7 +1531,18 @@
+   if (mtlk_core_rcvry_is_running(core) ||
+       wave_rcvry_mac_fatal_pending_get(mtlk_vap_get_hw(core->vap_handle))) {
+     ELOG_V("Recovery is running, key should not be set in FW");
+-    return _mtlk_df_mtlk_to_linux_error_code(MTLK_ERR_OK);
++    return -EBUSY;
++  }
++  /* The stock management RX path leaves multicast BIP for mac80211. A
++   * positive SET_KEY result requests its real software CMAC/MMIE protection;
++   * reporting zero here would incorrectly mark an unprogrammed key uploaded. */
++  if (key->cipher == WLAN_CIPHER_SUITE_AES_CMAC ||
++      key->cipher == WLAN_CIPHER_SUITE_BIP_CMAC_256 ||
++      key->cipher == WLAN_CIPHER_SUITE_BIP_GMAC_128 ||
++      key->cipher == WLAN_CIPHER_SUITE_BIP_GMAC_256) {
++    if (pairwise || key->keyidx < 4 || key->keyidx > 5)
++      return -EINVAL;
++    return cmd == SET_KEY ? 1 : 0;
+   }
+   ieee80211_get_key_rx_seq(key, 0, &seq);
+ 
+@@ -1508,8 +1552,8 @@
+   case SET_KEY:
+     ILOG0_V("SET_KEY");
+     if (key->keyidx >= MIB_WEP_N_DEFAULT_KEYS) {
+-      ILOG2_D("Invalid key index %d ignored", key->keyidx);
+-      ret = MTLK_ERR_OK;
++      ILOG2_D("Unsupported key index %d", key->keyidx);
++      ret = MTLK_ERR_NOT_SUPPORTED;
+       goto out;
+     }
+ 
+@@ -1741,14 +1785,14 @@
+ }
+ #endif
+ 
+-static int _wv_ieee80211_op_set_frag_threshold (struct ieee80211_hw *hw, u32 value)
++static int _wv_ieee80211_op_set_frag_threshold (struct ieee80211_hw *hw, int radio_idx, u32 value)
+ {
+   ILOG0_V("TODO: mac80211 callback _wv_ieee80211_op_set_frag_threshold");
+   return LINUX_ERR_OK;
+ }
+ 
+ static int _wv_ieee80211_op_conf_tx (struct ieee80211_hw *hw,
+-    struct ieee80211_vif *vif, u16 ac,
++    struct ieee80211_vif *vif, unsigned int link_id, u16 ac,
+     const struct ieee80211_tx_queue_params *params)
+ {
+   struct wv_vif_priv *wv_iface_inf = (struct wv_vif_priv *)vif->drv_priv;
+@@ -1777,58 +1821,9 @@
+   return _mtlk_df_mtlk_to_linux_error_code(res);
+ }
+ 
+-static int _wv_ieee80211_get_connection_alive(struct ieee80211_hw *hw,
+-    struct ieee80211_vif *vif)
+-{
+-  struct wv_vif_priv *wv_iface_inf = (struct wv_vif_priv *)vif->drv_priv;
+-  mtlk_df_user_t *df_user = wv_iface_inf->df_user;
+-  mtlk_vap_handle_t vap_handle;
+-  mtlk_core_t *core;
+-  int res = FALSE;
+-  unsigned long total_rx_and_tx_uni_packets;
+-
+-  ILOG2_V("wv_ieee80211_get_connection_alive");
+-  ILOG2_Y("MAC = %Y", wv_iface_inf->peer_ap_addr);
+-
+-  if (!mtlk_osal_is_valid_ether_addr(wv_iface_inf->peer_ap_addr)) {
+-    ELOG_Y("Invalid MAC address: %Y", wv_iface_inf->peer_ap_addr);
+-    return FALSE;
+-  }
+-
+-  if (df_user == NULL) {
+-    ELOG_V("df_user is NULL");
+-    return FALSE;
+-  }
+-  vap_handle = mtlk_df_get_vap_handle(mtlk_df_user_get_df(df_user));
+-  core = mtlk_vap_get_core(vap_handle);
+-
+-  total_rx_and_tx_uni_packets = 0;
+-  total_rx_and_tx_uni_packets += mtlk_core_get_vap_stat(core, STAT_VAP_TX_UNICAST_FRAMES);
+-  total_rx_and_tx_uni_packets += mtlk_core_get_vap_stat(core, STAT_VAP_RX_UNICAST_FRAMES);
+-
+-  if (total_rx_and_tx_uni_packets - wv_iface_inf->ndp_counter > wv_iface_inf->latest_rx_and_tx_packets) {
+-    res = TRUE;
+-  }
+-
+-  ILOG1_DDDDD("VAP=%i, total_rx_and_tx_unicast_packets=%u, latest_rx_and_tx_packets=%u, ndp_counter=%d, res=%d", wv_iface_inf->vap_index, total_rx_and_tx_uni_packets, wv_iface_inf->latest_rx_and_tx_packets, wv_iface_inf->ndp_counter, res);
+-  wv_iface_inf->latest_rx_and_tx_packets = total_rx_and_tx_uni_packets;
+-  wv_iface_inf->ndp_counter = 0;
+-
+-  return res;
+-}
+-
+-static bool wv_ieee80211_is_all_iface_idle(struct ieee80211_hw *hw)
+-{
+-  wv_mac80211_t *mac80211 = __wv_ieee80211_hw_get_mac80211(hw);
+-
+-  if (mtlk_vap_manager_has_active_ap(wave_radio_vap_manager_get(__wv_mac80211_radio_get(mac80211))))
+-    return FALSE;
+-
+-  return TRUE;
+-}
+-
++/* Mainline mac80211 maintains station connection monitoring itself. */
+ static void _wv_ieee80211_op_bss_info_changed (struct ieee80211_hw *hw,
+-    struct ieee80211_vif *vif, struct ieee80211_bss_conf *info, u32 changed)
++    struct ieee80211_vif *vif, struct ieee80211_bss_conf *info, u64 changed)
+ {
+   struct wv_vif_priv *wv_iface_inf = (struct wv_vif_priv *)vif->drv_priv;
+   mtlk_df_user_t *df_user = wv_iface_inf->df_user;
+@@ -1933,12 +1928,10 @@
+   cpd.vap_id = mtlk_vap_get_id(mtlk_df_get_vap_handle(master_df));
+ 
+   original_cd = *ccd;
+-  wdev_lock(cpd.ndev->ieee80211_ptr);
+   res = _mtlk_df_user_invoke_core(master_df,
+       WAVE_RADIO_REQ_SET_CHAN, &clpb, &cpd, sizeof(cpd));
+   res = _mtlk_df_user_process_core_retval(res, clpb,
+       WAVE_RADIO_REQ_SET_CHAN, TRUE);
+-  wdev_unlock(cpd.ndev->ieee80211_ptr);
+   if (res != MTLK_ERR_OK)
+     ELOG_V("Error setting channel");
+   else if (cpd.switch_type != ST_SCAN) {
+@@ -2194,7 +2187,6 @@
+   hw->flags |= IEEE80211_HW_SIGNAL_DBM |
+     IEEE80211_HW_SPECTRUM_MGMT |
+     IEEE80211_HW_REPORTS_TX_ACK_STATUS |
+-    IEEE80211_HW_MFP_CAPABLE |
+     IEEE80211_HW_AMPDU_AGGREGATION;
+ #else
+   ieee80211_hw_set(hw, SIGNAL_DBM);
+@@ -2220,7 +2212,7 @@
+   hw->wiphy->flags |= (WIPHY_FLAG_HAS_CHANNEL_SWITCH);
+ 
+   if (mtlk_mmb_drv_get_disable_11d_hint_param()) {
+-    hw->wiphy->flags |= WIPHY_FLAG_DISABLE_11D_HINT;
++    hw->wiphy->regulatory_flags |= REGULATORY_COUNTRY_IE_IGNORE;
+     ILOG0_V("11d hints are disabled");
+   }
+ 
+@@ -2275,6 +2267,9 @@
+   register_vendor_events(hw->wiphy);
+ 
+   /* Register hw with mac80211 kernel framework and add one default STA interface */
++  if (!sta_phy)
++    return MTLK_ERR_OK;
++
+   ret = ieee80211_register_hw(hw);
+   if (ret) {
+     ELOG_D("ieee80211 HW registration failed. Error code: %d", ret);
+@@ -2434,7 +2429,7 @@
+   case CW_20:
+     break;
+   case CW_40:
+-    rx_status->flag |= RX_FLAG_40MHZ;
++    rx_status->bw = RATE_INFO_BW_40;
+     break;
+ #if LINUX_VERSION_CODE < KERNEL_VERSION(3, 15, 0)
+   case CW_80:
+@@ -2448,12 +2443,12 @@
+     break;
+ #else
+   case CW_80:
+-    rx_status->vht_flag |= RX_VHT_FLAG_80MHZ;
++    rx_status->bw = RATE_INFO_BW_80;
+     break;
+   case CW_160:
+   case CW_80_80: /* 80+80 MHz rate removed from Linux starting from */
+                  /* kernel 4.0, it is  treated the same as 160 MHz */
+-    rx_status->vht_flag |= RX_VHT_FLAG_160MHZ;
++    rx_status->bw = RATE_INFO_BW_160;
+     break;
+ #endif
+   }
+@@ -2481,7 +2476,7 @@
+   memset(rx_status, 0, sizeof(struct ieee80211_rx_status));
+   _wv_ieee80211_hw_rx_status(mac80211_hw, rx_status, freq, sig_dbm, rate_idx, phy_mode, pmf_flags);
+ 
+-  ieee80211_rx_ni(mac80211_hw, skb);
++  ieee80211_rx_irqsafe(mac80211_hw, skb);
+ }
+ 
+ void __MTLK_IFUNC
+@@ -2493,7 +2488,7 @@
+   if ((status == TX_STATUS_SUCCESS) && !(info->flags & IEEE80211_TX_CTL_NO_ACK))
+     info->flags |= IEEE80211_TX_STAT_ACK;
+ 
+-  ieee80211_tx_status(hw, skb);
++  ieee80211_tx_status_irqsafe(hw, skb);
+ }
+ 
+ void __MTLK_IFUNC
+@@ -2514,7 +2509,7 @@
+ }
+ 
+ static void _wv_ieee80211_op_sta_rc_update(struct ieee80211_hw *hw,
+-    struct ieee80211_vif *vif, struct ieee80211_sta *sta, u32 changed)
++    struct ieee80211_vif *vif, struct ieee80211_link_sta *link_sta, u32 changed)
+ {
+   struct wv_vif_priv *wv_iface_inf = (struct wv_vif_priv *)vif->drv_priv;
+   mtlk_df_user_t *df_user = wv_iface_inf->df_user;
+@@ -2528,14 +2523,14 @@
+   }
+ 
+   if (changed & IEEE80211_RC_BW_CHANGED)
+-    ILOG0_D("IEEE80211_RC_BW_CHANGED, new BW = %d", sta->bandwidth);
++    ILOG0_D("IEEE80211_RC_BW_CHANGED, new BW = %d", link_sta->bandwidth);
+ 
+   if (changed & IEEE80211_RC_NSS_CHANGED)
+-    ILOG0_D("IEEE80211_RC_NSS_CHANGED, new RX NSS value = %d", sta->rx_nss);
++    ILOG0_D("IEEE80211_RC_NSS_CHANGED, new RX NSS value = %d", link_sta->rx_nss);
+ 
+   operating_mode.station_id = wv_iface_inf->vif_sid;
+-  operating_mode.channel_width = sta->bandwidth;
+-  operating_mode.rx_nss = sta->rx_nss;
++  operating_mode.channel_width = link_sta->bandwidth;
++  operating_mode.rx_nss = link_sta->rx_nss;
+ 
+   _mtlk_df_user_invoke_core_async(mtlk_df_user_get_df(df_user),
+         WAVE_CORE_REQ_SET_OPERATING_MODE, (char*) &operating_mode,
+@@ -2592,15 +2587,10 @@
+   ieee80211_sched_scan_results(hw);
+ }
+ 
+-void __MTLK_IFUNC
+-wv_ieee80211_drv_start_sw_scan(mtlk_core_t *core)
+-{
+-  struct ieee80211_hw *hw;
+-
+-  hw = wave_vap_ieee80211_hw_get(core->vap_handle);
+-  ieee80211_drv_start_sw_scan(hw);
+-}
+-
++/* The vendor-only software-scan fallback helper had no callers. Hardware
++ * scans complete through ieee80211_scan_completed() above; no private
++ * mac80211 scan-state mutation is needed on mainline.
++ */
+ const struct ieee80211_ops wv_ieee80211_ops = {
+   .tx                       = _wv_ieee80211_op_tx,
+   .start                    = _wv_ieee80211_op_start,
+@@ -2619,13 +2609,11 @@
+ #endif
+   .set_frag_threshold       = _wv_ieee80211_op_set_frag_threshold,
+   .bss_info_changed         = _wv_ieee80211_op_bss_info_changed,
+-  .sta_rc_update            = _wv_ieee80211_op_sta_rc_update,
++  .link_sta_rc_update       = _wv_ieee80211_op_sta_rc_update,
+   .conf_tx                  = _wv_ieee80211_op_conf_tx,
+   .channel_switch           = _wv_ieee80211_op_channel_switch,
+   .hw_scan                  = _wv_ieee80211_op_hw_scan,
+   .sw_scan_complete         = _wv_ieee80211_op_sw_scan_complete,
+-  .get_connection_alive     = _wv_ieee80211_get_connection_alive,
+-  .is_all_iface_idle        = wv_ieee80211_is_all_iface_idle,
+ };
+ 
+ wv_mac80211_t * __MTLK_IFUNC
+@@ -2635,17 +2623,17 @@
+   wv_mac80211_t *mac80211 = NULL;
+   wave_radio_t *radio = (wave_radio_t *)radio_ctx;
+ 
+-  /* Actual MAC address will be set in mtlk_mbss_send_vap_activate according
+-   * to the value in param_db for the specific VAP
+-   * Currently we do not know the VAP index.
+-   * This will only happen on wv_ieee80211_start
+-   */
++  /* The permanent base is available from EEPROM before registration;
++   * each activated VAP still receives its separately configured MAC. */
+   u8 addr[ETH_ALEN] = { 0 };
+ 
+   MTLK_ASSERT(NULL != radio);
+   if (radio == NULL) {
+     return NULL;
+   }
++
++  if (wave_radio_permanent_address_get(radio, addr) != MTLK_ERR_OK)
++    return NULL;
+ 
+   hw = ieee80211_alloc_hw(sizeof(wv_mac80211_t), &wv_ieee80211_ops);
+   if (!hw){
+@@ -2750,7 +2738,6 @@
+   int max_vaps_count = 0;
+   int vap_index;
+   struct net_device *ndev;
+-  int got_lock;
+ 
+   if (!__wv_mac80211_get_sta_vifs_exist(mac80211))
+     return;
+@@ -2764,22 +2751,9 @@
+     }
+ 
+     ndev = mtlk_df_user_get_ndev(wv_iface_inf->df_user);
+-    /* Usually we shouldn't use the protected structure after taking mutex with
+-     * mutex_trylock, because of possible racing. In this case we don't
+-     * expect this scenario, because there are two cases how this function can
+-     * be invoked:
+-     * a) when processing netlink message,
+-     * b) from ieee80211_do_open.
+-     * In case 'a' netlink holds the lock during the whole processing of
+-     * message, so we are safe. In case 'b' no lock is taken, so we are taking
+-     * the lock in this function. We are not expecting that somebody else will
+-     * be modifying wdev while we are working with it, because open hasn't been
+-     * done yet.
+-     */
+-    got_lock = mutex_trylock(&ndev->ieee80211_ptr->mtx);
+-    cfg80211_ch_switch_notify(ndev, chandef);
+-    if (got_lock)
+-      wdev_unlock(ndev->ieee80211_ptr);
++    /* All callers are mac80211 callbacks under this station wiphy lock. */
++    lockdep_assert_wiphy(ndev->ieee80211_ptr->wiphy);
++    cfg80211_ch_switch_notify(ndev, chandef, 0);
+   }
+ }
+ 
+--- a/wireless/driver/linux/mac80211.h
++++ b/wireless/driver/linux/mac80211.h
+@@ -38,7 +38,6 @@
+ 
+ void                  __MTLK_IFUNC wv_ieee80211_scan_completed(struct ieee80211_hw *hw, BOOL aborted);
+ void                  __MTLK_IFUNC wv_ieee80211_sched_scan_results(struct ieee80211_hw *hw);
+-void                  __MTLK_IFUNC wv_ieee80211_drv_start_sw_scan(mtlk_core_t *core);
+ mtlk_df_user_t*       __MTLK_IFUNC wv_ieee80211_ndev_to_dfuser(struct net_device *ndev);
+ uint8*                __MTLK_IFUNC wv_ieee80211_peer_ap_address(struct ieee80211_vif *vif);
+ 
+--- a/wireless/driver/linux/mtlk_dbg_osdep.h
++++ b/wireless/driver/linux/mtlk_dbg_osdep.h
+@@ -59,7 +59,7 @@
+ 
+ #define MTLK_DBG_HRES_CLEANUP()
+ 
+-typedef struct timespec mtlk_dbg_hres_ts_t;
++typedef struct timespec64 mtlk_dbg_hres_ts_t;
+ 
+ #define MTLK_DBG_HRES_TS(ts)                    \
+   getnstimeofday(ts)
+--- a/wireless/driver/linux/mtlk_df_proc_impl.c
++++ b/wireless/driver/linux/mtlk_df_proc_impl.c
+@@ -307,11 +307,10 @@
+   return retval;
+ }
+ 
+-struct file_operations _mtlk_df_proc_entry_fops = {
+-  .owner   = THIS_MODULE,
+-  .open    = _mtlk_df_proc_open,
+-  .read    = _mtlk_df_proc_read,
+-  .write   = _mtlk_df_proc_write
++struct proc_ops _mtlk_df_proc_entry_fops = {
++  .proc_open    = _mtlk_df_proc_open,
++  .proc_read    = _mtlk_df_proc_read,
++  .proc_write   = _mtlk_df_proc_write
+ };
+ 
+ /***
+@@ -577,12 +576,11 @@
+  * method releases per-file semaphore and calls
+  * seq_release.
+  */
+-struct file_operations _mtlk_df_proc_seq_entry_fops = {
+-  .owner   = THIS_MODULE,
+-  .open    = _mtlk_df_proc_seq_entry_open_ops,
+-  .read    = seq_read,
+-  .llseek  = seq_lseek,
+-  .release = _mtlk_df_proc_seq_entry_release_ops
++struct proc_ops _mtlk_df_proc_seq_entry_fops = {
++  .proc_open    = _mtlk_df_proc_seq_entry_open_ops,
++  .proc_read    = seq_read,
++  .proc_lseek  = seq_lseek,
++  .proc_release = _mtlk_df_proc_seq_entry_release_ops
+ };
+ 
+ 
+--- a/wireless/driver/linux/mtlk_df_user.c
++++ b/wireless/driver/linux/mtlk_df_user.c
+@@ -36,7 +36,7 @@
+ #include <linux/if_arp.h>
+ #include <linux/inet.h>
+ #include <net/iw_handler.h>
+-#include <asm/unaligned.h>
++#include <linux/unaligned.h>
+ #include <net/cfg80211.h>
+ 
+ #if MTLK_USE_PUMA6_UDMA
+@@ -499,7 +499,7 @@
+   MTLK_ASSERT(NULL != df_user->ndev);
+ 
+   rtnl_lock();
+-  res = dev_change_flags(df_user->ndev, newflags);
++  res = dev_change_flags(df_user->ndev, newflags, NULL);
+   rtnl_unlock();
+ 
+   return res;
+@@ -601,6 +601,16 @@
+ static __INLINE int
+ _mtlk_df_user_start_skb_tx (struct sk_buff *skb, mtlk_df_user_t *df_user)
+ {
++  /* The firmware TX descriptor carries one contiguous DMA address. Driver
++   * forwarding paths can bypass netdev feature negotiation, so normalize
++   * fragments and partial checksums here as well as for ndo_start_xmit.
++   */
++  if (unlikely(skb->len < ETH_HLEN || skb_is_gso(skb) ||
++               skb_linearize(skb) ||
++               (skb->ip_summed == CHECKSUM_PARTIAL && skb_checksum_help(skb)))) {
++    dev_kfree_skb_any(skb);
++    return NETDEV_TX_OK;
++  }
+ #ifdef MTCFG_PER_PACKET_STATS
+   mtlk_nbuf_priv_init(mtlk_nbuf_priv(skb));
+ #endif
+@@ -623,35 +633,10 @@
+ /* Public: to be called from wave_wifi_l2f.ko */
+ EXPORT_SYMBOL(_mtlk_df_user_start_tx);
+ 
+-/* Ensure that we got a packet from the correct network device */
+-static __INLINE BOOL
+-_mtlk_validate_wlan_netdev (struct net_device *netdev)
+-{
+-  char buf[IFNAMSIZ+1];
+-
+-  if (sizeof(uint32) == sizeof(MTLK_NDEV_NAME)-1) {
+-    /* Optimized version */
+-    if (*(uint32*)netdev->name == *(uint32*)MTLK_NDEV_NAME)
+-      return TRUE;
+-  }
+-  else if (memcmp(netdev->name, MTLK_NDEV_NAME, sizeof(MTLK_NDEV_NAME)-1) == 0)
+-    return TRUE;
+-
+-  /* Try not to crash if name is not null-terminated */
+-  wave_strcopy(buf, netdev->name, sizeof(buf));
+-  ILOG0_S("Got a packet from a wrong network device: \"%s\"", buf);
+-  return FALSE;
+-}
+-
+ int __MTLK_IFUNC
+ _mtlk_df_user_linux_start_tx (struct sk_buff *skb, struct net_device *ndev)
+ {
+   mtlk_df_user_t *df_user;
+-
+-  if (__UNLIKELY(!_mtlk_validate_wlan_netdev(ndev))) {
+-    dev_kfree_skb_any(skb);
+-    return NETDEV_TX_OK;
+-  }
+ 
+   df_user = mtlk_df_user_from_ndev(ndev);
+   if (__UNLIKELY(NULL == df_user)) {
+@@ -1780,7 +1765,7 @@
+   ILOG1_SY("%s: Handle request: connect to %Y", ndev->name, sa->sa_data);
+ 
+   res = _mtlk_df_user_invoke_core(df_user->df, WAVE_CORE_REQ_CONNECT_STA,
+-                                  &clpb, &sa->sa_data, sizeof(sa->sa_data));
++                                  &clpb, sa->sa_data, ETH_ALEN);
+   res = _mtlk_df_user_process_core_retval_void(res, clpb, WAVE_CORE_REQ_CONNECT_STA, TRUE);
+ 
+ finish:
+@@ -1908,12 +1893,12 @@
+   }
+ 
+   res = _mtlk_df_user_invoke_core(df_user->df, WAVE_CORE_REQ_SET_MAC_ADDR,
+-                                  &clpb, addr->sa_data, sizeof(addr->sa_data));
++                                  &clpb, addr->sa_data, ETH_ALEN);
+   res = _mtlk_df_user_process_core_retval_void(res, clpb, WAVE_CORE_REQ_SET_MAC_ADDR, TRUE);
+ 
+   if(MTLK_ERR_OK == res)
+   {
+-    mtlk_osal_copy_eth_addresses(ndev->dev_addr, addr->sa_data);
++    eth_hw_addr_set(ndev, addr->sa_data);
+   }
+ 
+ finish:
+@@ -5098,7 +5083,7 @@
+ }
+ 
+ /* Relevant only for AP role interfaces */
+-static struct rtnl_link_stats64 *
++static void
+ _mtlk_df_user_get_stats (struct net_device *ndev, struct rtnl_link_stats64 *stats)
+ {
+   mtlk_df_user_t *df_user;
+@@ -5107,14 +5092,14 @@
+ 
+   /* Verify input pointer */
+   MTLK_ASSERT(stats);
+-  if (!stats) return NULL;
++  if (!stats) return;
+ 
+   df_user = mtlk_df_user_from_ndev(ndev);
+-  if (!df_user) return NULL;
++  if (!df_user) return;
+ 
+   radio = wave_vap_radio_get(mtlk_df_get_vap_handle(df_user->df));
+   MTLK_ASSERT(radio);
+-  if (!radio) return NULL;
++  if (!radio) return;
+ 
+   src = WAVE_RADIO_PDB_GET_INT(radio, PARAM_DB_RADIO_WLAN_COUNTERS_SRC);
+   switch (src) {
+@@ -5143,7 +5128,7 @@
+       }
+   }
+ 
+-  return stats;
++  return;
+ }
+ 
+ static void __MTLK_IFUNC
+@@ -5501,10 +5486,13 @@
+   }
+ #endif /* MTLK_USE_PUMA6_UDMA */
+ 
++  if (unlikely(!pskb_may_pull(nbuf, ETH_HLEN))) {
++    dev_kfree_skb_any(nbuf);
++    return MTLK_ERR_UNKNOWN;
++  }
+   ILOG5_V("Send to Linux");
+   nbuf->protocol        = eth_type_trans(nbuf, nbuf->dev);
+   res                   = netif_rx(nbuf);
+-  df_user->ndev->last_rx = jiffies;
+   if(NET_RX_SUCCESS != res) {
+     ILOG2_D("netif_rx failed: %d", res);
+     return MTLK_ERR_UNKNOWN;
+@@ -9195,6 +9183,13 @@
+   mtlk_df_user_t *df_user;
+   ILOG1_S("Called destructor for %s", ndev->name);
+ 
++  if (ndev->reg_state == NETREG_UNINITIALIZED)
++    return;
++  /* A late registration-notifier failure clears needs_free_netdev; this
++   * driver still owns deferred netdev release once unregister was queued.
++   */
++  ndev->needs_free_netdev = true;
++
+   /* Get pointer to df_user */
+   df_user_pp = (mtlk_df_user_p*)netdev_priv(ndev);
+   /* Unlink net_device and df_user if pointer is not NULL */
+@@ -9263,11 +9258,11 @@
+   /* For station role interfaces we are using mac80211 ops*/
+   _mtlk_df_user_fill_callbacks(df_user);
+ 
+-  /* setup destructor */
+-  if (is_ap)
+-    df_user->ndev->destructor = ___mtlk_netdev_destructor;
+-  else
+-    df_user->ndev->destructor = free_netdev;
++  /* The network core frees registered AP netdevs after priv_destructor.
++   * Station netdevs are owned by mac80211 and returned above.
++   */
++  df_user->ndev->priv_destructor = _mtlk_netdev_destructor;
++  df_user->ndev->needs_free_netdev = true;
+ 
+   /* Configure core and radio iwpriv handlers */
+   if(mtlk_vap_is_master_ap(vap_handle)) {
+@@ -9501,8 +9496,14 @@
+   df_user->ndev = ndev;
+ 
+   if (MTLK_ERR_OK != _mtlk_df_user_init(df_user, ctx, name)) {
+-    if (is_ap) {
+-      ___mtlk_netdev_destructor(ndev);
++    if (is_ap && df_user->ndev) {
++      if (df_user->ndev->reg_state == NETREG_UNINITIALIZED) {
++        ___mtlk_netdev_destructor(df_user->ndev);
++      } else {
++        /* unregister_netdevice may defer destruction until rtnl_unlock. */
++        df_user->destructor_flags |= WAVE_DESTRUCT_DFUSER_DELETE_CALLED;
++        return NULL;
++      }
+     }
+     mtlk_osal_mem_free(df_user);
+     return NULL;
+@@ -9514,10 +9515,12 @@
+ void
+ mtlk_df_user_delete(mtlk_df_user_t* df_user)
+ {
+-  struct net_device* ndev = df_user->ndev;
++  struct net_device* ndev;
+   bool is_ap = mtlk_vap_is_ap(mtlk_df_get_vap_handle(df_user->df));
+ 
+   _mtlk_df_user_cleanup(df_user);
++  /* Cleanup may have run the private destructor synchronously. */
++  ndev = df_user->ndev;
+   if (is_ap){
+     if (ndev) {
+       df_user->destructor_flags |= WAVE_DESTRUCT_DFUSER_DELETE_CALLED;
+--- a/wireless/driver/linux/mtlk_df_user_tbl.c
++++ b/wireless/driver/linux/mtlk_df_user_tbl.c
+@@ -517,28 +517,19 @@
+ 
+   [IW_IOCTL_IDX(SIOCSIWFREQ)] = (iw_handler) mtlk_df_ui_linux_ioctl_setfreq,
+   [IW_IOCTL_IDX(SIOCGIWFREQ)] = (iw_handler) mtlk_df_ui_linux_ioctl_getfreq,
+-  [IW_IOCTL_IDX(SIOCSIWMODE)] = (iw_handler) cfg80211_wext_siwmode,
+-  [IW_IOCTL_IDX(SIOCGIWMODE)] = (iw_handler) cfg80211_wext_giwmode,
+   [IW_IOCTL_IDX(SIOCSIWAP)] = (iw_handler) mtlk_df_ui_linux_ioctl_setap,
+   [IW_IOCTL_IDX(SIOCGIWAP)] = (iw_handler) mtlk_df_ui_linux_ioctl_getap,
+   [IW_IOCTL_IDX(SIOCSIWMLME)] = (iw_handler) mtlk_df_ui_linux_ioctl_setmlme,
+   [IW_IOCTL_IDX(SIOCGIWAPLIST)] = (iw_handler) mtlk_df_ui_linux_ioctl_getaplist,
+-  [IW_IOCTL_IDX(SIOCSIWSCAN)] = (iw_handler) cfg80211_wext_siwscan,
+-  [IW_IOCTL_IDX(SIOCGIWSCAN)] = (iw_handler) cfg80211_wext_giwscan,
+   [IW_IOCTL_IDX(SIOCSIWESSID)] = (iw_handler) mtlk_df_ui_linux_ioctl_setessid,
+   [IW_IOCTL_IDX(SIOCGIWESSID)] = (iw_handler) mtlk_df_ui_linux_ioctl_getessid,
+   [IW_IOCTL_IDX(SIOCSIWNICKN)] = (iw_handler) mtlk_df_ui_linux_ioctl_setnick,
+   [IW_IOCTL_IDX(SIOCGIWNICKN)] = (iw_handler) mtlk_df_ui_linux_ioctl_getnick,
+   [IW_IOCTL_IDX(SIOCSIWRATE)] = (iw_handler) NULL,
+   [IW_IOCTL_IDX(SIOCGIWRATE)] = (iw_handler) NULL,
+-  [IW_IOCTL_IDX(SIOCSIWRTS)] = (iw_handler) cfg80211_wext_siwrts,
+-  [IW_IOCTL_IDX(SIOCGIWRTS)] = (iw_handler) cfg80211_wext_giwrts,
+-  [IW_IOCTL_IDX(SIOCSIWFRAG)] = (iw_handler) cfg80211_wext_siwfrag,
+-  [IW_IOCTL_IDX(SIOCGIWFRAG)] = (iw_handler) cfg80211_wext_giwfrag,
+   [IW_IOCTL_IDX(SIOCSIWTXPOW)] = (iw_handler) NULL,
+   [IW_IOCTL_IDX(SIOCGIWTXPOW)] = (iw_handler) mtlk_df_ui_linux_ioctl_gettxpower,
+   [IW_IOCTL_IDX(SIOCSIWRETRY)] = (iw_handler) mtlk_df_ui_linux_ioctl_setretry,
+-  [IW_IOCTL_IDX(SIOCGIWRETRY)] = (iw_handler) cfg80211_wext_giwretry,
+   [IW_IOCTL_IDX(SIOCSIWENCODE)] = (iw_handler) mtlk_df_ui_linux_ioctl_setenc,
+   [IW_IOCTL_IDX(SIOCGIWENCODE)] = (iw_handler) mtlk_df_ui_linux_ioctl_getenc,
+   [IW_IOCTL_IDX(SIOCSIWPOWER)] = (iw_handler) NULL,
+--- a/wireless/driver/linux/mtlk_mmb_drv.c
++++ b/wireless/driver/linux/mtlk_mmb_drv.c
+@@ -457,7 +457,7 @@
+   _mtlk_bcl_user_fill_callbacks(bcl_user);
+ 
+   /* setup destructor */
+-  bcl_user->ndev->destructor = free_netdev;
++  bcl_user->ndev->needs_free_netdev = true;
+ 
+   /* configure handlers */
+   bcl_user->ndev->wireless_handlers = (struct iw_handler_def *)&mtlk_bcl_handler_def;
+@@ -473,12 +473,13 @@
+ 
+   ndev = bcl_user->ndev;
+   if(NULL != ndev) {
+-    _LOG_("ndev (%p), destructor (%p)", ndev, ndev->destructor);
++    _LOG_("ndev (%p), destructor (%p)", ndev, ndev->needs_free_netdev);
+ #if 1
++      bool free_by_core = ndev->needs_free_netdev;
+       unregister_netdev(ndev);
+       _LOG_("unregister_netdev Ok");
+ 
+-      if (ndev && !ndev->destructor) {
++      if (!free_by_core) {
+         free_netdev(ndev);
+     }
+ #endif
+@@ -632,7 +633,7 @@
+ _pci_stop (struct pci_dev *pdev, mtlk_mmb_drv_t *obj)
+ {
+   if (FALSE == obj->g6_pci_aux) {
+-    pci_disable_msi(pdev);
++    pci_free_irq_vectors(pdev);
+   }
+ 
+   /* remove link for resources */
+@@ -718,7 +719,7 @@
+ 
+   if (FALSE == obj->g6_pci_aux) {
+     /* configure DMA */
+-    res = pci_set_dma_mask(pdev, PCI_SUPPORTED_DMA_MASK);
++    res = dma_set_mask_and_coherent(&pdev->dev, PCI_SUPPORTED_DMA_MASK);
+     if (0 != res) {
+       return res;
+     }
+@@ -803,7 +804,7 @@
+     res = pci_enable_msi_block(pdev, msi_nvect);
+     if (res == 0) {
+ #else
+-    res = pci_enable_msi_range(pdev, msi_nvect, msi_nvect);
++    res = pci_alloc_irq_vectors(pdev, msi_nvect, msi_nvect, PCI_IRQ_MSI);
+     if (res == msi_nvect) {
+ #endif
+       obj->irq_mode = (msi_nvect > 4) ? MTLK_IRQ_MODE_MSI_8 : MTLK_IRQ_MODE_MSI_4;
+--- a/wireless/driver/linux/osal_defs.c
++++ b/wireless/driver/linux/osal_defs.c
+@@ -14,9 +14,9 @@
+ #define LOG_LOCAL_FID   3
+ 
+ static void
+-__mtlk_osal_timer_clb (unsigned long data)
+-{
+-  mtlk_osal_timer_t *timer = (mtlk_osal_timer_t *)data;
++__mtlk_osal_timer_clb (struct timer_list *data)
++{
++  mtlk_osal_timer_t *timer = container_of(data, mtlk_osal_timer_t, os_timer);
+   uint32             msec  = 0;
+ 
+   if (__LIKELY(!timer->stop)) {
+@@ -60,12 +60,10 @@
+   ASSERT(clb != NULL);
+ 
+   memset(timer, 0, sizeof(*timer));
+-  init_timer(&timer->os_timer);
++  timer_setup(&timer->os_timer, __mtlk_osal_timer_clb, 0);
+   mtlk_rmlock_init(&timer->rmlock);
+   mtlk_rmlock_acquire(&timer->rmlock); /* Acquire RM Lock initially */
+ 
+-  timer->os_timer.data     = (unsigned long)timer;
+-  timer->os_timer.function = __mtlk_osal_timer_clb;
+   timer->clb               = clb;
+   timer->clb_usr_data      = clb_usr_data;
+   timer->stop              = TRUE;
+--- a/wireless/driver/linux/wave_radio.c
++++ b/wireless/driver/linux/wave_radio.c
+@@ -25,6 +25,7 @@
+ #endif
+ 
+ #include "mtlk_coreui.h"
++#include "mtlkaux.h"
+ #include "mtlk_fast_mem.h"
+ #include "mtlk_mmb_drv.h"
+ #include "mtlkdfdefs.h"
+@@ -32,6 +33,7 @@
+ #include "mtlk_psdb.h"
+ #include "cfg80211.h"
+ #include "mac80211.h"
++#include "wave_he_compat.h"
+ #include "hw_mmb.h"
+ #include "mtlkwlanirbdefs.h"
+ #include "mtlkwssa_drvinfo.h"
+@@ -201,6 +203,7 @@
+ /**************************************************************/
+ 
+ struct _wave_radio_t {
++  u64 sched_scan_reqid;
+   mtlk_eeprom_data_t   *ee_data; /* EEPROM parsed data */
+   hw_psdb_t            *psdb;
+ 
+@@ -894,6 +897,22 @@
+ {
+   MTLK_ASSERT(NULL != radio);
+   return mtlk_vap_manager_get_master_df(radio->vap_manager);
++}
++
++/* Native userspace allocates interface MACs from the wiphy permanent
++ * address. Stock scripts supplied this externally; never publish zeroes. */
++int wave_radio_permanent_address_get(wave_radio_t *radio, u8 *addr)
++{
++  const u8 *base;
++
++  if (!radio || !radio->ee_data)
++    return MTLK_ERR_EEPROM;
++  base = mtlk_eeprom_get_nic_mac_addr(radio->ee_data);
++  if (!is_valid_ether_addr(base))
++    return MTLK_ERR_EEPROM;
++  ether_addr_copy(addr, base);
++  eth_addr_add(addr, radio->idx);
++  return is_valid_ether_addr(addr) ? MTLK_ERR_OK : MTLK_ERR_EEPROM;
+ }
+ 
+ mtlk_core_t *
+@@ -1232,8 +1251,11 @@
+   res = _mtlk_df_user_process_core_retval(res, clpb, WAVE_RADIO_REQ_MBSS_DEL_VAP_NAME, TRUE);
+ 
+ finish:
+-  if (scan_paused == 1)
+-    res = _wave_radio_allow_or_resume_scan(radio);
++  if (scan_paused == 1) {
++    int resume_res = _wave_radio_allow_or_resume_scan(radio);
++    if (res == MTLK_ERR_OK)
++      res = resume_res;
++  }
+ 
+   return _mtlk_df_mtlk_to_linux_error_code(res);
+ }
+@@ -1426,9 +1448,8 @@
+   if (wave_radio_get_sta_vifs_exist(radio)) {
+     if (is_channel_certain(ccd)) {
+       ILOG0_V("Cannot switch VAP channels, since there are station role interfaces active");
+-      wdev_lock(ndev->ieee80211_ptr);
++      lockdep_assert_wiphy(ndev->ieee80211_ptr->wiphy);
+       wv_cfg80211_ch_switch_notify(ndev, ccd, TRUE);
+-      wdev_unlock(ndev->ieee80211_ptr);
+       res = MTLK_ERR_OK;
+       return  _mtlk_df_mtlk_to_linux_error_code(res);
+     }
+@@ -1451,6 +1472,46 @@
+     wave_radio_ch_switch_event(wiphy, mtlk_vap_manager_get_master_core(radio->vap_manager), &original_cd);
+ 
+   return _mtlk_df_mtlk_to_linux_error_code(res);
++}
++
++/* Native hostapd has no vendor INITIAL_DATA command. Derive its 11b
++ * selector from the actual beacon rate IEs rather than a private ioctl.
++ */
++static bool wave_ap_11b_only(const struct cfg80211_ap_settings *info)
++{
++  const struct cfg80211_beacon_data *beacon = &info->beacon;
++  const u8 *parts[2];
++  size_t lengths[2], i, j;
++  bool found = false;
++
++  if (info->chandef.chan->band != NL80211_BAND_2GHZ ||
++      info->chandef.width != NL80211_CHAN_WIDTH_20_NOHT ||
++      beacon->head_len < offsetof(struct ieee80211_mgmt, u.beacon.variable))
++    return false;
++  parts[0] = beacon->head + offsetof(struct ieee80211_mgmt, u.beacon.variable);
++  lengths[0] = beacon->head_len - offsetof(struct ieee80211_mgmt, u.beacon.variable);
++  parts[1] = beacon->tail;
++  lengths[1] = beacon->tail_len;
++  for (i = 0; i < ARRAY_SIZE(parts); i++) {
++    const u8 *pos = parts[i];
++    size_t left = lengths[i];
++    while (left >= 2) {
++      size_t len = pos[1];
++      if (len > left - 2)
++        return false;
++      if (pos[0] == WLAN_EID_SUPP_RATES || pos[0] == WLAN_EID_EXT_SUPP_RATES) {
++        for (j = 0; j < len; j++) {
++          u8 rate = pos[2 + j] & 0x7f;
++          if (rate != 2 && rate != 4 && rate != 11 && rate != 22)
++            return false;
++          found = true;
++        }
++      }
++      pos += len + 2;
++      left -= len + 2;
++    }
++  }
++  return found;
+ }
+ 
+ int wave_radio_ap_start(
+@@ -1466,6 +1527,7 @@
+   struct mtlk_chan_def  *ccd;
+   mtlk_core_t *master_core;
+   int scan_paused = 0;
++  int linux_error = 0;
+ 
+   MTLK_ASSERT(NULL != radio);
+ 
+@@ -1503,20 +1565,39 @@
+       ELOG_S("%s: Sta vifs exists but channel is uncertain", ndev->name);
+     }
+   } else {
+-    /* start by setting the required channel, unless it's already right, ignore errors */
+-    wave_radio_ap_chanwidth_set(wiphy, radio, ndev, &info->chandef);
+-  }
+-
+-  if (NULL == info->ssid || MIB_ESSID_LENGTH < info->ssid_len)
++    /* Stock INITIAL_DATA selected network mode before SET_CHAN's TPC
++     * programming. Native nl80211 supplies the same input here.
++     */
++    if (!info->chandef.chan) {
++      res = MTLK_ERR_PARAMS;
++      goto finish;
++    }
++    res = mtlk_core_update_network_mode(master_core,
++      wave_ap_11b_only(info) ? MTLK_NETWORK_11B_ONLY :
++      get_net_mode(nlband2mtlkband(info->chandef.chan->band),
++                   info->chandef.width != NL80211_CHAN_WIDTH_20_NOHT));
++    if (res != MTLK_ERR_OK)
++      goto finish;
++    /* A failed channel change must not leave a successful AP on another channel. */
++    linux_error = wave_radio_ap_chanwidth_set(wiphy, radio, ndev, &info->chandef);
++    if (linux_error)
++      goto finish;
++  }
++
++  if (NULL == info->ssid || !info->ssid_len || MIB_ESSID_LENGTH < info->ssid_len) {
++    res = MTLK_ERR_PARAMS;
+     goto finish;
+-
++  }
++
++  memset(&aps, 0, sizeof(aps));
+   aps.beacon_interval = info->beacon_interval;
+   aps.dtim_period = info->dtim_period;
+   aps.hidden_ssid = info->hidden_ssid;
+   aps.essid_len = info->ssid_len;
+-  wave_strncopy(aps.essid, info->ssid, sizeof(aps.essid), aps.essid_len);
+-
+-  if ((res = wave_radio_beacon_change(radio, ndev, &info->beacon)) != MTLK_ERR_OK)
++  memcpy(aps.essid, info->ssid, aps.essid_len);
++
++  linux_error = wave_radio_beacon_change(radio, ndev, &info->beacon);
++  if (linux_error)
+     goto finish;
+ 
+   /* Set security */
+@@ -1545,24 +1626,10 @@
+       goto finish;
+     }
+ 
+-    ILOG1_D("Number of akm suits:%d", info->crypto.n_akm_suites);
+-    for (i = 0; i < info->crypto.n_akm_suites; i++) {
+-      ILOG1_D("akm_suites:0x%x", info->crypto.akm_suites[i]);
+-      switch (info->crypto.akm_suites[i]) {
+-      case WLAN_AKM_SUITE_8021X:
+-        if (info->crypto.wpa_versions & NL80211_WPA_VERSION_1)
+-          auth_cfg.rsn_enabled = 1;
+-        if (info->crypto.wpa_versions & NL80211_WPA_VERSION_2)
+-          auth_cfg.rsn_enabled = 1;
+-        break;
+-      case WLAN_AKM_SUITE_PSK:
+-        if (info->crypto.wpa_versions & NL80211_WPA_VERSION_1)
+-          auth_cfg.rsn_enabled = 1;
+-        if (info->crypto.wpa_versions & NL80211_WPA_VERSION_2)
+-          auth_cfg.rsn_enabled = 1;
+-        break;
+-      }
+-    }
++    /* Hostapd performs SAE, FT and EAP. The firmware needs RSN enabled for
++     * every WPA2/WPA3 AKM, including SAE and SHA256/Suite-B variants. */
++    auth_cfg.rsn_enabled = !!(info->crypto.wpa_versions &
++                             (NL80211_WPA_VERSION_1 | NL80211_WPA_VERSION_2 | NL80211_WPA_VERSION_3));
+ 
+     ILOG1_D("Number of ciphers pairwise:%d", info->crypto.n_ciphers_pairwise);
+     for (i = 0; i < info->crypto.n_ciphers_pairwise; i++) {
+@@ -1587,6 +1654,30 @@
+     }
+   }
+ 
++  /* These are radio-wide scheduler switches, formerly set by private
++   * sMuOperation/sHeMuOperation commands. Enabling a legacy BSS must not
++   * disable scheduling used by another HE/MU-capable BSS on this radio. */
++  {
++    mtlk_master_core_cfg_t mu_cfg;
++    bool mu = (info->vht_cap &&
++      (le32_to_cpu(info->vht_cap->vht_cap_info) & IEEE80211_VHT_CAP_MU_BEAMFORMER_CAPABLE)) ||
++      (info->he_cap && (info->he_cap->phy_cap_info[4] & IEEE80211_HE_PHY_CAP4_MU_BEAMFORMER));
++
++    memset(&mu_cfg, 0, sizeof(mu_cfg));
++    if (mu)
++      MTLK_CFG_SET_ITEM(&mu_cfg, mu_operation, 1);
++    if (info->he_cap)
++      MTLK_CFG_SET_ITEM(&mu_cfg, he_mu_operation, 1);
++    if (mu || info->he_cap) {
++      res = _mtlk_df_user_invoke_core(mtlk_vap_get_df(master_core->vap_handle),
++        WAVE_RADIO_REQ_SET_MASTER_CFG, &clpb, &mu_cfg, sizeof(mu_cfg));
++      res = _mtlk_df_user_process_core_retval(res, clpb,
++        WAVE_RADIO_REQ_SET_MASTER_CFG, TRUE);
++      if (res != MTLK_ERR_OK)
++        goto finish;
++    }
++  }
++
+   ILOG2_V("Switching to serializer to activate the VAP and set the BSS");
+   res = _mtlk_df_user_invoke_core(mtlk_df_user_get_df(df_user), WAVE_CORE_REQ_ACTIVATE_OPEN, &clpb, &aps, sizeof(aps));
+   res = _mtlk_df_user_process_core_retval(res, clpb, WAVE_CORE_REQ_ACTIVATE_OPEN, TRUE);
+@@ -1603,10 +1694,13 @@
+ #endif
+ 
+ finish:
+-  if (scan_paused == 1)
+-    res = _wave_radio_allow_or_resume_scan(radio);
+-
+-  return _mtlk_df_mtlk_to_linux_error_code(res);
++  if (scan_paused == 1) {
++    int resume_res = _wave_radio_allow_or_resume_scan(radio);
++    if (res == MTLK_ERR_OK)
++      res = resume_res;
++  }
++
++  return linux_error ? linux_error : _mtlk_df_mtlk_to_linux_error_code(res);
+ }
+ 
+ int wave_radio_ap_stop(
+@@ -1626,12 +1720,7 @@
+ 
+   _vap_handle = mtlk_df_get_vap_handle(mtlk_df_user_get_df(df_user));
+ 
+-  /* abort and prevent scan and VAP_DEACTIVATE are done in del_virtual_interface
+-   * for slave VAP's
+-   */
+-  if (mtlk_vap_is_slave_ap(_vap_handle))
+-    goto finish;
+-
++  /* STOP_AP also deactivates an existing slave BSS during hostapd reload. */
+   if (wave_radio_get_sta_vifs_exist(radio)) {
+     res = _wave_radio_abort_and_prevent_scan(radio);
+     if (MTLK_ERR_OK != res)
+@@ -1645,17 +1734,17 @@
+       goto finish;
+     }
+   }
+-  do {
+-    res = _mtlk_df_user_invoke_core(mtlk_df_user_get_df(df_user), WAVE_CORE_REQ_DEACTIVATE, &clpb, NULL, 0);
+-    res = _mtlk_df_user_process_core_retval(res, clpb, WAVE_CORE_REQ_DEACTIVATE, TRUE);
+-    mtlk_osal_msleep(100);
+-  } while ((MTLK_ERR_OK != res) && (MTLK_ERR_FW != res));
++  res = _mtlk_df_user_invoke_core(mtlk_df_user_get_df(df_user), WAVE_CORE_REQ_DEACTIVATE, &clpb, NULL, 0);
++  res = _mtlk_df_user_process_core_retval(res, clpb, WAVE_CORE_REQ_DEACTIVATE, TRUE);
+ 
+ finish:
+-  if (scan_paused == 1)
+-    res = _wave_radio_allow_or_resume_scan(radio);
+-
+-  return _mtlk_df_mtlk_to_linux_error_code(MTLK_ERR_OK);
++  if (scan_paused == 1) {
++    int resume_res = _wave_radio_allow_or_resume_scan(radio);
++    if (res == MTLK_ERR_OK)
++      res = resume_res;
++  }
++
++  return _mtlk_df_mtlk_to_linux_error_code(res);
+ }
+ 
+ /* The next bitrate tables are filled according to values from hostapd */
+@@ -1727,20 +1816,20 @@
+     return MTLK_ERR_PARAMS;
+   }
+ 
+-  if (params->supported_rates_len > WV_SUPP_RATES_MAX) {
++  if (params->link_sta_params.supported_rates_len > WV_SUPP_RATES_MAX) {
+     ELOG_SDD("%s: Too big number of supported rates '%d' (supported %d)",
+-              ndev->name, params->supported_rates_len, WV_SUPP_RATES_MAX);
++              ndev->name, params->link_sta_params.supported_rates_len, WV_SUPP_RATES_MAX);
+     return MTLK_ERR_PARAMS;
+   }
+ 
+-  if (params->supported_rates) {
++  if (params->link_sta_params.supported_rates) {
+     struct wiphy *wiphy = ndev->ieee80211_ptr->wiphy;
+     struct ieee80211_supported_band *band_2ghz = wiphy->bands[NL80211_BAND_2GHZ];
+     struct ieee80211_supported_band *band_5ghz = wiphy->bands[NL80211_BAND_5GHZ];
+     int i;
+ 
+-    for(i=0; i<params->supported_rates_len; i++) {
+-      uint8 bitrate = params->supported_rates[i] & SUPPORTED_BITRATE_MASK;  /* Clear basic rate flag */
++    for(i=0; i<params->link_sta_params.supported_rates_len; i++) {
++      uint8 bitrate = params->link_sta_params.supported_rates[i] & SUPPORTED_BITRATE_MASK;  /* Clear basic rate flag */
+ 
+       if (band_5ghz) {
+         if (wave_radio_is_rate_80211ag(bitrate)) {
+@@ -1760,88 +1849,31 @@
+       }
+     }
+ 
+-    wave_memcpy(info->rates, sizeof(info->rates), params->supported_rates, params->supported_rates_len);
+-  }
+-
+-  info->supported_rates_len = params->supported_rates_len;
++    wave_memcpy(info->rates, sizeof(info->rates), params->link_sta_params.supported_rates, params->link_sta_params.supported_rates_len);
++  }
++
++  info->supported_rates_len = params->link_sta_params.supported_rates_len;
+   info->listen_interval = params->listen_interval;
+ 
+-  /* If code below is not working, check if "last association request" patch is in kernel and hostapd */
+-  if (params->resp) {
+-    int res = MTLK_ERR_OK;
+-    struct ieee80211_mgmt *p_frame= (struct ieee80211_mgmt *)params->resp;
+-    /* Association request by default */
+-    uint8 *ie_ptr = p_frame->u.assoc_req.variable;
+-    /* Or maybe we have Reassociation request? */
+-    if (MAN_TYPE_REASSOC_REQ == (WLAN_FC_GET_STYPE(mtlk_wlan_pkt_get_frame_ctl(params->resp)) >> FRAME_SUBTYPE_SHIFT))
+-      ie_ptr = p_frame->u.reassoc_req.variable;
+-
+-    /* Adjust frame length before parsing IEs */
+-    res = mtlk_mgmt_parse_elems(ie_ptr, (params->resp_len-((unsigned long)ie_ptr-(unsigned long)p_frame)), &elems);
+-    if (MTLK_ERR_OK != res) {
+-      ELOG_S("%s: Error parsing IE elements", ndev->name);
+-      return MTLK_ERR_PARAMS;
+-    }
+-
+-    if (elems.bss_coex_20_40) {
+-      info->bss_coex_20_40 = *elems.bss_coex_20_40;
+-    }
+-
+-    if (elems.vendor_lantiq) {
+-      info->vendor = 1;
+-    }
+-    else if (elems.vendor_metalink) {
+-      info->vendor = 1;
+-    }
+-    else if (elems.vendor_w101) {
+-      info->vendor = 2;
+-    }
+-
+-    if (wave_pdb_get_int(param_db_core, PARAM_DB_CORE_4ADDR_MODE) == MTLK_CORE_4ADDR_DYNAMIC) {
+-      if (elems.vendor_intel) {
+-        uint8 type = elems.vendor_intel[WLAN_EID_VENDOR_SPECIFIC_OUI_TYPE_OFFSET];
+-        const uint8 *attributes = elems.vendor_intel +
+-          WLAN_EID_INTEL_VENDOR_ATTRIBUTES_OFFSET;
+-
+-        if ((type == WLAN_EID_INTEL_VENDOR_TYPE_4ADDR_MODE) &&
+-            (*attributes == WLAN_EID_INTEL_VENDOR_4ADDR_MODE_STA)) {
+-          /* Default value of WDS_client_type is set by memset to value 0 == PEER_AP */
+-          info->WDS_client_type = FOUR_ADDRESSES_STATION;
+-        }
+-      }
+-      if (elems.vendor_brcm) {
+-        uint8 type = elems.vendor_brcm[WLAN_EID_VENDOR_SPECIFIC_OUI_TYPE_OFFSET];
+-
+-        if (WLAN_EID_BRCM_VENDOR_VERSION_2 == type) {
+-          uint8 flags1 = elems.vendor_brcm[WLAN_EID_BRCM_VENDOR_FLAGS1_OFFSET];
+-          if (flags1 & WLAN_EID_BRCM_VENDOR_DWDS_CAPABLE) {
+-            info->WDS_client_type = FOUR_ADDRESSES_STATION;
+-          }
+-        }
+-      }
+-      if (elems.vendor_wfa) {
+-        uint8 type = elems.vendor_wfa[WLAN_EID_VENDOR_SPECIFIC_OUI_TYPE_OFFSET];
+-
+-        if (WLAN_OUI_TYPE_WFA_MULTI_AP == type) {
+-          /* Default value of WDS_client_type is set by memset to value 0 == PEER_AP */
+-          info->WDS_client_type = FOUR_ADDRESSES_STATION;
+-        }
+-      }
+-    }
+-    if (elems.opmode_notif) {
+-      info->opmode_notif = *elems.opmode_notif;
+-      MTLK_BFIELD_SET(info->flags, STA_FLAGS_OPMODE_NOTIF, 1);
+-    }
+-  }
++  /* Upstream nl80211 supplies negotiated HT/VHT/rates directly. The old
++   * patched-hostapd association-frame/WDS extension is not advertised here. */
++
++  if (!params->aid || params->aid > 2007)
++    return MTLK_ERR_PARAMS;
+ 
+   if (params->aid) {
+     info->aid = params->aid;
+-    info->sid = params->aid - 1;
+-  }
+-
+-  info->rssi_dbm = MBM_TO_DBM((int32)params->rssi);
+-  mtlk_stadb_stats_set_mgmt_rssi(info, info->rssi_dbm);
+-  ILOG2_DD("Get RSSI from HOSTAPD: params->rssi=%d, info->rssi_dbm=%d",   params->rssi, info->rssi_dbm);
++    /* AID belongs to this BSS; firmware SIDs are allocated across the radio. */
++    MTLK_BFIELD_SET(info->flags, STA_FLAGS_NATIVE_SID, 1);
++  }
++
++  /* No RSSI attribute in native NEW_STATION. Start conservatively until RX
++   * supplies a real measurement; zero dBm is not an unknown RSSI value. */
++  info->rssi_dbm = -70;
++  if (params->link_sta_params.opmode_notif_used) {
++    info->opmode_notif = params->link_sta_params.opmode_notif;
++    MTLK_BFIELD_SET(info->flags, STA_FLAGS_OPMODE_NOTIF, 1);
++  }
+ 
+   if (params->sta_modify_mask & STATION_PARAM_APPLY_UAPSD) {
+     info->uapsd_queues = params->uapsd_queues;
+@@ -1873,38 +1905,38 @@
+ 
+   mtlk_osal_copy_eth_addresses(info->addr.au8Addr, mac);
+ 
+-  if (params->ht_capa) {
+-    MTLK_ASSERT(sizeof(info->rx_mcs_bitmask) == sizeof(params->ht_capa->mcs.rx_mask));
+-    if(memcmp(info->rx_mcs_bitmask, params->ht_capa->mcs.rx_mask, sizeof(info->rx_mcs_bitmask)) != 0) {
++  if (params->link_sta_params.ht_capa) {
++    MTLK_ASSERT(sizeof(info->rx_mcs_bitmask) == sizeof(params->link_sta_params.ht_capa->mcs.rx_mask));
++    if(memcmp(info->rx_mcs_bitmask, params->link_sta_params.ht_capa->mcs.rx_mask, sizeof(info->rx_mcs_bitmask)) != 0) {
+       /* There are MCS rates -means sta supports HT */
+-      info->ht_cap_info = params->ht_capa->cap_info;
+-      info->ampdu_param = params->ht_capa->ampdu_params_info;
+-      info->tx_bf_cap_info = params->ht_capa->tx_BF_cap_info;
++      info->ht_cap_info = params->link_sta_params.ht_capa->cap_info;
++      info->ampdu_param = params->link_sta_params.ht_capa->ampdu_params_info;
++      info->tx_bf_cap_info = params->link_sta_params.ht_capa->tx_BF_cap_info;
+       MTLK_BFIELD_SET(info->flags, STA_FLAGS_11n, 1);
+       MTLK_BIT_SET(info->sta_net_modes, MTLK_WSSA_11N_SUPPORTED, 1);
+       wave_memcpy(info->rx_mcs_bitmask, sizeof(info->rx_mcs_bitmask),
+-          params->ht_capa->mcs.rx_mask, sizeof(params->ht_capa->mcs.rx_mask));
++          params->link_sta_params.ht_capa->mcs.rx_mask, sizeof(params->link_sta_params.ht_capa->mcs.rx_mask));
+     }
+   }
+ 
+-  if (params->vht_capa) {
+-    MTLK_ASSERT(sizeof(info->vht_mcs_info) == sizeof(params->vht_capa->supp_mcs));
+-    if(__mtlk_is_valid_rx_tx_mcs_map(&params->vht_capa->supp_mcs)) {
+-      info->vht_cap_info = params->vht_capa->vht_cap_info;
++  if (params->link_sta_params.vht_capa) {
++    MTLK_ASSERT(sizeof(info->vht_mcs_info) == sizeof(params->link_sta_params.vht_capa->supp_mcs));
++    if(__mtlk_is_valid_rx_tx_mcs_map(&params->link_sta_params.vht_capa->supp_mcs)) {
++      info->vht_cap_info = params->link_sta_params.vht_capa->vht_cap_info;
+       MTLK_BFIELD_SET(info->flags, STA_FLAGS_11ac, 1);
+       MTLK_BIT_SET(info->sta_net_modes, MTLK_WSSA_11AC_SUPPORTED, 1);
+       wave_memcpy(&info->vht_mcs_info, sizeof(info->vht_mcs_info),
+-          &params->vht_capa->supp_mcs, sizeof(params->vht_capa->supp_mcs));
++          &params->link_sta_params.vht_capa->supp_mcs, sizeof(params->link_sta_params.vht_capa->supp_mcs));
+       
+     }
+   }
+ 
+-  if (params->he_capa) {
+-    memcpy(&info->he_mac_phy_cap_info, &params->he_capa->he_capabilities[HE_MAC_PHY_OFFSET], sizeof(info->he_mac_phy_cap_info));
+-    /* Can't copy all capabilities due to AX mode 80+80 is not supported by FW */
+-    memcpy(&info->he_mcs_nss_info, &params->he_capa->he_capabilities[HE_MCS_NSS_OFFSET],
+-           MIN(HE_MCS_NSS_8080MHZ_SIZE, sizeof(info->he_mcs_nss_info)));
+-    memcpy(&info->he_ppe_th_info, &params->he_capa->he_capabilities[HE_PPE_TH_8080_MHZ_OFFSET], sizeof(info->he_ppe_th_info));
++  if (params->link_sta_params.he_capa) {
++    if (wave_he_pack(info->he_mac_phy_cap_info, info->he_mcs_nss_info,
++                     info->he_ppe_th_info,
++                     (const u8 *)params->link_sta_params.he_capa,
++                     params->link_sta_params.he_capa_len))
++      return MTLK_ERR_PARAMS;
+     MTLK_BFIELD_SET(info->flags, STA_FLAGS_11ax, 1);
+     MTLK_BIT_SET(info->sta_net_modes, MTLK_WSSA_11AX_SUPPORTED, 1);
+   }
+@@ -2109,7 +2141,7 @@
+   bp.p2p_ctwindow = params->p2p_ctwindow;
+   bp.p2p_opp_ps = params->p2p_opp_ps;
+   bp.basic_rates_len = params->basic_rates_len;
+-  bp.he_bss_color = params->he_bss_color;
++  bp.he_bss_color = MTLK_CORE_PDB_GET_INT(mtlk_vap_get_core(mtlk_df_get_vap_handle(df)), PARAM_DB_CORE_HE_BSS_COLOR);
+   wave_memcpy(bp.basic_rates, sizeof(bp.basic_rates), params->basic_rates, bp.basic_rates_len);
+ 
+   /* Keep trying in case scan is in progress for the current radio */
+@@ -2360,6 +2392,7 @@
+   void *wiphy;
+ 
+   MTLK_ASSERT(NULL != radio);
++  radio->sched_scan_reqid = request->reqid;
+   wiphy = wv_cfg80211_wiphy_get(radio->cfg80211);
+   MTLK_ASSERT(NULL != wiphy);
+ 
+@@ -2477,7 +2510,7 @@
+   res = _mtlk_df_user_invoke_core(mtlk_df_user_get_df(df_user), WAVE_RADIO_REQ_STOP_SCHED_SCAN, &clpb, NULL, 0); /* synchronous, pass the ptr!!! */
+   res = _mtlk_df_user_process_core_retval(res, clpb, WAVE_RADIO_REQ_STOP_SCHED_SCAN, TRUE);
+ 
+-  cfg80211_sched_scan_stopped(wiphy);
++  cfg80211_sched_scan_stopped(wiphy, radio->sched_scan_reqid);
+ 
+   return _mtlk_df_mtlk_to_linux_error_code(res);
+ }
+@@ -2581,9 +2614,19 @@
+   ILOG1_SSD("%s: Invoked from %s (%i)", ndev->name, current->comm, current->pid);
+   MTLK_CHECK_DF_USER(df_user);
+ 
++  if (params && (params->cipher == WLAN_CIPHER_SUITE_AES_CMAC ||
++                 params->cipher == WLAN_CIPHER_SUITE_BIP_CMAC_256 ||
++                 params->cipher == WLAN_CIPHER_SUITE_BIP_GMAC_128 ||
++                 params->cipher == WLAN_CIPHER_SUITE_BIP_GMAC_256)) {
++    if (pairwise || mac_addr)
++      return -EINVAL;
++    return wave_pmf_key_add(mtlk_vap_get_core(mtlk_df_get_vap_handle(
++                             mtlk_df_user_get_df(df_user))), key_index, params);
++  }
++
+   if (key_index >= MIB_WEP_N_DEFAULT_KEYS) {
+-    ILOG2_D("Invalid key index %d ignored", key_index);
+-    res = MTLK_ERR_OK;
++    ILOG2_D("Unsupported key index %d", key_index);
++    res = MTLK_ERR_NOT_SUPPORTED;
+     goto finish;
+   }
+ 
+@@ -2657,15 +2700,8 @@
+       break;
+ 
+     case WLAN_CIPHER_SUITE_AES_CMAC:
+-      /* Validate key index */
+-      if ((key_index > 2) || (pairwise & (key_index !=0))) {
+-        ELOG_D("Invalid AES_CMAC key index %d", key_index);
+-        res = MTLK_ERR_PARAMS;
+-        goto finish;
+-      }
+-
+-      encext_cfg.alg_type = IW_ENCODE_ALG_AES_CMAC;
+-      break;
++      res = MTLK_ERR_NOT_SUPPORTED;
++      goto finish;
+ 
+     case WLAN_CIPHER_SUITE_GCMP:
+       /* Validate platform */
+@@ -2762,6 +2798,13 @@
+   ILOG1_SSD("%s: Invoked from %s (%i)", ndev->name, current->comm, current->pid);
+   MTLK_CHECK_DF_USER(df_user);
+ 
++  if (key_index == 4 || key_index == 5) {
++    if (pairwise)
++      return -EINVAL;
++    return wave_pmf_key_get(mtlk_vap_get_core(mtlk_df_get_vap_handle(
++                             mtlk_df_user_get_df(df_user))), key_index, cookie, callback);
++  }
++
+   ILOG2_DD("pairwise = %d key_index = %d ", pairwise, key_index);
+   mac_addr = mac_addr ? mac_addr : _bcast_addr;
+   ILOG2_Y(" mac_addr = %Y", mac_addr);
+@@ -2854,37 +2897,12 @@
+ }
+ 
+ int wave_radio_default_mgmt_key_set (
+-    wave_radio_t *radio,
+-    struct net_device *netdev,
+-    u8 key_index)
+-{
+-  int                            res;
+-  mtlk_core_ui_default_key_cfg_t default_key_cfg;
+-  mtlk_df_user_t                 *df_user = mtlk_df_user_from_ndev(netdev);
+-  mtlk_clpb_t                    *clpb = NULL;
+-
+-  MTLK_ASSERT(radio != NULL);
+-
+-  ILOG1_SSD("%s: Invoked from %s (%i)", netdev->name, current->comm, current->pid);
++    wave_radio_t *radio, struct net_device *netdev, u8 key_index)
++{
++  mtlk_df_user_t *df_user = mtlk_df_user_from_ndev(netdev);
+   MTLK_CHECK_DF_USER(df_user);
+-  ILOG1_D("key index:%d", key_index);
+-
+-  if (key_index >= MIB_WEP_N_DEFAULT_KEYS) {
+-    ILOG2_D("Invalid mgmt key index %d ignored", key_index);
+-    res = MTLK_ERR_OK;
+-    goto finish;
+-  }
+-
+-  memset(&default_key_cfg, 0, sizeof(default_key_cfg));
+-  ieee_addr_set(&default_key_cfg.sta_addr, _bcast_addr);
+-  default_key_cfg.key_idx = key_index;
+-  default_key_cfg.is_mgmt_key = TRUE;
+-
+-  res = _mtlk_df_user_invoke_core(mtlk_df_user_get_df(df_user), WAVE_CORE_REQ_SET_DEFAULT_KEY_CFG, &clpb, (char*)&default_key_cfg, sizeof(default_key_cfg));
+-  res = _mtlk_df_user_process_core_retval_void(res, clpb, WAVE_CORE_REQ_SET_DEFAULT_KEY_CFG, TRUE);
+-
+-finish:
+-  return _mtlk_df_mtlk_to_linux_error_code(res);
++  return wave_pmf_key_default(mtlk_vap_get_core(mtlk_df_get_vap_handle(
++                               mtlk_df_user_get_df(df_user))), key_index);
+ }
+ 
+ int wave_radio_txq_params_set (
+@@ -3073,7 +3091,10 @@
+   core = mtlk_vap_get_core(mtlk_df_get_vap_handle(master_df));
+   scan_support = mtlk_core_get_scan_support(core);
+   df_user = mtlk_df_user_from_ndev(ndev);
+-  MTLK_CHECK_DF_USER(df_user);
++  if (!df_user) {
++    _wave_radio_radar_detect_end_set(radio);
++    return -ENODEV;
++  }
+ 
+   df = mtlk_df_user_get_df(df_user);
+   vap_handle = mtlk_df_get_vap_handle(df);
+@@ -3081,7 +3102,7 @@
+   cac_time = IEEE80211_DFS_MIN_CAC_TIME_MS;
+   wdev = ndev->ieee80211_ptr;
+ 
+-  wdev->preset_chandef = *chandef;
++  wdev->u.ap.preset_chandef = *chandef;
+ 
+   regd_code = core_cfg_get_regd_code(core);
+   switch (regd_code) {
+@@ -3097,6 +3118,10 @@
+     cac_time = scan_support->dfs_debug_params.cac_time * MTLK_OSAL_MSEC_IN_SEC;
+   }
+ 
++  /* Native cfg80211 supplies the regulatory minimum; never complete CAC
++   * earlier, including when a vendor debug override requests a shorter one. */
++  cac_time = max(cac_time, cac_time_ms);
++
+   original_cd = *ccd;
+ 
+   ILOG1_SSD("%s: Invoked from %s (%i)", ndev->name, current->comm, current->pid);
+@@ -3122,21 +3147,6 @@
+   /* allow to execute Radar events */
+   _wave_radio_radar_detect_end_set(radio);
+   return res;
+-}
+-
+-static int
+-_mtlk_nl_to_mtlk_sbdfs_bw (enum nl80211_sb_dfs_bw bw)
+-{
+-  switch (bw) {
+-  case NL80211_SB_DFS_BW_20:
+-    return MTLK_SB_DFS_BW_20;
+-  case NL80211_SB_DFS_BW_40:
+-    return MTLK_SB_DFS_BW_40;
+-  case NL80211_SB_DFS_BW_80:
+-    return MTLK_SB_DFS_BW_80;
+-  default:
+-    return MTLK_SB_DFS_BW_NORMAL;
+-  }
+ }
+ 
+ /* HostAPD will call this for every VAP. Every time we'll do a set_channel (type CSA) and set_beacon.
+@@ -3204,7 +3214,7 @@
+   cpd.block_tx_pre = csas->block_tx; /* hostapd always sets this to 1, BTW */
+   cpd.block_tx_post = FALSE; /* TRUE is meant for waiting for radars, but hostapd has ensured it's switching to a safe range */
+   cpd.radar_required = csas->radar_required;
+-  sb_dfs->sb_dfs_bw = _mtlk_nl_to_mtlk_sbdfs_bw(csas->sb_dfs_bw);
++  sb_dfs->sb_dfs_bw = MTLK_SB_DFS_BW_NORMAL;
+ 
+   if (__mtlk_is_sb_dfs_switch(sb_dfs->sb_dfs_bw)) {
+     ILOG1_D("Sub band DFS channel switch, new bandwidth %d", sb_dfs->sb_dfs_bw);
+@@ -3244,6 +3254,15 @@
+ 
+   res = _mtlk_df_user_invoke_core(master_df, WAVE_RADIO_REQ_SET_CHAN, &clpb, &cpd, sizeof(cpd));
+   res = _mtlk_df_user_process_core_retval(res, clpb, WAVE_RADIO_REQ_SET_CHAN, TRUE);
++
++  /* Firmware inserts/counts CSA itself (the beacon ABI forbids a CSA IE).
++   * Once its blocking SET_CHAN completes, install native hostapd's final
++   * beacon so HE/VHT operation IEs and probe responses match the channel. */
++  if (res == MTLK_ERR_OK) {
++    int beacon_res = wave_radio_beacon_change(radio, ndev, &csas->beacon_after);
++    if (beacon_res)
++      return beacon_res;
++  }
+ 
+   if (res == MTLK_ERR_OK && !sb_dfs_switch)
+     wave_radio_ch_switch_event(wiphy, mtlk_vap_manager_get_master_core(radio->vap_manager), &original_cd);
+--- a/wireless/driver/linux/wave_radio.h
++++ b/wireless/driver/linux/wave_radio.h
+@@ -144,6 +144,7 @@
+ 
+ mtlk_df_t           *wave_radio_df_get(wave_radio_t *radio);
+ mtlk_core_t         *wave_radio_master_core_get(wave_radio_t *radio);
++int wave_radio_permanent_address_get(wave_radio_t *radio, u8 *addr);
+ int   wave_radio_vap_handle_get (wave_radio_t *radio, mtlk_vap_handle_t  *vap_handle);
+ void *wave_radio_beacon_man_private_get(wave_radio_t *radio);
+ 
+--- a/wireless/driver/shared/frame.c
++++ b/wireless/driver/shared/frame.c
+@@ -571,6 +571,18 @@
+     }
+   }
+ 
++  /* An AP is the BIP transmitter for its BSS. A station's robust
++   * management traffic to it must be unicast; do not treat a multicast
++   * MMIE as a CCMP header. In station mode retain the whole BIP frame for
++   * mac80211's MIC verification and per-IGTK replay counter checks.
++   */
++  if (mtlk_vap_is_ap(core->vap_handle) && flen >= 1 &&
++      is_multicast_ether_addr(head->dst_addr.au8Addr) &&
++      _ieee80211_is_robust_mgmt_frame((struct ieee80211_hdr *)head)) {
++    res = MTLK_ERR_NOT_IN_USE;
++    goto end;
++  }
++
+   if (0 != WLAN_FC_GET_PROTECTED(frame_ctrl))
+   {
+     if (!sta)
+@@ -626,6 +638,12 @@
+           res = MTLK_ERR_NOT_IN_USE;
+           goto end;
+         }
++        /* Firmware's BSS indication ABI contains no MIC/replay status.
++         * Its stock contract delivers only authenticated/decrypted unicast
++         * frames with the CCMP header retained. Preserve that contract; a
++         * Protected bit alone cannot authenticate an over-the-air frame.
++         * Hardware testing must include bad-MIC and replayed SA Queries.
++         */
+         /* Remove security header from managment frames with decreasing the length */
+         mtlk_dump(3, head, *buflen, "dump of man frame with security header");
+         flen -= IEEE80211_CCMP_HEADER_LEN;
+@@ -638,7 +656,8 @@
+     }
+   }
+   else {
+-    if ((subtype == MAN_TYPE_DISASSOC) || (subtype == MAN_TYPE_DEAUTH)) {
++    if (flen >= 1 &&
++        _ieee80211_is_robust_mgmt_frame((struct ieee80211_hdr *)head)) {
+       if (mtlk_vap_is_ap(core->vap_handle) && (sta) && mtlk_sta_is_mfp(sta)) {
+         ILOG1_D("CID-%04x: Unprotected Management Frame received from MFP-enabled STA", mtlk_vap_get_oid(core->vap_handle));
+         fd->notify_hapd_supplicant = FALSE;
+--- a/wireless/driver/shared/fw_recovery.c
++++ b/wireless/driver/shared/fw_recovery.c
+@@ -15,6 +15,8 @@
+  *
+  */
+ #include "mtlkinc.h"
++#include <linux/device.h>
++#include <linux/kobject.h>
+ #include "mtlk_vap_manager.h"
+ #include "mtlk_df.h"
+ #include "mtlk_coreui.h"
+@@ -1632,6 +1634,7 @@
+   rcvry_type_e rcvry_type = __rcvry_type_current_get(rcvry_ctx);
+   uint16 oid = mtlk_vap_get_oid(rcvry_ctx->radio_ctx[WAVE_RCVRY_PRIMARY_VAP_RADIO_IDX].master_vap_handle);
+   int res = MTLK_ERR_UNKNOWN;
++  bool complete_reload = false;
+ 
+   ILOG1_D("CID-%04x: Master Recovery task started", oid);
+ 
+@@ -1674,6 +1677,9 @@
+     case RCVRY_TYPE_FAST:
+     case RCVRY_TYPE_FULL:
+     {
++      /* Native hostapd must forget peers before isolation clears the station
++       * database. It has no proprietary FLUSH_STATIONS/SYNC_DONE handshake. */
++      _rcvry_step_flush_stations(pcard, oid);
+       /* Execute common steps */
+       res = __rcvry_step_common_flow(pcard, oid);
+       if (MTLK_ERR_OK != res)
+@@ -1686,6 +1692,9 @@
+       res = _rcvry_step_fw_reconfiguration(pcard, oid);
+       if (MTLK_ERR_OK != res)
+         break;
++      /* All radios and VAPs now have fresh firmware state. Permit native
++       * hostapd to create new peers without a vendor SYNC_DONE command. */
++      mtlk_mmb_set_sync_hostapd_done(pcard->hw_ctx, TRUE);
+       /* Execute Finalization step */
+       _rcvry_step_finalization(rcvry_ctx, oid);
+ 
+@@ -1703,8 +1712,10 @@
+     }
+     case RCVRY_TYPE_COMPLETE:
+     {
+-      /* Notify FAPI about Complete Recovery */
+-      res = wave_rcvry_nl_send_msg_complete_rcvry_req(pcard->card_idx);
++      /* Reload must run outside this module after all recovery serializers
++       * are released. OpenWrt's PCI hotplug helper owns the bounded reload. */
++      complete_reload = true;
++      res = MTLK_ERR_OK;
+       break;
+     }
+     default: break;
+@@ -1712,6 +1723,16 @@
+ 
+   /* Release Slave VAPs */
+   _rcvry_step_slave_vaps_unblock(rcvry_ctx, oid);
++
++  if (complete_reload) {
++    struct device *dev = mtlk_ccr_get_dev_ctx(mtlk_hw_mmb_get_ccr(pcard->hw_ctx));
++    char *env[] = { "IWLWAV_RECOVERY=complete", NULL };
++
++    /* kobject_uevent_env copies the environment before returning. The
++     * userspace handler is asynchronous and does not execute in our task. */
++    res = kobject_uevent_env(&dev->kobj, KOBJ_CHANGE, env) ?
++          MTLK_ERR_UNKNOWN : MTLK_ERR_OK;
++  }
+ 
+   if (MTLK_ERR_OK == res)
+     ILOG1_D("CID-%04x: Master Recovery task finished successfully", oid);
+--- a/wireless/driver/shared/hw_mmb.c
++++ b/wireless/driver/shared/hw_mmb.c
+@@ -334,6 +334,7 @@
+   uint32                dma_addr;
+   uint8                 *virt_addr; /* mgmt frame */
+   uint32 size;                      /* size of the buffer */
++  bool dma_mapped;
+ };
+ 
+ /* FW <--> DRV messages interface */
+@@ -2027,6 +2028,7 @@
+     }
+   }
+ 
++  dma_rmb();
+   u32BdIndex    = HD_BD_INDEX_GET(pHD);
+   u32frameInfo0 = LE32_TO_CPU(pHD->u32frameInfo0);
+   u32frameInfo1 = LE32_TO_CPU(pHD->u32frameInfo1);
+@@ -2036,7 +2038,6 @@
+   frame_type    = MTLK_BFIELD_GET(u32frameInfo0, TX_DATA_INFO_FRAMETYPE);
+   frag_type     = MTLK_BFIELD_GET(u32frameInfo3, TX_DATA_INFO_SOP_EOP);
+ 
+-#ifdef BD_DBG
+   if (__UNLIKELY(u32BdIndex >= hw->rx.bdr_data.nof_bds)) {
+     ELOG_DD("Index out of bounds: %d >= %d", u32BdIndex, hw->rx.bdr_data.nof_bds);
+     ELOG_DDDD("internal variables: rx_read_ptr %X rx_write_ptr %X rx_IN_copy %X rx_int_OUT_cntr %X", hw->rx.ring.read_ptr, hw->rx.ring.write_ptr, hw->rx.ring.regs.IN_copy, hw->rx.ring.regs.int_OUT_cntr);
+@@ -2045,7 +2046,6 @@
+     mtlk_hw_set_prop(wave_radio_descr_hw_api_get(hw->radio_descr, 0), MTLK_HW_RESET, NULL, 0);
+     return MTLK_ERR_UNKNOWN; /* BUG(); */
+   }
+-#endif
+ 
+   __wave_hw_rx_hd_decode(hw,
+                          MTLK_BFIELD_GET(u32frameInfo1, TX_DATA_INFO_EP),
+@@ -2090,7 +2090,7 @@
+   mtlk_df_nbuf_unmap_phys_addr(mtlk_ccr_get_dev_ctx(hw->ccr),
+                                data_ind->nbuf,
+                                data_ind->dma_addr,
+-                               total_size,
++                               data_ind->size,
+                                MTLK_DATA_FROM_DEVICE);
+ 
+   if (__UNLIKELY(total_size > mtlk_df_nbuf_get_tail_room_size(data_ind->nbuf))) {
+@@ -2250,6 +2250,14 @@
+                                                      data_ind->nbuf,
+                                                      data_ind->size,
+                                                      MTLK_DATA_FROM_DEVICE);
++  if (dma_mapping_error(mtlk_ccr_get_dev_ctx(hw->ccr), data_ind->dma_addr)) {
++    _mtlk_mmb_nbuf_free(data_ind->nbuf);
++    data_ind->nbuf = NULL;
++    data_ind->dma_addr = 0;
++    mtlk_lslist_push(&hw->rx.pending.lbufs, &data_ind->pend_l);
++    res = MTLK_ERR_NO_MEM;
++    goto FINISH;
++  }
+ #ifdef MTCFG_WAVE_FPGA
+   data_ind->dma_addr |= FPGA_DMA_ADDR_MASK;
+ #endif
+@@ -2709,6 +2717,7 @@
+ #endif
+ 
+     hds_to_process = mtlk_ccr_ring_get_hds_to_process(hw->ccr, &hw->tx.ring.regs);
++  dma_rmb();
+     MTLK_TRACER_ADD_ENTRY(hw, MTLK_TR_DATA_TXOUT_START, hds_to_process);
+     if (__UNLIKELY(hds_to_process == 0)) {
+       MTLK_TRACER_ADD_ENTRY(hw, MTLK_TR_DATA_TXOUT_END, 0);
+@@ -2751,6 +2760,7 @@
+     MTLK_TRACER_ADD_ENTRY(hw, MTLK_TR_DATA_TXOUT_END, hds_to_process);
+ 
+     hds_to_process = mtlk_ccr_ring_get_hds_to_process(hw->ccr, &hw->tx.ring.regs);
++  dma_rmb();
+     MTLK_TRACER_ADD_ENTRY(hw, MTLK_TR_DATA_TXOUT_REM, hds_to_process);
+     if (hds_to_process) res = MTLK_ERR_PENDING;
+   }
+@@ -2781,6 +2791,7 @@
+ #endif
+ 
+   hds_to_process = mtlk_ccr_ring_get_hds_to_process(hw->ccr, &hw->rx.ring.regs);
++  dma_rmb();
+   MTLK_TRACER_ADD_ENTRY(hw, MTLK_TR_DATA_RX_START, hds_to_process);
+   if (__UNLIKELY(hds_to_process == 0)) {
+     MTLK_TRACER_ADD_ENTRY(hw, MTLK_TR_DATA_RX_END, 0);
+@@ -2828,6 +2839,7 @@
+   MTLK_TRACER_ADD_ENTRY(hw, MTLK_TR_DATA_RX_END, hds_to_process);
+ 
+   hds_to_process = mtlk_ccr_ring_get_hds_to_process(hw->ccr, &hw->rx.ring.regs);
++  dma_rmb();
+   MTLK_TRACER_ADD_ENTRY(hw, MTLK_TR_DATA_RX_REM, hds_to_process);
+   if (hds_to_process) return MTLK_ERR_PENDING;
+ 
+@@ -2875,6 +2887,7 @@
+     uint32 cur_hd, hds_to_process = 0;
+ 
+     hds_to_process = mtlk_ccr_ring_get_hds_to_process(hw->ccr, &hw->bss_mgmt.tx_ring.regs);
++  dma_rmb();
+     MTLK_TRACER_ADD_ENTRY(hw, MTLK_TR_BSS_CFM_START, hds_to_process);
+     if (__UNLIKELY(hds_to_process == 0)) {
+       MTLK_TRACER_ADD_ENTRY(hw, MTLK_TR_BSS_CFM_END, 0);
+@@ -2898,6 +2911,7 @@
+     MTLK_TRACER_ADD_ENTRY(hw, MTLK_TR_BSS_CFM_END, hds_to_process);
+ 
+     hds_to_process = mtlk_ccr_ring_get_hds_to_process(hw->ccr, &hw->bss_mgmt.tx_ring.regs);
++  dma_rmb();
+     MTLK_TRACER_ADD_ENTRY(hw, MTLK_TR_BSS_CFM_REM, hds_to_process);
+     if (hds_to_process) return MTLK_ERR_PENDING;
+   }
+@@ -2920,6 +2934,7 @@
+     uint32 cur_hd, hds_to_process = 0;
+ 
+     hds_to_process = mtlk_ccr_ring_get_hds_to_process(hw->ccr, &hw->bss_mgmt.rx_ring.regs);
++  dma_rmb();
+     MTLK_TRACER_ADD_ENTRY(hw, MTLK_TR_BSS_RX_START, hds_to_process);
+     if (__UNLIKELY(hds_to_process == 0)) {
+       hw->bss_rx_zero_hds_num++;
+@@ -2947,6 +2962,7 @@
+     MTLK_TRACER_ADD_ENTRY(hw, MTLK_TR_BSS_RX_END, hds_to_process);
+ 
+     hds_to_process = mtlk_ccr_ring_get_hds_to_process(hw->ccr, &hw->bss_mgmt.rx_ring.regs);
++  dma_rmb();
+     MTLK_TRACER_ADD_ENTRY(hw, MTLK_TR_BSS_RX_REM, hds_to_process);
+     if (hds_to_process) return MTLK_ERR_PENDING;
+   }
+@@ -3289,6 +3305,12 @@
+                                                      data_ind->nbuf,
+                                                      data_ind->size,
+                                                      MTLK_DATA_FROM_DEVICE);
++  if (dma_mapping_error(mtlk_ccr_get_dev_ctx(hw->ccr), data_ind->dma_addr)) {
++    _mtlk_mmb_nbuf_free(data_ind->nbuf);
++    data_ind->nbuf = NULL;
++    data_ind->dma_addr = 0;
++    goto FINISH;
++  }
+ #ifdef MTCFG_WAVE_FPGA
+   data_ind->dma_addr |= FPGA_DMA_ADDR_MASK;
+ #endif
+@@ -3318,6 +3340,12 @@
+                                                      data_ind->nbuf,
+                                                      data_ind->size,
+                                                      MTLK_DATA_FROM_DEVICE);
++  if (dma_mapping_error(mtlk_ccr_get_dev_ctx(hw->ccr), data_ind->dma_addr)) {
++    _mtlk_mmb_nbuf_free(data_ind->nbuf);
++    data_ind->nbuf = NULL;
++    data_ind->dma_addr = 0;
++    goto FINISH;
++  }
+ 
+ #ifdef MTCFG_WAVE_FPGA
+   data_ind->dma_addr |= FPGA_DMA_ADDR_MASK;
+@@ -4437,14 +4465,14 @@
+ 
+ static void _mtlk_mmb_free_hd_ring(mtlk_hw_t *hw, mtlk_ring_buffer *ring)
+ {
+-    uint32 total_ring_size = ring->size * sizeof(HOST_DSC);
+-    mtlk_osal_unmap_phys_addr(mtlk_ccr_get_dev_ctx(hw->ccr), ring->dma_addr,
+-                              total_ring_size, MTLK_DATA_FROM_DEVICE);
+-#ifdef MTCFG_X86_PUMA7_WAV600_NOSNOOP
+-    if (_hw_type_is_gen6(hw))
+-      mtlk_osal_mem_ddr_dma_pages_set_uncacheable(ring->v_base_addr, total_ring_size, FALSE);
+-#endif
+-    mtlk_osal_mem_ddr_dma_pages_free(ring->v_base_addr, total_ring_size);
++  uint32 total_ring_size = ring->size * sizeof(HOST_DSC);
++
++  if (ring->v_base_addr)
++    dma_free_coherent(mtlk_ccr_get_dev_ctx(hw->ccr), total_ring_size,
++                      ring->v_base_addr, ring->dma_addr);
++  ring->v_base_addr = NULL;
++  ring->base_addr = NULL;
++  ring->dma_addr = 0;
+ }
+ 
+ static void
+@@ -4673,54 +4701,29 @@
+ }
+ 
+ static int
+-_mtlk_mmb_prepare_ring_buffer(mtlk_hw_t *hw, mtlk_ring_buffer *ring, CHI_MEM_RING *chi_ring, uint32 ring_size)
+-{
+-  uint32 total_ring_size = ring_size * sizeof(HOST_DSC);
+-
+-  MTLK_ASSERT(hw);
+-  MTLK_ASSERT(hw->ccr);
+-
++_mtlk_mmb_prepare_ring_buffer(mtlk_hw_t *hw, mtlk_ring_buffer *ring,
++                              CHI_MEM_RING *chi_ring, uint32 ring_size)
++{
++  size_t total_ring_size;
++  dma_addr_t dma;
++
++  if (!ring_size || ring_size > UINT_MAX / sizeof(HOST_DSC))
++    return MTLK_ERR_PARAMS;
++  total_ring_size = ring_size * sizeof(HOST_DSC);
+   ring->size = ring_size;
+-
+-  ILOG0_DD("ring_size:%d total_ring_size:%d", ring_size, total_ring_size);
+-
+-  /* Allocate and initialize a ring buffer.
+-   * On MIPS we access that memory via KSEG1, so memory access is uncached
+-   * On X86/Gen5 we relay on cache coherence provided by hardware (cache snooping)
+-   * On X86/Gen6 we use no-snooping PCIe transactions, so memory needs to be remapped
+-     in TLB as uncacheable. This requiers memory to be aligned on page boundary.
++  /* Firmware and CPU continuously share descriptor ownership. A coherent
++   * allocation supplies the correct uncached EVA alias on GRX500 and avoids
++   * CPU writes through a streaming mapping still owned by the device.
+    */
+-  ring->v_base_addr = mtlk_osal_mem_ddr_dma_pages_alloc(total_ring_size);
+-  if (NULL == ring->v_base_addr) {
++  ring->v_base_addr = dma_alloc_coherent(mtlk_ccr_get_dev_ctx(hw->ccr),
++                                        total_ring_size, &dma, GFP_KERNEL);
++  if (!ring->v_base_addr)
+     return MTLK_ERR_NO_MEM;
+-  }
+-
+-#ifdef MTCFG_X86_PUMA7_WAV600_NOSNOOP
+-  if (_hw_type_is_gen6(hw)) {
+-    if (mtlk_osal_mem_ddr_dma_pages_set_uncacheable(ring->v_base_addr, total_ring_size, TRUE)) {
+-      mtlk_osal_mem_ddr_dma_pages_free(ring->v_base_addr, total_ring_size);
+-      return MTLK_ERR_NO_MEM;
+-    }
+-  }
+-#endif
+-
+-  memset(ring->v_base_addr, 0, total_ring_size);
+-
+-  ring->dma_addr = mtlk_osal_map_to_phys_addr(mtlk_ccr_get_dev_ctx(hw->ccr),
+-                                              ring->v_base_addr, total_ring_size,
+-                                              MTLK_DATA_BIDIRECTIONAL);
+-#if defined(__i386) || defined(__x86_64)
+-  ring->base_addr = (HOST_DSC *) (ring->v_base_addr);
+-#else
+-  ring->base_addr = (HOST_DSC *) KSEG1ADDR(ring->v_base_addr); /* use uncached access on mips */
+-#endif
+-  ILOG0_DDD("Ring virtual addr:%x dma_addr:%x base_addr:%x",(uintptr_t)ring->v_base_addr, (uintptr_t)ring->dma_addr,
+-                                                            (uintptr_t)ring->base_addr);
+-
+-  ring->read_ptr  = 0;
++  ring->dma_addr = dma;
++  ring->base_addr = ring->v_base_addr;
++  ring->read_ptr = 0;
+   ring->write_ptr = 0;
+-
+-  /* initialize shared counter addresses */
++  dma_wmb();
+   _mtlk_mmb_prepare_ring_counters(hw, ring, chi_ring);
+   return MTLK_ERR_OK;
+ }
+@@ -5147,6 +5150,8 @@
+   return MTLK_ERR_OK;
+ }
+ 
++static void _mtlk_mmb_free_preallocated_rx_mgmt_buffers(mtlk_hw_t *hw);
++
+ static int
+ _mtlk_mmb_prealloc_rx_mgmt_buffers (mtlk_hw_t *hw)
+ {
+@@ -5156,12 +5161,19 @@
+   MTLK_ASSERT(hw->bss_mgmt.rx_bdr.basic.nof_bds == hw->bss_mgmt.rx_ring.size);
+   ILOG2_D("About to allocate %d pointers", hw->bss_mgmt.rx_ring.size);
+ 
++  /* Set before mapping so a partial allocation is unwound by cleanup. */
++  hw->flags |= HW_FLAGS_PREPARED_RX_MGMT_BUFFERS;
+   for (i = 0; i < hw->bss_mgmt.rx_ring.size; i++) {
+ 
+       bss_ind = _mtlk_basic_bdr_get_mirror_bd(&hw->bss_mgmt.rx_bdr.basic, i, struct mtlk_hw_bss_ind_mirror);
+ 
+       bss_ind->dma_addr = mtlk_osal_map_to_phys_addr(mtlk_ccr_get_dev_ctx(hw->ccr), (void *)bss_ind->virt_addr,
+                                                      bss_ind->size, MTLK_DATA_FROM_DEVICE);
++      if (dma_mapping_error(mtlk_ccr_get_dev_ctx(hw->ccr), bss_ind->dma_addr)) {
++        _mtlk_mmb_free_preallocated_rx_mgmt_buffers(hw);
++        return MTLK_ERR_NO_MEM;
++      }
++      bss_ind->dma_mapped = true;
+ 
+       #ifdef MTCFG_WAVE_FPGA
+         data_ind->dma_addr |= FPGA_DMA_ADDR_MASK;
+@@ -5194,7 +5206,7 @@
+ 
+     ILOG3_DDP("#%d Freeing at virt_addr:0x%08X from bss_ind:%p", i, bss_ind->dma_addr, bss_ind);
+ 
+-    if (!bss_ind->dma_addr) {
++    if (!bss_ind->dma_mapped) {
+       continue;
+     }
+ 
+@@ -5202,6 +5214,8 @@
+                               bss_ind->dma_addr,
+                               bss_ind->size,
+                               MTLK_DATA_FROM_DEVICE);
++    bss_ind->dma_mapped = false;
++    bss_ind->dma_addr = 0;
+   }
+ 
+   hw->flags &= ~HW_FLAGS_PREPARED_RX_MGMT_BUFFERS;
+@@ -5296,16 +5310,17 @@
+ static void
+ _mtlk_mmb_cleanup_calibration_cache(mtlk_hw_t *hw)
+ {
+-  mtlk_osal_unmap_phys_addr(mtlk_ccr_get_dev_ctx(hw->ccr),
++  if (hw->calibr_dma_addr)
++    mtlk_osal_unmap_phys_addr(mtlk_ccr_get_dev_ctx(hw->ccr),
+                             hw->calibr_dma_addr,
+                             hw->chi_area.sCalibr.sData.u32BufferRequestedSize,
+-                            MTLK_DATA_FROM_DEVICE);
++                            MTLK_DATA_BIDIRECTIONAL);
+   mtlk_osal_mem_free(hw->calibr_buffer);
+   hw->calibr_dma_addr = 0;
+   hw->calibr_buffer = NULL;
+ }
+ 
+-static void _mtlk_mmb_set_calibration_buffers (mtlk_hw_t *hw)
++static int _mtlk_mmb_set_calibration_buffers (mtlk_hw_t *hw)
+ {
+ 
+   memset(hw->calibr_buffer, 0, hw->chi_area.sCalibr.sData.u32BufferRequestedSize);
+@@ -5314,11 +5329,14 @@
+                                                    hw->calibr_buffer,
+                                                    hw->chi_area.sCalibr.sData.u32BufferRequestedSize,
+                                                    MTLK_DATA_BIDIRECTIONAL);
+-  MTLK_ASSERT(0 != hw->calibr_dma_addr);
++  if (dma_mapping_error(mtlk_ccr_get_dev_ctx(hw->ccr), hw->calibr_dma_addr)) {
++    hw->calibr_dma_addr = 0;
++    return MTLK_ERR_NO_MEM;
++  }
+ 
+   ILOG0_DPD("Calibration buffer: dma_addr 0x%08X, virt_addr 0x%p, size %d",
+             hw->calibr_dma_addr, hw->calibr_buffer, hw->chi_area.sCalibr.sData.u32BufferRequestedSize);
+-
++  return MTLK_ERR_OK;
+ }
+ 
+ #define __CCR_IO_MASK__         ((1u << 24) - 1) /* 16M - accessible from the host */
+@@ -5350,8 +5368,12 @@
+                                               MTLK_MEM_TAG_EXTENSION);
+ 
+   if (hw->calibr_buffer) {
+-    _mtlk_mmb_set_calibration_buffers(hw);
+-    return MTLK_ERR_OK;
++    int res = _mtlk_mmb_set_calibration_buffers(hw);
++    if (res != MTLK_ERR_OK) {
++      mtlk_osal_mem_free(hw->calibr_buffer);
++      hw->calibr_buffer = NULL;
++    }
++    return res;
+   }
+   else {
+     WLOG_D("Can't allocate Calibration buffer of %d bytes",
+@@ -8075,6 +8097,7 @@
+ _wave_hw_mmb_ring_queue_check (mtlk_hw_t *hw, mtlk_ring_buffer *ring, const char *name)
+ {
+   uint32 hds_to_process = mtlk_ccr_ring_get_hds_to_process(hw->ccr, &ring->regs);
++  dma_rmb();
+ 
+   /* check for PCI stall at first - hds_to_process equal to all FFs */
+   if (MAX_UINT32 == hds_to_process) {
+@@ -8337,30 +8360,23 @@
+ _mtlk_mmb_put_hd_to_ring(mtlk_hw_t *hw, HOST_DSC *pHD, mtlk_ring_buffer *ring)
+ {
+   mtlk_handle_t lock_val;
+-  uint32 u32frameInfo3;
+-
+-  MTLK_ASSERT(hw);
++  HOST_DSC desc = *pHD;
++  HOST_DSC *slot;
++  uint32 info = LE32_TO_CPU(desc.u32frameInfo3);
++
+   MTLK_ASSERT(ring->write_ptr < ring->size);
+-
+-  /* Change OWN bit */
+-  u32frameInfo3 = LE32_TO_CPU(pHD->u32frameInfo3);
+-  MTLK_BFIELD_SET(u32frameInfo3, TX_DATA_INFO_OWN_BIT, MTLK_OWNER_FW);
+-  pHD->u32frameInfo3 = CPU_TO_LE32(u32frameInfo3);
+-
++  MTLK_BFIELD_SET(info, TX_DATA_INFO_OWN_BIT, MTLK_OWNER_FW);
+   lock_val = mtlk_osal_lock_acquire_irq(&hw->reg_lock);
+-
+-  /* copy descriptor into ring */
+-  *(ring->base_addr + ring->write_ptr) = *pHD;
+-
+-  mmiowb();
+-
+-  while(__UNLIKELY(memcmp(pHD, ring->base_addr + ring->write_ptr, sizeof(HOST_DSC)))){
+-    mtlk_dump(0,ring->base_addr + ring->write_ptr, sizeof(HOST_DSC), "PHD");
+-    mtlk_dump(0,pHD, sizeof(HOST_DSC), "stored");
+-  }
+-
++  slot = ring->base_addr + ring->write_ptr;
++  WRITE_ONCE(slot->u32frameInfo0, desc.u32frameInfo0);
++  WRITE_ONCE(slot->u32frameInfo1, desc.u32frameInfo1);
++  WRITE_ONCE(slot->u32HostPayloadAddr, desc.u32HostPayloadAddr);
++  WRITE_ONCE(slot->u32BdIndex, desc.u32BdIndex);
++  /* Publish all fields before ownership; then ownership before doorbell. */
++  dma_wmb();
++  WRITE_ONCE(slot->u32frameInfo3, CPU_TO_LE32(info));
++  dma_wmb();
+   INC_WRAP_IDX(ring->write_ptr, ring->size);
+-
+   mtlk_ccr_ring_initiate_doorbell_interrupt(hw->ccr, &ring->regs);
+   mtlk_osal_lock_release_irq(&hw->reg_lock, lock_val);
+ }
+@@ -8384,6 +8400,10 @@
+                                     data_req->nbuf,
+                                     data_req->size,
+                                     MTLK_DATA_TO_DEVICE);
++    if (dma_mapping_error(mtlk_ccr_get_dev_ctx(hw->ccr), data_req->dma_addr)) {
++      data_req->dma_addr = 0;
++      return MTLK_ERR_PKT_DROPPED;
++    }
+   }
+   else {
+     data_req->dma_addr = 0;
+@@ -10606,7 +10626,7 @@
+ mtlk_hw_mmb_fill_phy_info_by_default (mtlk_phy_info_t *phy_info)
+ {
+     MTLK_ASSERT(NULL != phy_info);
+-    mtlk_hw_mmb_fill_phy_info_by_default(phy_info);
++    _mtlk_hw_mmb_fill_phy_info_by_default(phy_info);
+ }
+ 
+ static void
+@@ -10767,6 +10787,8 @@
+   mtlk_core_handle_rx_bss_t     data;
+   mtlk_phy_info_t              *phy_info = &data.phy_info;
+   uint8                         frag_type;
++  struct mtlk_hw_bss_ind_mirror *bss_ind = NULL;
++  uint32 buffer_offset = 0, i;
+ 
+   u32frameInfo3 = LE32_TO_CPU(pHD->u32frameInfo3);
+   if (__UNLIKELY(MTLK_OWNER_FW == MTLK_BFIELD_GET(u32frameInfo3, TX_DATA_INFO_OWN_BIT))) {
+@@ -10783,6 +10805,7 @@
+       goto critical_error;
+     }
+   }
++  dma_rmb(); /* Firmware relinquished ownership before writing payload metadata. */
+   u32frameInfo0 = LE32_TO_CPU(pHD->u32frameInfo0);
+   u32frameInfo1 = LE32_TO_CPU(pHD->u32frameInfo1);
+   hostpayload   = LE32_TO_CPU(pHD->u32HostPayloadAddr);
+@@ -10819,14 +10842,34 @@
+                                   /* Gen6: reported size = size of frame; need to add RxPhyMetrics with alignment */
+                 (RX_MGMT_ALIGNMENT(size + offset) - offset + sizeof(G6_RX_PHY_METRICS)));
+ 
+-  hostpayload += offset;
+-  mtlk_osal_unmap_phys_addr(mtlk_ccr_get_dev_ctx(hw->ccr),
+-                            hostpayload, total_size, MTLK_DATA_FROM_DEVICE);
+-
+-  buf = (uint8 *)(phys_to_virt(hostpayload));
++  /* Firmware returns a buffer from the permanent RX pool, not a new DMA
++   * mapping. Resolve its DMA address against the mirrors: phys_to_virt() is
++   * invalid for translated DMA and offset/short unmaps corrupt DMA ownership.
++   */
++  for (i = 0; i < hw->bss_mgmt.rx_bdr.basic.nof_bds; i++) {
++    struct mtlk_hw_bss_ind_mirror *candidate =
++      _mtlk_basic_bdr_get_mirror_bd(&hw->bss_mgmt.rx_bdr.basic, i,
++                                   struct mtlk_hw_bss_ind_mirror);
++    if (candidate->dma_mapped && hostpayload >= candidate->dma_addr &&
++        hostpayload - candidate->dma_addr < candidate->size) {
++      bss_ind = candidate;
++      buffer_offset = hostpayload - candidate->dma_addr;
++      break;
++    }
++  }
++  if (!bss_ind || offset > bss_ind->size - buffer_offset)
++    goto critical_error;
++  buffer_offset += offset;
++  if (total_size > bss_ind->size - buffer_offset ||
++      (!is_eapol && (is_gen5 ? size < sizeof(RX_PHY_METRICS) + sizeof(frame_head_t) :
++                              size < sizeof(frame_head_t))))
++    goto critical_error;
++  dma_sync_single_for_cpu(mtlk_ccr_get_dev_ctx(hw->ccr), bss_ind->dma_addr,
++                          bss_ind->size, DMA_FROM_DEVICE);
++  buf = bss_ind->virt_addr + buffer_offset;
+ 
+   ILOG3_DP("phyaddr:0x%x vaddr:0x%p", hostpayload, buf);
+-  mtlk_dump(3, buf + sizeof(RX_PHY_METRICS), MIN(32, size),"EAPOL/BSS Frame");
++  mtlk_dump(3, buf, MIN(32, size), "EAPOL/BSS Frame");
+ 
+   if ((is_eapol) ||
+        ((FRAME_TYPE_ETHERNET == frame_type) && type == (IEEE80211_FTYPE_DATA >> 2) && hw->bss_mgmt.rx_eapol.data_size))
+@@ -10875,8 +10918,8 @@
+     }
+   }
+ 
+-  mtlk_osal_map_to_phys_addr(mtlk_ccr_get_dev_ctx(hw->ccr),
+-                             buf, total_size, MTLK_DATA_FROM_DEVICE);
++  dma_sync_single_for_device(mtlk_ccr_get_dev_ctx(hw->ccr), bss_ind->dma_addr,
++                             bss_ind->size, DMA_FROM_DEVICE);
+ 
+ send_resp:
+   _mtlk_mmb_put_hd_to_ring(hw, (HOST_DSC *)pHD, &hw->bss_mgmt.rx_ring);
+@@ -11025,6 +11068,10 @@
+   /* do not touch the data payload after dma map */
+   bss_req->dma_addr = mtlk_osal_map_to_phys_addr(mtlk_ccr_get_dev_ctx(hw->ccr), bss_req->virt_addr,
+                                                  bss_req->size, MTLK_DATA_TO_DEVICE);
++  if (dma_mapping_error(mtlk_ccr_get_dev_ctx(hw->ccr), bss_req->dma_addr)) {
++    bss_req->dma_addr = 0;
++    return MTLK_ERR_NO_MEM;
++  }
+   /* leave the u8Reserved, u8Status and retransmissions fields as 0 */
+ 
+   bss_hd.u32BdIndex         = CPU_TO_LE32(bss_req->hdr.index);
+@@ -11229,6 +11276,10 @@
+     return MTLK_ERR_PARAMS;
+   }
+ 
++  if ((extra_processing == PROCESS_EAPOL && len < ETH_HLEN) ||
++      (extra_processing != PROCESS_EAPOL && len < sizeof(frame_head_t)))
++    return MTLK_ERR_PARAMS;
++
+   memset(&dst_addr, 0, sizeof(dst_addr));
+ 
+   if (PROCESS_MANAGEMENT == extra_processing)
+@@ -11253,9 +11304,13 @@
+     }
+ 
+     if (MAN_TYPE_ACTION == subtype) {
++      if (len < sizeof(frame_head_t) + 1)
++        return MTLK_ERR_PARAMS;
+       action_code = *(buf + sizeof(frame_head_t));
+     }
+     if (MAN_TYPE_PROBE_RES == subtype) {
++      if (len < sizeof(frame_head_t) + sizeof(frame_probe_resp_head_t))
++        return MTLK_ERR_PARAMS;
+       /* find BSS load ie if exist and update it*/
+       const u8 *ies_data = buf + sizeof(frame_head_t) + sizeof(frame_probe_resp_head_t);
+       int       ies_len = len - sizeof(frame_head_t) - sizeof(frame_probe_resp_head_t);
+@@ -11336,7 +11391,15 @@
+   bss_req->tid              = tid;
+   if (transmit_now)
+   {
+-    _mtlk_mmb_bss_mgmt_tx(hw, bss_req, vap_handle);
++    int tx_res = _mtlk_mmb_bss_mgmt_tx(hw, bss_req, vap_handle);
++    if (tx_res != MTLK_ERR_OK) {
++      mtlk_osal_lock_acquire(&bss_mgmt->tx_bdr.lock);
++      mtlk_dlist_remove(&bss_mgmt->tx_bdr.used_list, entry);
++      mtlk_dlist_push_back(&bss_mgmt->tx_bdr.free_list, entry);
++      mtlk_osal_lock_release(&bss_mgmt->tx_bdr.lock);
++      bss_req->skb = NULL; /* caller retains its skb when submission fails */
++      return tx_res;
++    }
+   }
+   else
+   {
+@@ -11377,6 +11440,29 @@
+     }
+   }
+   return MTLK_ERR_OK;
++}
++
++/* A reserve entry has already been accepted by its caller. Report a
++ * failed submission and consume its skb when no firmware completion will come.
++ */
++static void wave_bss_queued_tx_failed(mtlk_hw_t *hw,
++                                    struct mtlk_hw_bss_req_mirror *req,
++                                    mtlk_vap_handle_t vap)
++{
++  if (vap && mtlk_vap_is_ap(vap) && req->cookie &&
++      req->extra_processing == PROCESS_MANAGEMENT) {
++    mtlk_df_user_t *user = mtlk_df_get_user(mtlk_vap_get_df(vap));
++    cfg80211_mgmt_tx_status(mtlk_df_user_get_wdev(user), req->cookie,
++                           req->virt_addr, req->size, false, GFP_ATOMIC);
++  }
++  if (req->skb) {
++    wave_radio_t *radio = __mtlk_hw_wave_radio_get(hw, req->radio_id);
++    if (vap && !mtlk_vap_is_ap(vap) && radio)
++      wv_ieee80211_tx_status(wave_radio_ieee80211_hw_get(radio), req->skb, FALSE);
++    else
++      dev_kfree_skb_any(req->skb);
++    req->skb = NULL;
++  }
+ }
+ 
+ /* This runs from the tasklet context, and possibly on a different CPU
+@@ -11414,6 +11500,8 @@
+   ILOG3_D("BSS CFM: index=%hu", u32BdIndex);
+ 
+   mtlk_osal_atomic_set(&bss_mgmt->tx_ring_last_cfm_ts, mtlk_osal_timestamp());
++  if (u32BdIndex >= bss_mgmt->tx_bdr.basic.nof_bds)
++    goto the_trap;
+   bss_req = _mtlk_basic_bdr_get_mirror_bd(&bss_mgmt->tx_bdr.basic, u32BdIndex, struct mtlk_hw_bss_req_mirror);
+ 
+ #ifdef BD_DBG
+@@ -11485,7 +11573,7 @@
+     if (mtlk_vap_is_ap(vap_handle))
+     {
+       cfg80211_probe_status(ndev, wifi_header->dst_addr.au8Addr, bss_req->cookie,
+-                            (BOOL)status, GFP_ATOMIC);
++                            (BOOL)status, 0, false, GFP_ATOMIC);
+     }
+     else
+     {
+@@ -11533,6 +11621,9 @@
+     bss_req->is_broadcast     = bss_req_res->is_broadcast;
+     bss_req->dst_addr         = bss_req_res->dst_addr;
+     bss_req->skb              = bss_req_res->skb;
++    bss_req_res->skb          = NULL;
++    bss_req->power_mgmt_on    = bss_req_res->power_mgmt_on;
++    bss_req->tid              = bss_req_res->tid;
+ 
+     mtlk_dlist_push_back(&bss_mgmt->tx_res_bdr.free_list, entry); /* push onto reserve free list */
+     ILOG3_PD("Pushed entry onto reserve free list: 0x%p, %i remaining",
+@@ -11553,6 +11644,7 @@
+     if (__UNLIKELY(!vap_handle_res)) {
+       WLOG_DD("Drop bss frame from reserved queue due to VAP was removed radio_id:%d vap_id:%d",
+                bss_req->radio_id, bss_req->vap_id);
++      wave_bss_queued_tx_failed(hw, bss_req, vap_handle_res);
+       continue;
+     }
+ 
+@@ -11563,10 +11655,12 @@
+         mtlk_core_get_net_state(mtlk_vap_get_core(vap_handle_res)))) {
+       WLOG_DD("Drop bss frame from reserved queue due to VAP is not active radio_id:%d, vap_id:%d",
+                bss_req->radio_id, bss_req->vap_id);
++      wave_bss_queued_tx_failed(hw, bss_req, vap_handle_res);
+       continue;
+     }
+ 
+     if (MTLK_ERR_OK != _mtlk_mmb_bss_mgmt_tx(hw, bss_req, vap_handle_res)) {
++      wave_bss_queued_tx_failed(hw, bss_req, vap_handle_res);
+       continue;
+     }
+ 
+--- a/wireless/driver/shared/stadb.h
++++ b/wireless/driver/shared/stadb.h
+@@ -48,7 +48,7 @@
+ #define WV_HT_MCS_MASK_LEN 10 /* must match IEEE80211_HT_MCS_MASK_LEN from include/linux/ieee80211.h */
+ #define WV_VHT_MCS_INFO_NUM_FIELDS 4
+ 
+-#define HE_MAC_PHY_LEN 15
++#define HE_MAC_PHY_LEN 18 /* UMI extension ID + modern 17-byte HE element */
+ #define HE_MCS_NSS_160MHZ_LEN  8
+ #define HE_PPE_TH_LEN  13
+ 
+@@ -63,6 +63,8 @@
+ #define STA_FLAGS_OPMODE_NOTIF            MTLK_BFIELD_INFO(7, 1)
+ #define STA_FLAGS_WDS_WPA                 MTLK_BFIELD_INFO(8, 1)
+ #define STA_FLAGS_OMN_SUPPORTED           MTLK_BFIELD_INFO(9, 1)
++/* Host-only ownership flag; firmware flags are encoded individually. */
++#define STA_FLAGS_NATIVE_SID              MTLK_BFIELD_INFO(14, 1)
+ #define STA_FLAGS_11ax                    MTLK_BFIELD_INFO(15, 1)
+ 
+ #define BSS_COEX_IE_40_MHZ_INTOLERANT               MTLK_BFIELD_INFO(1, 1)
+--- /dev/null
++++ b/wireless/driver/linux/wave_he_compat.h
+@@ -0,0 +1,55 @@
++/* SPDX-License-Identifier: GPL-2.0-only OR BSD-2-Clause
++ * WAVE600 firmware HE wire format: extension ID + 6 MAC + 11 PHY bytes,
++ * two RX/TX MCS maps (<=80 and 160 MHz), and at most four NSS of PPE.
++ * The UMI layout is unchanged; only the host-side representation is adapted.
++ */
++#ifndef WAVE_HE_COMPAT_H
++#define WAVE_HE_COMPAT_H
++
++/* Pure byte serializer, also exercised by the host-side boundary tests. */
++static inline int wave_he_pack(unsigned char cap[18], unsigned char mcs[8],
++                               unsigned char ppe[13], const unsigned char *src,
++                               unsigned int len)
++{
++  unsigned int mcs_len, ppe_len = 0, nss, nrus = 0, bits, i;
++  if (!src || len < 21)
++    return -1;
++  mcs_len = 4 + ((src[6] & 0x08) ? 4 : 0) + ((src[6] & 0x10) ? 4 : 0);
++  if (len < 17 + mcs_len)
++    return -1;
++  if (src[12] & 0x80) {
++    if (len < 18 + mcs_len)
++      return -1;
++    for (i = 3; i < 7; i++)
++      nrus += !!(src[17 + mcs_len] & (1U << i));
++    nss = (src[17 + mcs_len] & 7) + 1;
++    ppe_len = (7 + nss * nrus * 6 + 7) / 8;
++    if (!nrus || len < 17 + mcs_len + ppe_len)
++      return -1;
++  }
++  cap[0] = 35; /* WLAN_EID_EXT_HE_CAPABILITY */
++  for (i = 0; i < 17; i++)
++    cap[i + 1] = src[i];
++  /* Firmware has no 80+80 map; retain contiguous 160 support. */
++  cap[7] &= ~0x10;
++  for (i = 0; i < 8; i++)
++    mcs[i] = 0xff;
++  for (i = 0; i < ((src[6] & 0x08) ? 8U : 4U); i++)
++    mcs[i] = src[17 + i];
++  for (i = 0; i < 13; i++)
++    ppe[i] = 0;
++  if (ppe_len) {
++    nss = (src[17 + mcs_len] & 7) + 1;
++    if (nss > 4)
++      nss = 4;
++    bits = 7 + nss * nrus * 6;
++    ppe_len = (bits + 7) / 8;
++    for (i = 0; i < ppe_len; i++)
++      ppe[i] = src[17 + mcs_len + i];
++    ppe[0] = (ppe[0] & ~7) | (nss - 1);
++    if (bits & 7)
++      ppe[ppe_len - 1] &= (1U << (bits & 7)) - 1;
++  }
++  return 0;
++}
++#endif

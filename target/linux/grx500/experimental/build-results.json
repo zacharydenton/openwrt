@@ -1,0 +1,74 @@
+{
+  "status": "experimental implementation; hardware acceptance pending",
+  "hardware_tested": false,
+  "kernel_version": "6.18.55",
+  "compiler": "OpenWrt GCC 14.4.0, mips_24kc_musl",
+  "full_openwrt_build": "pass",
+  "ethernet_kernel_build": "pass",
+  "wifi_full_stack_build": "pass",
+  "ram_image_audit": "pass",
+  "sysupgrade_image_audit": "pass",
+  "scope": [
+    "four-VPE GRX500 platform",
+    "LAN/WAN Ethernet",
+    "dual-band HT/VHT/HE and contiguous 160 MHz",
+    "SAE/WPA3 and PMF",
+    "stock calibration and factory MAC",
+    "NAND and staged UBI installation/upgrades",
+    "USB storage",
+    "LEDs/buttons/WPS",
+    "firmware recovery"
+  ],
+  "artifact_sha256": {
+    "openwrt-grx500-generic-tplink_archer-ax3000-v1-initramfs-kernel.bin": "2f36b8c1d64af1e33a45dd34ebfecb21e85ee7ce3eec664700451f7893a84f1d",
+    "openwrt-grx500-generic-tplink_archer-ax3000-v1-squashfs-sysupgrade.bin": "a066360d245facf6a3409a3e319b525e7c07b7154e101371b6e06d079453a19c"
+  },
+  "reports": [
+    "firmware-audit/current-image-audit.json",
+    "firmware-audit/current-sysupgrade-audit.json"
+  ],
+  "baseline_datapath": "software forwarding; optional DirectConnect variant in experimental/directconnect",
+  "not_verified": [
+    "boot on physical AX3000 v1.6",
+    "Ethernet traffic/isolation/throughput",
+    "wireless association/DFS/PMF negative tests/throughput",
+    "NAND ECC and power-loss recovery",
+    "USB connector and electrical behavior",
+    "LED/button physical behavior"
+  ],
+  "host_validation": {
+    "boot_bank_parser": "ASan/UBSan pass",
+    "ethtool_nway_restart": "5 ASan/UBSan cases pass; MIPS kernel object calls phylib",
+    "ethernet_flow_control": "7 ASan/UBSan cases pass; MIPS kernel object binds queue stop/wake and timeout warning helpers",
+    "ethernet_datapath_rx_tx": "16 ASan/UBSan ownership/bounds cases pass; MIPS object binds pull, trim, RX and TX helpers",
+    "datapath_rx_callback_accounting": "7 strict ASan/UBSan success/failure cases pass; the MIPS object contains distinct RX, TX, clone and drop counter paths",
+    "datapath_debug_dump_bounds": "11 strict ASan/UBSan linear-head, offset and cap cases pass; RX and TX MIPS objects compute fragment-safe dump lengths",
+    "ethernet_mac_address": "6 strict ASan/UBSan cases pass with the modern const-qualified netdev address model",
+    "ethtool_pause": "16 strict ASan/UBSan get/set cases pass",
+    "ubi_upgrade": "9 test groups passed, including detached-container guard failure",
+    "factory_mac_ubi": "25 fixtures pass with GNU tools and BusyBox 1.36.1 isolated applets",
+    "wifi_he_wire": "ASan/UBSan pass",
+    "wifi_pmf_frame_crypto": "CMAC128/256 and GMAC128/256 pass",
+    "wifi_recovery_helper": "mocked recovery/failure cases pass",
+    "wifi_source_manifest": "25 compiled source files match; exact patch reconstruction pass",
+    "optional_umt": "actual extracted state/counter functions pass",
+    "optional_export": "pinned archive and patches/integration pass"
+  },
+  "optional_directconnect": {
+    "full_image_build": "pass",
+    "ram_image_audit": "pass",
+    "sysupgrade_image_audit": "pass",
+    "hardware_tested": false,
+    "default_fastpath": false,
+    "report": "directconnect/validation.json"
+  },
+  "stock_web_upload_supported": false,
+  "additional_runtime_verification": {
+    "stock_checker_cases": 12,
+    "stock_checker_expectations": "all pass; all four OpenWrt images rejected",
+    "mips_userspace_cases": 52,
+    "mips_userspace_result": "all pass",
+    "report": "firmware-audit/web-upgrade-audit.rst",
+    "hardware_tested": false
+  }
+}

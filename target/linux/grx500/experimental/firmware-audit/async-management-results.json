@@ -1,0 +1,100 @@
+{
+  "schema": 1,
+  "status": "Asynchronous management cookie/packet ownership, optional callback failure handling and no-ACK completion corrected; full lifecycle and hardware qualification remain incomplete.",
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "new_factory_container": false,
+  "changes": [
+    "Heap-owned station TX cookie and skb ownership until request completion or successful transfer",
+    "Release rejected/cancelled requests and preserve successful transfer even if result storage fails",
+    "Guard optional callback on allocation failure",
+    "Consume accepted station skb independently of cookie zero and clear descriptor pointer",
+    "Reject unqueued frames without reporting success or publishing an unset cookie"
+  ],
+  "tests": {
+    "async_ownership_cases": 58,
+    "bss_ownership_cases": 73,
+    "concurrent_tx_gate_regression_cases": 72,
+    "reset_work_regressions": "pass",
+    "native_asan_ubsan": "pass",
+    "mips_userspace": "pass",
+    "before_stack_cookie": "AddressSanitizer stack-use-after-scope on deferred 8-byte cookie write",
+    "before_null_callback": "AddressSanitizer null program counter on optional callback allocation failure",
+    "before_noack_completion": "fails packet ownership assertion in cookie/packet matrix",
+    "scope": "Actual TX entry, async invocation/completion and core dispatch, management handler, frame-drop branch and BSS ownership block; modeled allocations/clipboard/serializer scheduling/firmware/mac80211 callbacks. No concurrent removal, running kernel, firmware or RF."
+  },
+  "build": {
+    "clean_wireless_package": "pass",
+    "integrated_build": "pass; existing vendor warnings remain",
+    "prepared_source_exact_before_plus_patch": true,
+    "rebuilt_source_matches_tested_snapshots": true,
+    "weak_ordering_config_and_compiled_msi_fence": "pass",
+    "image_elf_binding_and_packaged_contents": "pass"
+  },
+  "inputs": {
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/async-mgmt-before/wireless/driver/linux/core.c": "e7dab318d240f3dae1451c0c61b46b9acd3115ad8b6f8ed94cbc6140859b8b18",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/async-mgmt-before/wireless/driver/linux/mac80211.c": "4a3e1f19cae1ed98b8372be4f6179f421b4e2e7a2bf7f9cd586a2b920d45c1b2",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/async-mgmt-before/wireless/driver/linux/mtlk_df_linux.c": "77733938da2edd919924ba799f063a4a9faa93576cd78bf7621bf5cf0a203c9a",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/async-mgmt-before/wireless/driver/shared/hw_mmb.c": "af91d7ae9c8d5c755082412ec1c6f819909ea35e6d78db9e923f03cc584088d7",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/async-mgmt-before/wireless/driver/shared/mtlk_coreui.h": "f9226dfce511e32a7f7a1896b6f20eea63de490d4d4c1322cca66c9658b5f9ea",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/async-mgmt-prepared/wireless/driver/linux/core.c": "1e51d2db36c5d9d67bb95b3cc7b4af375929354cebd89abc37692ed25dd9ecf5",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/async-mgmt-prepared/wireless/driver/linux/mac80211.c": "6b886b2f271898c0dcc66b985fe707fb284bc3fd21ca5b947b0ee7c521ffa620",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/async-mgmt-prepared/wireless/driver/linux/mtlk_df_linux.c": "9fe559af2edaa1a285f5fdd5272a09212873664fde3c80a7292fda3df5d40db5",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/async-mgmt-prepared/wireless/driver/shared/hw_mmb.c": "17d695cdfb257ad74d990cb7e343c31dec5697fc84c7949ba498c98520785bda",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/async-mgmt-prepared/wireless/driver/shared/mtlk_coreui.h": "b72f4ae49ecb0fad8dad34f3f7600b184b67f61e99e799885fe8a5d24d08353c",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/mtlk.ko": "3126eeccee25936ee0edfef60a5bc3853cddc5204694bf4f59a6dc75f82dc5bd",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/shared/mtlk_clipboard.c": "958e457bcfb95e9ddf22d68d2a20e3be7c676eab2ebc7e2908ffadacc4b8c84e",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/shared/mtlk_clipboard.h": "27d6eb7ce35728bb7d3778e1b4e56b5f2193b4316a1257ca4b99ad50f5f2a791",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/shared/mtlk_serializer.c": "2500855bba7dfbae094827e0af597e38d28ec9699f7d702a5d4d9abe36b333ba",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/.config": "8a7db47d826ce756da5d343508358b60013bfe223fd8bb6f2f3589b0fce34be2",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/net/mac80211/main.c": "38047a679e48375f6d8cae18b6b2746d89dac38cde4ee62602ed3e56ca957e74",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/net/mac80211/rx.c": "60c9fe83916e31298a9d77a41077ce24447703a3c6c00acc6c5efe88101b1f52",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/net/mac80211/status.c": "228d0a3d27f98e0f1a8f7c7f520fe280eb3303bb461287f20f254a2bc79ccf66",
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/patches/190-async-management-ownership.patch": "9493f581adff744f82afa65adbcc3c47da8d3e26f9617d7d420a34230a2d222c",
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/tests/async-management.py": "3c37f07f214d7fe171d4a489f533fab5a05b26ca9308da8d8fed840bd80e2eb6",
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/tests/bss-tx-ownership.py": "66ca4c288f6dd295300063c1bc0aec58e4a0b85d05e92164ab0983ec60ad2aea",
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/tests/tx-producer-gate.py": "3c8d7869ef94639a5be11bbd6e406567d364e32bec4163d52dd758f61725d92a"
+  },
+  "logs": {
+    "async-mgmt-native.log": "47659d273c5dfe92c6faf69cda1395d05a14aecbf2ef3f55c61048abeab5f146",
+    "async-mgmt-mips.log": "3e88b5a5002ed24c9b764162c068d5349fabf97aa2060edbe3f1614c511c1623",
+    "async-mgmt-before.log": "2df0af5479b27eb1ef4edf1b39e90629c78995434db516b9fb7aa176bd11cc8a",
+    "async-mgmt-before-null.log": "c0f72bcc17b7450c3bad39e39c0f612f64e3e33db611a6697eaf6509defdcfdf",
+    "async-mgmt-before-noack.log": "8cafdf54d87561eaa7fa3cdb3b0de7b85f5d031046b1ff87d4c7051584994995",
+    "async-mgmt-bss-tx-ownership-native.log": "a1f821363d5ea9754eb9399f5a9a119482e27778842153f9ce65cd6d37a162fc",
+    "async-mgmt-bss-tx-ownership-mips.log": "91de00989185895ac83768074e390a31d649d6927f455af3501baf22d5cfb685",
+    "async-mgmt-tx-producer-gate-native.log": "a1c8281b739b2477968e9ed825f7fd40cf054148c9115ed4e3469fcb76dea33d",
+    "async-mgmt-tx-producer-gate-mips.log": "8e71a94c484a4e78e51c5b4120e2b9aa22b3298724e94ff4ea13e45eb4601595",
+    "async-mgmt-package-clean.log": "b83ec689a87335459ec2e696743b53dbb47f578bc16bef12a212895582fd7897",
+    "async-mgmt-package-build.log": "76266294c3f87e5d13fbbc12c1d98b567dcbf3af4b1da68ecabdc95c4d17adf8",
+    "async-mgmt-integrated-build.log": "32b0d14f6d5f56670671fee8ce7257f4d706864ffad7f11a0c97e3d3296d4530"
+  },
+  "image_checks": {
+    "content.log": "ba06978797f5ac0d2c1b0e912b58417bfac5698fb7bb6c66341420ee8e00df51",
+    "initramfs.log": "f9516ca85311b6b846eb48781c6e4f606283db87283704362502bf2b15f47149",
+    "integrated-safety-content.json": "9d97ed62ded118524b2c255b0f6a766ae8ffe77f1f0b60fc434830b7c404eb42",
+    "integrated-safety-initramfs.json": "81d254189b05541a7a784d510018ceae5ab3f30abbed92323f1d44dc2401578c",
+    "integrated-safety-sysupgrade.json": "1f599a9b96ddebec921744e415316750d8d725c28686d6db139e585135307229",
+    "ordering.log": "1e8833b63e370540818146cc154a8f369e70ff1b8b6617591f68db266bad715b",
+    "sysupgrade.log": "9dc2129d9e5471d3f3e83ac4f4c3aebe5d4debd73209285a99b2ff8071639ac4",
+    "verify-integrated-safety.py": "9e04e426c8379cdc4b0642d4e9fb0b01cbe6b765941b51805b8f868f4248314d"
+  },
+  "ordering_check": {
+    "path": "/home/zach/code/archer-ax3000-bringup/one-shot-audit/async-mgmt-ordering.json",
+    "sha256": "f58e1664ace88488641971d5f8f0ddded8fffbe5ae11ba3688e1999667e8b333"
+  },
+  "compiled_evidence": {
+    "_mtlk_core_mgmt_tx.disassembly": "53d14a10fe4d95031145058790a41b953053c83f9847fddbb847b283460555a2",
+    "_mtlk_df_user_invoke_core_async.disassembly": "f73f02c41a0b34a33f3a724197ee76865e1314607cbc08c791663081466ded4b",
+    "_mtlk_mmb_handle_bss_cfm.disassembly": "e9dd88af3fb1ec819cc85481e2af2beebe23afa404b4da19fb48e90736ab199e",
+    "_wv_ieee80211_op_tx.disassembly": "a9efedd46fa68518c6c58bf543443702e1f42503df267c945594f495aa018c00",
+    "wave_sta_tx_request_done.disassembly": "f77a3010ff0542c235cdf890082684f85c31a96f30a891255c74685c55670d08"
+  },
+  "artifact_path": "/home/zach/code/archer-ax3000-bringup/artifacts/development-async-management",
+  "remaining": [
+    "Complete RX/status callback exclusion and queued core/scan/recovery-task draining before unregister",
+    "Full recovery/removal serialization and VAP/core/hw lifetime protection, including async completion callbacks",
+    "Physical boot, Ethernet, both radios, station/AP interoperability, full stock features and peripherals",
+    "NAND writes, power-loss behavior and reliable serial-free early-hang reset/fallback"
+  ]
+}

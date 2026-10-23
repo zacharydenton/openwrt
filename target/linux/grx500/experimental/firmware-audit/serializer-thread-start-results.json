@@ -1,0 +1,192 @@
+{
+  "schema": 1,
+  "base_commit": "bf46a5077ea14291164b145f62efcaf7d67a8f8a",
+  "date": "2026-10-23",
+  "status": "Patch 258 rejects Linux error pointers during serializer worker creation, allowing lifecycle rollback without an invalid kthread_stop. Native/MIPS tests and builds pass; physical qualification remains outstanding.",
+  "hardware_tested": false,
+  "release_gate": {
+    "serializer_worker_start_source_gate_passed": true,
+    "full_device_release_gate_passed": false,
+    "upload_recommended": false
+  },
+  "patch": {
+    "path": "package/kernel/iwlwav-stock/patches/258-serializer-thread-start-error.patch",
+    "bytes": 799,
+    "sha256": "875f606b2c1662ef1e12faabc0c44c841592cf9e7cdd3795ecd3ce07cf6d0d41"
+  },
+  "audit": {
+    "path": "target/linux/grx500/experimental/firmware-audit/serializer-thread-start-audit.rst",
+    "bytes": 3291,
+    "sha256": "ff7ba512a2d0c8505e4ef30a4fbf93b9f9d0b04942489f672f23b18ccafa30c7"
+  },
+  "defect": "The non-null predicate accepted ERR_PTR failures as successful worker creation. No worker existed to run queued commands, and later stop could use an invalid task pointer.",
+  "correction": "Use !IS_ERR with an explicit linux/err.h include. Preserve MTLK_ERR_NO_RESOURCES and existing lifecycle rollback, which skips the uncompleted THREAD_START step.",
+  "test": {
+    "path": "package/kernel/iwlwav-stock/tests/serializer-thread-start.py",
+    "bytes": 6079,
+    "sha256": "127ec7887d292eaab24b19f8559f392797bd55624e9d2368cc5d6d257a34912f",
+    "scope": "Production OS-dependent serializer functions and actual mtlkstartup/mtlkbfield headers; modeled kthread and event leaves, no Linux worker execution.",
+    "historical": {
+      "report": {
+        "path": "target/linux/grx500/experimental/firmware-audit/serializer-thread-start-before.json",
+        "bytes": 774,
+        "sha256": "ff3aff47777bb3af34beb0ce444d271a8d6f2aa9652689323a28017cb062f83c"
+      },
+      "default_exit_code": 1,
+      "expect_vulnerable_exit_code": 0,
+      "error_pointer_cases": 4095,
+      "successful_retries": 4095,
+      "unsafe_failures": 4095
+    },
+    "native": {
+      "report": {
+        "path": "target/linux/grx500/experimental/firmware-audit/serializer-thread-start-native.json",
+        "bytes": 771,
+        "sha256": "cc0be75eb10103e95e42ec4588ca05aaeaae9ace1157d333856a438d1c3f54f6"
+      },
+      "exit_code": 0,
+      "error_pointer_cases": 4095,
+      "successful_retries": 4095,
+      "unsafe_failures": 0
+    },
+    "mips": {
+      "report": {
+        "path": "target/linux/grx500/experimental/firmware-audit/serializer-thread-start-mips.json",
+        "bytes": 834,
+        "sha256": "2201098c549ddc881a987bccd4d20a41706cd783fd0b569405ab8e4ba4b155a6"
+      },
+      "exit_code": 0,
+      "error_pointer_cases": 4095,
+      "successful_retries": 4095,
+      "unsafe_failures": 0,
+      "compiler": "OpenWrt GCC 14.4.0 static big-endian MIPS",
+      "runner": {
+        "path": "/home/zach/code/archer-ax3000-bringup/web-upgrade-audit/usr/bin/qemu-mips-static",
+        "bytes": 4335352,
+        "sha256": "8d02f418b92f4ddf984ed8352954b0067d1a5cd810d38247aaf5f0fddc31c42e"
+      }
+    }
+  },
+  "prepared_sources": [
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/mtlk_serializer_osdep.c",
+      "bytes": 3547,
+      "sha256": "f773c6519aa726c6f0a613bf81d751638f97dd7ed36b81569631cda0b41ae0bc"
+    },
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/shared/mtlk_serializer.c",
+      "bytes": 14088,
+      "sha256": "9698ef5e84e174d032bc2b135abe72efaed847e555ecbd8455073db271290a77"
+    },
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/shared/mtlkstartup.h",
+      "bytes": 38194,
+      "sha256": "ee9193604d213439651751fcffff166e22ef39265c94f469ba5ac0dbe4306f9d"
+    },
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/shared/mtlkbfield.h",
+      "bytes": 4745,
+      "sha256": "c22f7e6c467a16ef0ecb090369bbbf6f3261fba0cd537325d3e5755834d36946"
+    }
+  ],
+  "kernel_contract": [
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/include/linux/err.h",
+      "bytes": 3487,
+      "sha256": "39cb4711c8d97ad37d3bfdacc99e758140eb90cc8f73eca69a3c1bd0d584c10b"
+    },
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/include/linux/kthread.h",
+      "bytes": 9241,
+      "sha256": "9208cb960a53e6aa64f5578c225eb118f649bee407cdb7ab12d684a8c4e1248d"
+    }
+  ],
+  "full_driver_suite": {
+    "python_test_scripts": 30,
+    "exit_code": 0,
+    "scope": "Extracted production functions and actual lifecycle macros with modeled kernel/firmware leaves; cfg80211 contract test also checks the target kernel source.",
+    "standalone_he_test_rerun": false,
+    "unrelated_target_suite_rerun": false
+  },
+  "builds": [
+    {
+      "command": "make package/kernel/iwlwav-stock/clean V=s && make package/kernel/iwlwav-stock/compile V=s -j4",
+      "exit_code": 0
+    },
+    {
+      "command": "make -j4",
+      "exit_code": 0
+    }
+  ],
+  "object": {
+    "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/mtlk_serializer_osdep.o",
+    "bytes": 26684,
+    "sha256": "2da31297dc76ad3b7b10ad9095068858ab20c197000d6f6e05c0d5951c7dd763"
+  },
+  "modules": [
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/mtlk.ko",
+      "bytes": 8961040,
+      "sha256": "695c8a6b1da3ff0bd33010c5900778127af9c6ccc096e9176bbeaf96960d2d3f"
+    },
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/mtlkroot.ko",
+      "bytes": 653672,
+      "sha256": "a08ee89dd58208b0e114348a3859446a2cfb6da66af4832ccb79019242087cef"
+    }
+  ],
+  "package": {
+    "path": "bin/targets/grx500/generic/packages/kmod-iwlwav-stock-6.18.55.6.0.8.0.87.0.7-r1.apk",
+    "bytes": 689787,
+    "sha256": "bdd9ac4cdd691c05a6ae80356d2cd3c55aa3b20e6c4fc0c13504bbcd5c0dd8ed"
+  },
+  "development_images": [
+    {
+      "path": "bin/targets/grx500/generic/openwrt-grx500-generic-tplink_archer-ax3000-v1-initramfs-kernel.bin",
+      "bytes": 8627462,
+      "sha256": "7a51ecba787ee065a1061f95e57d5b45d482f6a9da342a81bc21b75569b36770",
+      "audit": {
+        "path": "target/linux/grx500/experimental/firmware-audit/current-image-audit.json",
+        "bytes": 14574,
+        "sha256": "5c462cbe2c6833a86e282c0a70a7775dc799f32c28b99cad8717e0c43005689b"
+      },
+      "audit_result": "pass"
+    },
+    {
+      "path": "bin/targets/grx500/generic/openwrt-grx500-generic-tplink_archer-ax3000-v1-squashfs-sysupgrade.bin",
+      "bytes": 9052445,
+      "sha256": "ee2874a8fd18fc88c46a2e6d0e7b362e820ee6cf4869eb4ace34e18a3201bdfc",
+      "audit": {
+        "path": "target/linux/grx500/experimental/firmware-audit/current-sysupgrade-audit.json",
+        "bytes": 7717,
+        "sha256": "8990c850456d6197619c66e2fb2eb6853c9d4742591406592da28d6f58059e85"
+      },
+      "audit_result": "pass",
+      "rootfs_mtlk_ko_sha256": "4be2ad135d900ff34476efe5f7e1e98e4582ebe626e7bf3ee219fc6067d27164",
+      "rootfs_mtlkroot_ko_sha256": "7840da26d8a4dc265a398540c65d288d40ac293a6d5d7b77055a41b40dbed74c"
+    }
+  ],
+  "packaged_mips_checksum_test": {
+    "report": {
+      "path": "target/linux/grx500/experimental/firmware-audit/development-current-checksums-mips.json",
+      "bytes": 1158,
+      "sha256": "da9617a73b8236f5f1f9e5da520992f14cef6934878525b2f651e9d8e435274a"
+    },
+    "cases_passed": 3,
+    "flash_operations_performed": false
+  },
+  "factory_candidate": {
+    "rebuilt_with_patch_258": false,
+    "hardware_tested": false,
+    "upload_recommended": false
+  },
+  "remaining_release_gates": [
+    "Physical boot and module load/unload on Archer AX3000(US) v1.6",
+    "Real kernel worker-allocation failure injection and startup rollback",
+    "Live recovery, DFS/CAC, scan cancellation and teardown under traffic",
+    "Ethernet forwarding and simultaneous 2.4/5 GHz association and traffic",
+    "Flash-write, trial acceptance, reset and stock-bank fallback",
+    "Hardware watchdog or demonstrated early-boot recovery",
+    "Verification of installed stock firmware against the pinned US image"
+  ]
+}

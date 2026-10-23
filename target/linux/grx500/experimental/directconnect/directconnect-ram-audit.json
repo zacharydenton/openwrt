@@ -1,0 +1,609 @@
+{
+  "schema": 1,
+  "image": {
+    "path": "/home/zach/code/archer-ax3000-bringup/openwrt-directconnect/bin/targets/grx500/generic/openwrt-grx500-generic-tplink_archer-ax3000-v1-initramfs-kernel.bin",
+    "sha256": "0024809d6e45ad0e6d12ef730a52bb243604349f7bf95a6a8a33d493661dbf81",
+    "bytes": 8535522,
+    "load": "0xa0020000",
+    "entry": "0xa0020000"
+  },
+  "elf": {
+    "path": "/home/zach/code/archer-ax3000-bringup/openwrt-directconnect/build_dir/target-mips_24kc_musl/linux-grx500_generic/vmlinux-initramfs.debug",
+    "sha256": "4be657126cd0360f95ba77b8185ab166c64ff5e3d5071df06bf30121166d17e2",
+    "matches_image_kernel": true
+  },
+  "image_integrity": "passed",
+  "dtb_sha256": "bd2ef56582fc7ec1f3a98cd9ef75fc84202c1bcb5f716515be457db2b36ebac3",
+  "initramfs_entries": 940,
+  "checks": [
+    {
+      "check": "DT clock-provider dependencies",
+      "status": "present",
+      "evidence": {
+        "status": "pass",
+        "dtb_sha256": "bd2ef56582fc7ec1f3a98cd9ef75fc84202c1bcb5f716515be457db2b36ebac3",
+        "provider_sha256": "f6557f1c6ad1a0a87843e96565b01deb107cb22d5d05b19000d36e395cc42888",
+        "registered_ids": [
+          1,
+          2,
+          3,
+          4,
+          11,
+          12,
+          13,
+          14,
+          21,
+          22,
+          23,
+          24,
+          33,
+          107,
+          108,
+          111,
+          112,
+          114,
+          115,
+          116,
+          117,
+          123,
+          124,
+          125,
+          126,
+          127,
+          128,
+          150,
+          151,
+          152,
+          153
+        ],
+        "required_gates": {
+          "GCLK_CBM": {
+            "id": 111,
+            "status": 288,
+            "enable": 292,
+            "disable": 296,
+            "bit": 9
+          },
+          "GCLK_EBU": {
+            "id": 112,
+            "status": 288,
+            "enable": 292,
+            "disable": 296,
+            "bit": 10
+          },
+          "GCLK_PAE": {
+            "id": 123,
+            "status": 288,
+            "enable": 292,
+            "disable": 296,
+            "bit": 26
+          },
+          "GCLK_USB1": {
+            "id": 124,
+            "status": 288,
+            "enable": 292,
+            "disable": 296,
+            "bit": 27
+          },
+          "GCLK_GSWIP": {
+            "id": 125,
+            "status": 288,
+            "enable": 292,
+            "disable": 296,
+            "bit": 28
+          }
+        },
+        "references": [
+          {
+            "consumer": "/cpus/cpu@0",
+            "provider": "/clock-controller@16200000",
+            "id": 150,
+            "name": "CLK_CPU"
+          },
+          {
+            "consumer": "/cpus/cpu@1",
+            "provider": "/clock-controller@16200000",
+            "id": 150,
+            "name": "CLK_CPU"
+          },
+          {
+            "consumer": "/cpus/cpu@2",
+            "provider": "/clock-controller@16200000",
+            "id": 150,
+            "name": "CLK_CPU"
+          },
+          {
+            "consumer": "/cpus/cpu@3",
+            "provider": "/clock-controller@16200000",
+            "id": 150,
+            "name": "CLK_CPU"
+          },
+          {
+            "consumer": "/serial@16600000",
+            "provider": "/clock-controller@16200000",
+            "id": 13,
+            "name": "CLK_SSX4"
+          },
+          {
+            "consumer": "/serial@16600000",
+            "provider": "/clock-controller@16200000",
+            "id": 117,
+            "name": "GCLK_UART"
+          },
+          {
+            "consumer": "/cbm@1e700000",
+            "provider": "/clock-controller@16200000",
+            "id": 11,
+            "name": "CLK_CBM"
+          },
+          {
+            "consumer": "/cbm@1e700000",
+            "provider": "/clock-controller@16200000",
+            "id": 111,
+            "name": "GCLK_CBM"
+          },
+          {
+            "consumer": "/switch@1c000000/gsw_core@0",
+            "provider": "/clock-controller@16200000",
+            "id": 22,
+            "name": "CLK_GSWIP"
+          },
+          {
+            "consumer": "/switch@1c000000/gsw_core@0",
+            "provider": "/clock-controller@16200000",
+            "id": 125,
+            "name": "GCLK_GSWIP"
+          },
+          {
+            "consumer": "/switch@1a000000/gsw_core@0",
+            "provider": "/clock-controller@16200000",
+            "id": 21,
+            "name": "CLK_PAE"
+          },
+          {
+            "consumer": "/switch@1a000000/gsw_core@0",
+            "provider": "/clock-controller@16200000",
+            "id": 123,
+            "name": "GCLK_PAE"
+          },
+          {
+            "consumer": "/pcie@18900000",
+            "provider": "/clock-controller@16200000",
+            "id": 126,
+            "name": "GCLK_PCIE0"
+          },
+          {
+            "consumer": "/pcie@18400000",
+            "provider": "/clock-controller@16200000",
+            "id": 127,
+            "name": "GCLK_PCIE1"
+          },
+          {
+            "consumer": "/pcie@18e00000",
+            "provider": "/clock-controller@16200000",
+            "id": 128,
+            "name": "GCLK_PCIE2"
+          },
+          {
+            "consumer": "/usb@1a500000",
+            "provider": "/clock-controller@16200000",
+            "id": 124,
+            "name": "GCLK_USB1"
+          },
+          {
+            "consumer": "/nand@16f00000",
+            "provider": "/clock-controller@16200000",
+            "id": 112,
+            "name": "GCLK_EBU"
+          }
+        ],
+        "compiled_branch_table": {
+          "address": "0x60c985f8",
+          "bytes": 2268,
+          "sha256": "97f05fd62e596806e3ff2df6ecc313124d9b11ad81c6e921cc73908cbd0a8182",
+          "registered_ids": [
+            11,
+            12,
+            13,
+            14,
+            21,
+            22,
+            23,
+            24,
+            33,
+            107,
+            108,
+            111,
+            112,
+            114,
+            115,
+            116,
+            117,
+            123,
+            124,
+            125,
+            126,
+            127,
+            128,
+            150,
+            151,
+            152,
+            153
+          ],
+          "status": "pass"
+        }
+      }
+    },
+    {
+      "check": "CBM driver",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "cbm_xrx500_probe",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "Ethernet transmit implementation",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "ltq_start_xmit",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "datapath implementation",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "dp_xmit",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "GPHY firmware loader",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "xrx500_phy_fw_init",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "PCIe host driver",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "intel_pcie_probe",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "BCH NAND driver",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "grx500_nand_probe",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "native cfg80211",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "cfg80211_init",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "native mac80211",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "ieee80211_init",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "USB host glue",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "grx500_dwc3_probe",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "USB PHY",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "grx500_usb_phy_probe",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "MT SMP startup",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "vsmp_boot_secondary",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "UBI attachment",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "ubi_attach_mtd_dev",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "CBM DT node",
+      "status": "present",
+      "evidence": {
+        "enabled_matching_nodes": [
+          "/cbm@1e700000"
+        ]
+      }
+    },
+    {
+      "check": "USB host DT node",
+      "status": "present",
+      "evidence": {
+        "enabled_matching_nodes": [
+          "/usb@1a500000"
+        ]
+      }
+    },
+    {
+      "check": "LED DT node",
+      "status": "present",
+      "evidence": {
+        "enabled_matching_nodes": [
+          "/leds"
+        ]
+      }
+    },
+    {
+      "check": "button DT node",
+      "status": "present",
+      "evidence": {
+        "enabled_matching_nodes": [
+          "/keys"
+        ]
+      }
+    },
+    {
+      "check": "calibration NAND DT node",
+      "status": "present",
+      "evidence": {
+        "enabled_matching_nodes": [
+          "/nand@16f00000"
+        ]
+      }
+    },
+    {
+      "check": "Ethernet DT node",
+      "status": "present",
+      "evidence": {
+        "enabled_matching_nodes": [
+          "/ethernet"
+        ]
+      }
+    },
+    {
+      "check": "PCIe DT node",
+      "status": "present",
+      "evidence": {
+        "enabled_matching_nodes": [
+          "/pcie@18900000",
+          "/pcie@18400000",
+          "/pcie@18e00000"
+        ]
+      }
+    },
+    {
+      "check": "GPHY loader DT node",
+      "status": "present",
+      "evidence": {
+        "enabled_matching_nodes": [
+          "/phy@1c003c00"
+        ]
+      }
+    },
+    {
+      "check": "GPHY payload",
+      "status": "present",
+      "evidence": {
+        "path": "lib/firmware/ltq_fw_PHY11G_IP_xRx5xx_A21.bin"
+      }
+    },
+    {
+      "check": "WAVE driver",
+      "status": "present",
+      "evidence": {
+        "modules": [
+          "lib/modules/6.18.55/mtlk.ko"
+        ],
+        "builtin_symbol": "mtlk_hw_mmb_init"
+      }
+    },
+    {
+      "check": "Gen6 radio AP firmware",
+      "status": "present",
+      "evidence": {
+        "paths": [
+          "lib/firmware/ap_ram_gen6_wrx_600_real_phy.bin"
+        ]
+      }
+    },
+    {
+      "check": "calibration preinit loader",
+      "status": "present",
+      "evidence": {
+        "path": "lib/preinit/81_grx500_calibration"
+      }
+    },
+    {
+      "check": "atomic upgrade implementation",
+      "status": "present",
+      "evidence": {
+        "path": "lib/upgrade/platform.sh"
+      }
+    },
+    {
+      "check": "factory UBI guard",
+      "status": "present",
+      "evidence": {
+        "path": "usr/sbin/grx500-check-ubi"
+      }
+    },
+    {
+      "check": "factory MAC loader",
+      "status": "present",
+      "evidence": {
+        "path": "lib/preinit/82_grx500_factory_mac"
+      }
+    },
+    {
+      "check": "LED configuration",
+      "status": "present",
+      "evidence": {
+        "path": "etc/board.d/01_leds"
+      }
+    },
+    {
+      "check": "combined WPS/radio button",
+      "status": "present",
+      "evidence": {
+        "path": "etc/rc.wps/00-grx500-combined"
+      }
+    },
+    {
+      "check": "LED toggle button",
+      "status": "present",
+      "evidence": {
+        "path": "etc/rc.button/lights_toggle"
+      }
+    },
+    {
+      "check": "regulatory database",
+      "status": "present",
+      "evidence": {
+        "path": "lib/firmware/regulatory.db"
+      }
+    },
+    {
+      "check": "Wi-Fi configuration tool",
+      "status": "present",
+      "evidence": {
+        "path": "sbin/wifi"
+      }
+    },
+    {
+      "check": "AP daemon",
+      "status": "present",
+      "evidence": {
+        "path": "usr/sbin/wpad"
+      }
+    },
+    {
+      "check": "NAND read utility",
+      "status": "present",
+      "evidence": {
+        "path": "usr/sbin/nanddump"
+      }
+    },
+    {
+      "check": "host-interface radio firmware",
+      "status": "present",
+      "evidence": {
+        "path": "lib/firmware/host_interface_gen6.bin"
+      }
+    },
+    {
+      "check": "board network setup",
+      "status": "present",
+      "evidence": {
+        "path": "etc/board.d/02_network"
+      }
+    },
+    {
+      "check": "DirectConnect kernel export: grx500_umt_probe",
+      "status": "present",
+      "evidence": {
+        "symbol": "grx500_umt_probe"
+      }
+    },
+    {
+      "check": "DirectConnect kernel export: ltq_umt_request",
+      "status": "present",
+      "evidence": {
+        "symbol": "ltq_umt_request"
+      }
+    },
+    {
+      "check": "DirectConnect kernel export: ltq_umt_set_mode",
+      "status": "present",
+      "evidence": {
+        "symbol": "ltq_umt_set_mode"
+      }
+    },
+    {
+      "check": "DirectConnect kernel export: grx500_cbm_mmio_phys",
+      "status": "present",
+      "evidence": {
+        "symbol": "grx500_cbm_mmio_phys"
+      }
+    },
+    {
+      "check": "DirectConnect kernel export: grx500_dma_device",
+      "status": "present",
+      "evidence": {
+        "symbol": "grx500_dma_device"
+      }
+    },
+    {
+      "check": "DirectConnect kernel export: dc_dp_br_fdb_delete",
+      "status": "present",
+      "evidence": {
+        "symbol": "dc_dp_br_fdb_delete"
+      }
+    },
+    {
+      "check": "UMT DT node",
+      "status": "present",
+      "evidence": {
+        "nodes": [
+          "/mcpy@a2800000"
+        ]
+      }
+    },
+    {
+      "check": "DirectConnect module: directconnect_datapath",
+      "status": "present",
+      "evidence": {
+        "paths": [
+          "lib/modules/6.18.55/directconnect_datapath.ko"
+        ]
+      }
+    },
+    {
+      "check": "DirectConnect module: dc_mode-hw",
+      "status": "present",
+      "evidence": {
+        "paths": [
+          "lib/modules/6.18.55/dc_mode-hw.ko"
+        ]
+      }
+    },
+    {
+      "check": "DirectConnect software default",
+      "status": "present",
+      "evidence": {
+        "autoload": "mtlkroot\nmtlk fastpath=0,0,0 dual_pci=1,0 ahb_off=1 loggersid=255,255 rcvry_on=1,1\n"
+      }
+    }
+  ],
+  "static_prerequisites_met": true,
+  "hardware_tested": false,
+  "limitations": [
+    "Selected baseline driver names are checked; alternative implementations need manual review.",
+    "Presence does not validate driver bindings, reset sequencing, DMA ownership or firmware ABI.",
+    "Per-device calibration retrieval, physical flash layout and regulatory configuration remain unverified.",
+    "Boot, link, WAN/LAN isolation, both Wi-Fi bands and packet transfer require device tests."
+  ]
+}

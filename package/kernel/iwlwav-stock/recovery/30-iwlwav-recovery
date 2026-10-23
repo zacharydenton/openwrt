@@ -1,0 +1,4 @@
+#!/bin/sh
+[ "$ACTION" = change ] && [ "$IWLWAV_RECOVERY" = complete ] || return 0
+# Leave the hotplug dispatcher available for netifd interface removal events.
+/usr/libexec/iwlwav-recover </dev/null >/dev/null 2>&1 &

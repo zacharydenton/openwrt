@@ -1,0 +1,318 @@
+{
+  "checks_passed": true,
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "image_sha256": "7d52e381c9687b87b5f165adb259eb06e46524c1cc335809ce390eed5f157128",
+  "binding": {
+    "image_sha256": "7d52e381c9687b87b5f165adb259eb06e46524c1cc335809ce390eed5f157128",
+    "kernel_sha256": "c41f9511d189702820ead53aa8114acd4d5f06d53efac55d359837e3ecc580b7",
+    "rootfs_sha256": "0b4329a48514377cedfd299b52288dc83b7e0914a8e8d1ec7131b1dbb2c3fa2b",
+    "dtb_sha256": "689ff9ee75782fa34723dcaa6a05ed907c7a2e93275d78318dd768b1f64e36b7",
+    "kernel_transport": {
+      "kind": "experimental-relocated-lzma",
+      "loader_elf_sha256": "c55d4e95faed09c8cc37cf4ae2ee7717f4194c330b6e236736286dfab5f17958",
+      "loader_sha256": "b35ac800dee40aa6ad6d371a541a3734013356622f298f9d6bab696e945c313b",
+      "inner_sha256": "70eb6897006484baf53f91ab451254ff359156b8e9a7078a9093b26be245e2e4",
+      "outer_destination": "0xa4000000",
+      "inner_destination": "0xa0020000",
+      "hardware_tested": false,
+      "limitation": "ELF binding and bounds do not execute startup or prove hardware boot"
+    },
+    "elf_sha256": "b636dd73693dfdb0538b110372824de3f95a26dcafaa2a650b7abf87498d476b",
+    "metadata": {
+      "metadata_version": "1.1",
+      "compat_version": "1.0",
+      "supported_devices": [
+        "tplink,archer-ax3000-v1"
+      ],
+      "version": {
+        "dist": "OpenWrt",
+        "version": "SNAPSHOT",
+        "revision": "r37576-63f702f1c0",
+        "target": "grx500/generic",
+        "board": "tplink_archer-ax3000-v1"
+      }
+    },
+    "rootfs_files": {
+      "lib/upgrade/platform.sh": "bd32ababdd3a7615f4c9b625cdbb9ce0a8f5391b648e3418944d5834d581a049",
+      "etc/board.d/02_network": "2021c3d9fbd06a98d48e8b75d02e2c66f3df4e424eb36a4fc9a8341854aabbc8",
+      "lib/preinit/81_grx500_calibration": "b9162ff43c1c16f3627a6828878f6b5effd2e1421c44809ed1f95b6dcd81e3b1",
+      "lib/preinit/82_grx500_factory_mac": "9bfa9112b4f3a0044ce5ad835ef8a884883f3a4ed6f603fc0bd26fe3c13b070b",
+      "usr/sbin/grx500-check-ubi": "aa86275c2832b15ea86ddcf9f06a2b922bdc7e4fc93d985127e5eb6ef1f8cba4",
+      "usr/sbin/wpad": "aea390281185d27b479c2e25d942c7d5806abba30acdf47770e64cac33bfbfd9",
+      "lib/firmware/ap_ram_gen6_wrx_600_real_phy.bin": "1e4054dc053101048f85dc8d285f7bddb9ec4a847f6195ec319ed9521c215b7c"
+    },
+    "clock_provider": {
+      "status": "pass",
+      "dtb_sha256": "689ff9ee75782fa34723dcaa6a05ed907c7a2e93275d78318dd768b1f64e36b7",
+      "provider_sha256": "f6557f1c6ad1a0a87843e96565b01deb107cb22d5d05b19000d36e395cc42888",
+      "registered_ids": [
+        1,
+        2,
+        3,
+        4,
+        11,
+        12,
+        13,
+        14,
+        21,
+        22,
+        23,
+        24,
+        33,
+        107,
+        108,
+        111,
+        112,
+        114,
+        115,
+        116,
+        117,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        150,
+        151,
+        152,
+        153
+      ],
+      "required_gates": {
+        "GCLK_CBM": {
+          "id": 111,
+          "status": 288,
+          "enable": 292,
+          "disable": 296,
+          "bit": 9
+        },
+        "GCLK_EBU": {
+          "id": 112,
+          "status": 288,
+          "enable": 292,
+          "disable": 296,
+          "bit": 10
+        },
+        "GCLK_PAE": {
+          "id": 123,
+          "status": 288,
+          "enable": 292,
+          "disable": 296,
+          "bit": 26
+        },
+        "GCLK_USB1": {
+          "id": 124,
+          "status": 288,
+          "enable": 292,
+          "disable": 296,
+          "bit": 27
+        },
+        "GCLK_GSWIP": {
+          "id": 125,
+          "status": 288,
+          "enable": 292,
+          "disable": 296,
+          "bit": 28
+        }
+      },
+      "references": [
+        {
+          "consumer": "/cpus/cpu@0",
+          "provider": "/clock-controller@16200000",
+          "id": 150,
+          "name": "CLK_CPU"
+        },
+        {
+          "consumer": "/cpus/cpu@1",
+          "provider": "/clock-controller@16200000",
+          "id": 150,
+          "name": "CLK_CPU"
+        },
+        {
+          "consumer": "/cpus/cpu@2",
+          "provider": "/clock-controller@16200000",
+          "id": 150,
+          "name": "CLK_CPU"
+        },
+        {
+          "consumer": "/cpus/cpu@3",
+          "provider": "/clock-controller@16200000",
+          "id": 150,
+          "name": "CLK_CPU"
+        },
+        {
+          "consumer": "/serial@16600000",
+          "provider": "/clock-controller@16200000",
+          "id": 13,
+          "name": "CLK_SSX4"
+        },
+        {
+          "consumer": "/serial@16600000",
+          "provider": "/clock-controller@16200000",
+          "id": 117,
+          "name": "GCLK_UART"
+        },
+        {
+          "consumer": "/cbm@1e700000",
+          "provider": "/clock-controller@16200000",
+          "id": 11,
+          "name": "CLK_CBM"
+        },
+        {
+          "consumer": "/cbm@1e700000",
+          "provider": "/clock-controller@16200000",
+          "id": 111,
+          "name": "GCLK_CBM"
+        },
+        {
+          "consumer": "/switch@1c000000/gsw_core@0",
+          "provider": "/clock-controller@16200000",
+          "id": 22,
+          "name": "CLK_GSWIP"
+        },
+        {
+          "consumer": "/switch@1c000000/gsw_core@0",
+          "provider": "/clock-controller@16200000",
+          "id": 125,
+          "name": "GCLK_GSWIP"
+        },
+        {
+          "consumer": "/switch@1a000000/gsw_core@0",
+          "provider": "/clock-controller@16200000",
+          "id": 21,
+          "name": "CLK_PAE"
+        },
+        {
+          "consumer": "/switch@1a000000/gsw_core@0",
+          "provider": "/clock-controller@16200000",
+          "id": 123,
+          "name": "GCLK_PAE"
+        },
+        {
+          "consumer": "/pcie@18900000",
+          "provider": "/clock-controller@16200000",
+          "id": 126,
+          "name": "GCLK_PCIE0"
+        },
+        {
+          "consumer": "/pcie@18400000",
+          "provider": "/clock-controller@16200000",
+          "id": 127,
+          "name": "GCLK_PCIE1"
+        },
+        {
+          "consumer": "/pcie@18e00000",
+          "provider": "/clock-controller@16200000",
+          "id": 128,
+          "name": "GCLK_PCIE2"
+        },
+        {
+          "consumer": "/usb@1a500000",
+          "provider": "/clock-controller@16200000",
+          "id": 124,
+          "name": "GCLK_USB1"
+        },
+        {
+          "consumer": "/nand@16f00000",
+          "provider": "/clock-controller@16200000",
+          "id": 112,
+          "name": "GCLK_EBU"
+        }
+      ],
+      "compiled_branch_table": {
+        "address": "0x60c966f8",
+        "bytes": 2268,
+        "sha256": "2138f53fdb7d41f30a2580aa2f1b3710f029f3a0489d4667c71239f8e3ca17c9",
+        "registered_ids": [
+          11,
+          12,
+          13,
+          14,
+          21,
+          22,
+          23,
+          24,
+          33,
+          107,
+          108,
+          111,
+          112,
+          114,
+          115,
+          116,
+          117,
+          123,
+          124,
+          125,
+          126,
+          127,
+          128,
+          150,
+          151,
+          152,
+          153
+        ],
+        "status": "pass"
+      }
+    },
+    "hardware_tested": false,
+    "limitation": "Integrity and ingredient checks do not establish boot or flash compatibility."
+  },
+  "first_boot_files": {
+    "etc/grx500-factory-install": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "etc/grx500-boot-contract": "0c59b8805ad5a3c5f10883ee1958e78801305203484f90d98c35b0f8eafceac9",
+    "lib/functions/grx500-trial.sh": "514edcc3b5aac821d2c87c952ad51feaace11782373e7eb24a4994a17747dce4",
+    "lib/preinit/79_grx500_trial": "5cecf8130501b113f160f4791b048ef29491acc383f7528f1f1d8f7b854f1f0f",
+    "usr/libexec/grx500-trial": "e36be521838573db516da3749816059b28bb6df3be350cbc414532c8ba027d5e",
+    "etc/init.d/grx500-trial": "09b71b7140eb6868012158f9c34ff7768c92283d3486f1e2979841993d36d137",
+    "etc/rc.d/S98grx500-trial": "09b71b7140eb6868012158f9c34ff7768c92283d3486f1e2979841993d36d137",
+    "usr/sbin/fw_setenv": "adc3409c652198cb6d98693083059f75d4d411fb8edef5ed285900199d048f34",
+    "usr/bin/jsonfilter": "883c3c6eca2e9878563b943260b4562337a6905ea77ce3e931b6aa8106334ee3"
+  },
+  "compiled_partitions": [
+    {
+      "name": "uboot",
+      "offset": 0,
+      "size": 1048576,
+      "mask_flags": 1024
+    },
+    {
+      "name": "ubootconfigA",
+      "offset": 1048576,
+      "size": 262144,
+      "mask_flags": 0
+    },
+    {
+      "name": "ubootconfigB",
+      "offset": 1310720,
+      "size": 262144,
+      "mask_flags": 0
+    },
+    {
+      "name": "gphyfirmware",
+      "offset": 1572864,
+      "size": 262144,
+      "mask_flags": 1024
+    },
+    {
+      "name": "calibration",
+      "offset": 1835008,
+      "size": 1048576,
+      "mask_flags": 1024
+    },
+    {
+      "name": "system_sw",
+      "offset": 2883584,
+      "size": 130023424,
+      "mask_flags": 0
+    },
+    {
+      "name": "res",
+      "offset": 132907008,
+      "size": 0,
+      "mask_flags": 1024
+    }
+  ],
+  "limitation": "Static prerequisite checks do not establish NAND writes, boot or network operation."
+}

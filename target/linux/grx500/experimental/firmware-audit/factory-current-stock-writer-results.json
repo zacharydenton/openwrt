@@ -1,0 +1,35 @@
+{
+  "checks_passed": true,
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "upstream_commit": "a25fb079b1463cd5d7d69c6d9a1c28d873291ebb",
+  "candidate_sha256": "d917a62080d3c179f79241066a6fe515c31ce21f9551441d259a06042cd95169",
+  "candidate_bytes": 9038110,
+  "factory_sysupgrade_sha256": "102e2f0c8d0532831a7baa8d36ec4648aed0717b7519883f10d60084df87399e",
+  "stock_firmware_sha256": "96a9a7a6bd82ea5340a70181c687136eeeba3320c46e923b00ac9acfabcbc10b",
+  "stock_checker_sha256": "10eb5517fa1556bc5c6b716044b7b2b9c747bf9fe7a6f792d550bf22d771c342",
+  "stock_writer_test_report_sha256": "9b015220ced3b9d46d6918bc1efb5b824a2d5e2a1eef66bbb193b0e400ac4e14",
+  "stock_writer_case_count": 16,
+  "exact_candidate_checker_passed": true,
+  "exact_candidate_writer_passed": true,
+  "captured_components": {
+    "kernel": {
+      "bytes": 3992503,
+      "sha256": "1c247fcc49b54fb96707f2d28e4aea1d97cac3d110d20e44b6176a6d486a6ce4"
+    },
+    "rootfs": {
+      "bytes": 5041152,
+      "sha256": "c57370e20d615106065db5e261c9606294a3a1fc78705d00ab24af2c89c28cd4"
+    }
+  },
+  "flash_operations_performed": false,
+  "limitations": [
+    "Writer child commands were captured, not executed.",
+    "Without ubusd, the updater exits 255 at pthread_cancel; with the real stock service it exits zero.",
+    "Even with ubusd, child flash/cleanup/reboot commands remain intercepted, not executed.",
+    "No real vol_mgmt, bank switch, volume resize or boot was tested.",
+    "Stock default product-info was used, not a readout from the user device.",
+    "HTTP upload handler and rollback/recovery remain unverified.",
+    "An accepted laboratory envelope is NOT a supported factory image."
+  ]
+}

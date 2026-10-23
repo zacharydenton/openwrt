@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "hardware_tested": false,
+  "source_gate_passed": true,
+  "historical_reproduction": false,
+  "scope": "Actual enqueue, worker loop, invocation, enumeration and core completion; pthread locks, real free and a rendezvous model the kernel scheduling interleaving. No target kernel execution.",
+  "source_sha256": {
+    "wireless/driver/shared/mtlk_serializer.c": "ad4ee6af7b574090792bd69d180d6b52dc2ac25b110d07f2cce9fdb759e37ffa",
+    "wireless/driver/linux/core.c": "3ed4de8c2f95f62b48527b2aa8c838211c835d634b1e5ea8de17a1a591630ae4"
+  },
+  "cases": {
+    "completed_commands": 2,
+    "freed_command_observations": 0
+  },
+  "runner": "/home/zach/code/archer-ax3000-bringup/web-upgrade-audit/usr/bin/qemu-mips-static"
+}

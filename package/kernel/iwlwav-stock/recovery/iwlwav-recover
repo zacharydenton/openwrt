@@ -1,0 +1,48 @@
+#!/bin/sh
+# Complete firmware recovery: only the driver's fatal-recovery uevent invokes this.
+state=/var/run/iwlwav-recovery
+mkdir "$state.lock" 2>/dev/null || exit 0
+trap 'rmdir "$state.lock"' EXIT
+trap 'exit 1' HUP INT TERM
+log() { logger -t iwlwav-recovery "$*"; }
+
+# Reloading the module must retain the device's own preinit-extracted EEPROMs.
+for cal in /lib/firmware/cal_wlan0.bin /lib/firmware/cal_wlan2.bin; do
+	[ -s "$cal" ] || { log "Recovery refused: calibration missing: $cal"; exit 1; }
+done
+read -r uptime unused < /proc/uptime
+now=${uptime%%.*}
+first=0
+count=0
+[ ! -r "$state" ] || read -r first count < "$state"
+case "$first" in ''|*[!0-9]*) first=0;; esac
+case "$count" in ''|*[!0-9]*) count=0;; esac
+[ "$((now - first))" -lt 600 ] || { first=$now; count=0; }
+[ "$count" -lt 3 ] || { log 'Recovery limit reached (3 reloads per 10 minutes)'; exit 1; }
+count=$((count + 1))
+printf '%s %s\n' "$first" "$count" > "$state"
+
+log "Complete firmware recovery: reloading wireless driver (attempt $count)"
+# netifd owns hostapd/VAP lifetime. Do not reload while it is creating interfaces.
+ubus -t 10 call network.wireless down '{}' || { log 'Cannot stop wireless'; exit 1; }
+removed=0
+for attempt in 1 2 3; do
+	if timeout -s KILL 10 rmmod mtlk || [ ! -d /sys/module/mtlk ]; then
+		removed=1
+		break
+	fi
+	sleep 1
+done
+if [ "$removed" = 0 ]; then
+	log 'Driver remained busy; reload stopped'
+	ubus -t 10 call network.wireless up '{}'
+	exit 1
+fi
+# Reuse boot's exact parameters, dependency order and optional sta_phy setting.
+if ! timeout -s KILL 30 kmodloader /etc/modules.d/60-iwlwav-stock; then
+	log 'Driver reload failed'
+	ubus -t 10 call network.wireless up '{}'
+	exit 1
+fi
+ubus -t 10 call network.wireless up '{}' || { log 'Cannot restart wireless'; exit 1; }
+log 'Driver reloaded; netifd is restoring configured interfaces'

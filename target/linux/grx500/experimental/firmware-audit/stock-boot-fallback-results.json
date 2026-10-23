@@ -1,0 +1,90 @@
+{
+  "passed": true,
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "bootloader_sha256": "87fae41adc20ac4855d0716917cf4aaebec3c5688102360849fd43475a693f13",
+  "uboot_source_sha256": "790ccb12d99fc527a8b8d20dfdf491795d30f87aa0902f8cbda196583aa20bc8",
+  "stock_ltqboot_sha256": "259fb2c096fa5a93315ccedc4c1f218bf2450db0f5932248aefb460526754a07",
+  "command_table_offset": 342788,
+  "command_table_end": 343580,
+  "command_count": 33,
+  "saveenv_command": {
+    "offset": 343460,
+    "maxargs": 1,
+    "repeatable": 0,
+    "function": 2688630368,
+    "usage": "save environment variables to persistent storage"
+  },
+  "save_abbreviation_matches": [
+    "saveenv"
+  ],
+  "defaults": {
+    "check_image0": {
+      "offset": 333543,
+      "value": "run switchbankA"
+    },
+    "check_image1": {
+      "offset": 333572,
+      "value": "run switchbankB;setenv update_chk 0;save"
+    },
+    "check_image2": {
+      "offset": 333626,
+      "value": "run switchbankB"
+    },
+    "check_image3": {
+      "offset": 333655,
+      "value": "run switchbankA;setenv update_chk 2;save"
+    }
+  },
+  "cases": [
+    {
+      "from_bank": "A",
+      "trial_bank": "B",
+      "initial_update_chk": "1",
+      "first_boot": {
+        "update_chk": "0",
+        "active_bank": "B"
+      },
+      "saved_after_first_boot": {
+        "update_chk": "0",
+        "active_bank": "B"
+      },
+      "second_boot": {
+        "update_chk": "0",
+        "active_bank": "A"
+      },
+      "saved_after_second_boot": {
+        "update_chk": "0",
+        "active_bank": "B"
+      }
+    },
+    {
+      "from_bank": "B",
+      "trial_bank": "A",
+      "initial_update_chk": "3",
+      "first_boot": {
+        "update_chk": "2",
+        "active_bank": "A"
+      },
+      "saved_after_first_boot": {
+        "update_chk": "2",
+        "active_bank": "A"
+      },
+      "second_boot": {
+        "update_chk": "2",
+        "active_bank": "B"
+      },
+      "saved_after_second_boot": {
+        "update_chk": "2",
+        "active_bank": "A"
+      }
+    }
+  ],
+  "harness_sha256": "02c03ff2ec0fa019984ef41388e128c940e6aaf3ba0e453d8898bd42c1dd83ac",
+  "limitations": [
+    "This uses official V1-family update bytes, not the user router persistent U-Boot environment.",
+    "The GPL command lookup and save implementation are source correspondence, not direct execution of the stock bootloader.",
+    "Power cuts, actual NAND environment saves, physical reboot and stock fallback were not tested.",
+    "Saved active_bank remains the trial bank after a fallback selection until another save; update_chk controls selection."
+  ]
+}

@@ -1,0 +1,368 @@
+--- a/wireless/driver/linux/mtlk_mmb_drv.c
++++ b/wireless/driver/linux/mtlk_mmb_drv.c
+@@ -147,6 +147,7 @@
+   struct tasklet_struct irq_tasklets_global[1];
+   mtlk_irq_handler_data *ihd_pending;
+   unsigned long         requested_irqs;
++  unsigned long         recovery_disabled_irqs;
+   bool                  tasklets_initialized;
+   BOOL                  g6_pci_aux;  /* Gen6 specific: auxilary PCIe  */
+   BOOL                  g6_dual_pci; /* Gen6 specific: dual PCIe mode */
+@@ -1182,6 +1183,11 @@
+ 
+   for (i = 0; i < obj->nof_irqs; i++) {
+    if (obj->requested_irqs & BIT(i)) {
++     /* Balance recovery's Linux IRQ disable before releasing our action. */
++     if (obj->recovery_disabled_irqs & BIT(i)) {
++       enable_irq(obj->irq_out[i]);
++       obj->recovery_disabled_irqs &= ~BIT(i);
++     }
+      free_irq(obj->irq_out[i], &obj->irq_handler_data[i]);
+      obj->requested_irqs &= ~BIT(i);
+    }
+@@ -1256,7 +1262,8 @@
+   return mtlk_mmb_txdm_init(hw_api->hw, hw_api);
+ }
+ 
+-void kill_all_tasklets (mtlk_mmb_drv_t *obj)
++static void
++_mmb_drv_drain_tasklets(mtlk_mmb_drv_t *obj)
+ {
+   int i;
+ 
+@@ -1274,7 +1281,55 @@
+   }
+ 
+   if (obj->ihd_pending) tasklet_kill(&obj->irq_tasklets_global[0]);
++}
++
++void kill_all_tasklets (mtlk_mmb_drv_t *obj)
++{
++  _mmb_drv_drain_tasklets(obj);
+   obj->tasklets_initialized = false;
++}
++
++/* Process context only. Recovery and removal serialize these transitions.
++ * Disabling the Linux IRQ actions also prevents a running tasklet's hardware
++ * re-enable from starting a fresh interrupt while we drain that tasklet.
++ */
++void __MTLK_IFUNC
++mtlk_mmb_drv_recovery_irq_quiesce(mtlk_hw_t *hw)
++{
++  mtlk_mmb_drv_t *obj = container_of(mtlk_hw_mmb_get_ccr(hw), mtlk_mmb_drv_t, ccr);
++#ifndef MTCFG_USE_INTERRUPT_POLLING
++  int i;
++#endif
++
++  mtlk_hw_mmb_dis_interrupts(hw);
++#ifndef MTCFG_USE_INTERRUPT_POLLING
++  for (i = 0; i < obj->nof_irqs; i++) {
++    if ((obj->requested_irqs & BIT(i)) &&
++        !(obj->recovery_disabled_irqs & BIT(i))) {
++      disable_irq(obj->irq_out[i]);
++      obj->recovery_disabled_irqs |= BIT(i);
++    }
++  }
++#endif
++  _mmb_drv_drain_tasklets(obj);
++  mtlk_hw_mmb_dis_interrupts(hw);
++}
++
++void __MTLK_IFUNC
++mtlk_mmb_drv_recovery_irq_resume(mtlk_hw_t *hw)
++{
++#ifndef MTCFG_USE_INTERRUPT_POLLING
++  mtlk_mmb_drv_t *obj = container_of(mtlk_hw_mmb_get_ccr(hw), mtlk_mmb_drv_t, ccr);
++  int i;
++
++  for (i = 0; i < obj->nof_irqs; i++) {
++    if (obj->recovery_disabled_irqs & BIT(i)) {
++      obj->irq_handler_data[i].status = MTLK_IRQ_NONE;
++      obj->recovery_disabled_irqs &= ~BIT(i);
++      enable_irq(obj->irq_out[i]);
++    }
++  }
++#endif
+ }
+ 
+ /* Keep the startup-step bookkeeping in its original reverse order, but
+--- a/wireless/driver/linux/mtlk_mmb_drv.h
++++ b/wireless/driver/linux/mtlk_mmb_drv.h
+@@ -73,6 +73,10 @@
+ int __MTLK_IFUNC
+ mtlk_mmb_drv_postpone_irq_handler(mtlk_irq_handler_data *ihd);
+ 
++/* Recovery worker context; callers must serialize with removal. */
++void __MTLK_IFUNC mtlk_mmb_drv_recovery_irq_quiesce(mtlk_hw_t *hw);
++void __MTLK_IFUNC mtlk_mmb_drv_recovery_irq_resume(mtlk_hw_t *hw);
++
+ uint32 __MTLK_IFUNC
+ mtlk_mmb_drv_get_disable_11d_hint_param(void);
+ 
+--- a/wireless/driver/shared/hw_mmb.c
++++ b/wireless/driver/shared/hw_mmb.c
+@@ -4113,7 +4113,7 @@
+   mtlk_ccr_disable_interrupts(hw->ccr, MTLK_IRQ_ALL);
+   mtlk_ccr_clear_interrupts_if_pending(hw->ccr, (uint32) -1);
+   mtlk_ccr_switch_to_iram_boot(hw->ccr);
+-  hw->perform_isr_action = isr_action_init;
++  smp_store_release(&hw->perform_isr_action, isr_action_init);
+   MTLK_HW_INIT_EVT_RESET(hw);
+   mtlk_ccr_enable_interrupts(hw->ccr, MTLK_IRQ_ALL);
+   mtlk_ccr_release_cpus_reset(hw->ccr);
+@@ -7964,7 +7964,7 @@
+                          _mtlk_mmb_power_on, (hw));
+     MTLK_START_STEP_VOID(hw_mmb_card, HW_BIST_READ, MTLK_OBJ_PTR(hw),
+                          mtlk_ccr_bist_efuse, (hw->ccr));
+-    hw->perform_isr_action = isr_action_init;
++    smp_store_release(&hw->perform_isr_action, isr_action_init);
+     MTLK_START_STEP(hw_mmb_card, HW_INIT_PLL, MTLK_OBJ_PTR(hw),
+                     mtlk_ccr_init_pll, (hw->ccr));
+     MTLK_START_STEP_VOID(hw_mmb_card, HW_CHI_INIT, MTLK_OBJ_PTR(hw),
+@@ -8065,7 +8065,7 @@
+                     mtlk_txmm_start, (&hw->txdm_base));
+ 
+     hw->state    = MTLK_HW_STATE_WAITING_READY;
+-    hw->perform_isr_action = isr_action_normal;
++    smp_store_release(&hw->perform_isr_action, isr_action_normal);
+ 
+ #if !MTLK_DCDP_SEPARATE_REG
+     MTLK_START_STEP(hw_mmb_card_fin, HW_DATA_PATH_REGISTER, MTLK_OBJ_PTR(&hw->hw_start_fin),
+@@ -9690,7 +9690,7 @@
+   MTLK_ASSERT(NULL != hw);
+   MTLK_ASSERT(NULL != hw->ccr);
+ 
+-  hw->perform_isr_action(hw, ihd);
++  smp_load_acquire(&hw->perform_isr_action)(hw, ihd);
+   return MTLK_ERR_OK;
+ }
+ 
+@@ -9744,7 +9744,7 @@
+ #endif
+     }
+ 
+-    hw->perform_isr_action(hw, ihd);
++    smp_load_acquire(&hw->perform_isr_action)(hw, ihd);
+ 
+   } while(0);
+ 
+@@ -9931,6 +9931,7 @@
+ mtlk_hw_mmb_isolate (mtlk_hw_t *hw)
+ {
+   _mtlk_mmb_stop_events_completely(hw);
++  mtlk_mmb_drv_recovery_irq_quiesce(hw);
+ 
+   /* Stop MMB RX buffer recovery timer */
+   mtlk_osal_timer_cancel_sync(&hw->rx.pending.timer);
+@@ -10010,7 +10011,8 @@
+   MTLK_ASSERT(hw->radio_descr != NULL);
+ 
+   /* Reset FW and chip */
+-  _mtlk_mmb_reset_all_events(hw);
++  _mtlk_mmb_stop_events_completely(hw);
++  mtlk_mmb_drv_recovery_irq_quiesce(hw);
+   mtlk_hw_mmb_reset_mac(hw);
+   mtlk_hw_mmb_restore_irq_mode(hw);
+   _mtlk_mmb_cleanup_reset_mac(hw);
+@@ -10044,12 +10046,12 @@
+ 
+   mtlk_ccr_bist_efuse(hw->ccr);
+ 
+-  hw->perform_isr_action = isr_action_init;
++  smp_store_release(&hw->perform_isr_action, isr_action_init);
+ 
+   res = mtlk_ccr_init_pll(hw->ccr); /* both Gen5 and Gen6 */
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Restore HW_INIT_PLL failed(%d)", res);
+-    return res;
++    goto restore_failed;
+   }
+ 
+   _mtlk_mmb_chi_init(hw);
+@@ -10057,15 +10059,20 @@
+   res = _mtlk_mmb_load_firmware(hw);
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Restore HW_LOAD_FIRMWARE failed(%d)", res);
+-    return res;
+-  }
+-
++    goto restore_failed;
++  }
++
++  /* Old callbacks are drained and the ISR is in initialization mode.
++   * Re-enable Linux IRQ delivery for the new firmware's boot handshake.
++   * Normal ring processing stays closed until reconstruction is complete.
++   */
++  mtlk_mmb_drv_recovery_irq_resume(hw);
+   _mtlk_mmb_run_firmware(hw);
+ 
+   res = _mtlk_mmb_wait_chi_magic(hw);
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Restore HW_WAIT_CHI_MAGIC failed(%d)", res);
+-    return res;
++    goto restore_failed;
+   }
+ 
+   LOG_CHI_AREA(sFifoQ);
+@@ -10093,62 +10100,62 @@
+   res = _mtlk_mmb_data_path_register(hw);
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Restore _mtlk_mmb_data_path_register failed(%d)", res);
+-    return res;
++    goto restore_failed;
+   }
+ #endif
+ 
+   res = _mtlk_mmb_prepare_man_req_bdr(hw);
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Restore _mtlk_mmb_prepare_man_req_bdr failed(%d)", res);
+-    return res;
++    goto restore_failed;
+   }
+ 
+   res = _mtlk_mmb_prepare_man_ind_bdr(hw);
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Restore _mtlk_mmb_prepare_man_ind_bdr failed(%d)", res);
+-    return res;
++    goto restore_failed;
+   }
+ 
+   res = _mtlk_mmb_prepare_dbg_req_bdr(hw);
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Restore _mtlk_mmb_prepare_dbg_req_bdr failed(%d)", res);
+-    return res;
++    goto restore_failed;
+   }
+ 
+   res = _mtlk_mmb_prepare_dbg_ind_bdr(hw);
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Restore _mtlk_mmb_prepare_dbg_ind_bdr failed(%d)", res);
+-    return res;
++    goto restore_failed;
+   }
+ 
+   res = _mtlk_mmb_recover_data_req_bdr(hw);
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Restore _mtlk_mmb_prepare_data_req_bdr failed(%d)", res);
+-    return res;
++    goto restore_failed;
+   }
+ 
+   res = _mtlk_mmb_recover_data_ind_bdr(hw);
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Restore _mtlk_mmb_prepare_data_ind_bdr failed(%d)", res);
+-    return res;
++    goto restore_failed;
+   }
+ 
+   res = _mtlk_mmb_recover_bss_mgmt(hw);
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Restore ( failed(%d)", res);
+-    return res;
++    goto restore_failed;
+   }
+ 
+   res = _mtlk_mmb_prealloc_rx_data_buffers(hw);
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Restore _mtlk_mmb_prealloc_rx_data_buffers failed(%d)", res);
+-    return res;
++    goto restore_failed;
+   }
+ 
+   res = _mtlk_mmb_prealloc_rx_mgmt_buffers(hw);
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Restore _mtlk_mmb_prealloc_rx_mgmt_buffers failed(%d)", res);
+-    return res;
++    goto restore_failed;
+   }
+ 
+   if (hw->chi_area.sMipsControl.sData.u32DescriptorLocation) {
+@@ -10159,7 +10166,7 @@
+     res = _mtlk_mmb_init_fw_logger(hw);
+     if (res != MTLK_ERR_OK) {
+       ELOG_V("FW log buffers initialization failed");
+-      return res;
++      goto restore_failed;
+     }
+   }
+ 
+@@ -10167,63 +10174,70 @@
+   res = _mtlk_mmb_txmm_restore(hw);
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Restore _mtlk_mmb_txmm_restore failed(%d)", res);
+-    return res;
++    goto restore_failed;
+   }
+   res = _mtlk_mmb_txdm_restore(hw);
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Restore _mtlk_mmb_txdm_restore failed(%d)", res);
+-    return res;
++    goto restore_failed;
+   }
+ 
+   hw->mac_reset_logic_initialized = TRUE;
+ 
+   hw->state    = MTLK_HW_STATE_WAITING_READY;
+-  hw->perform_isr_action = isr_action_normal;
++  _mtlk_mmb_reset_all_events(hw);
++  smp_store_release(&hw->perform_isr_action, isr_action_normal);
+ 
+ #if !MTLK_DCDP_SEPARATE_REG
+   res = _mtlk_mmb_data_path_register(hw);
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Restore _mtlk_mmb_data_path_register failed(%d)", res);
+-    return res;
++    goto restore_failed;
+   }
+ #endif
+ 
+   res = _mtlk_mmb_data_path_init(hw);
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Restore _mtlk_mmb_data_path_init failed(%d)", res);
+-    return res;
++    goto restore_failed;
+   }
+ 
+   if (mtlk_mmb_dcdp_path_available(hw)) {
+     res = __hw_mmb_restore_all_subifs_start(hw);
+     if (res != MTLK_ERR_OK) {
+       ELOG_D("MMB_Restore registering subinterfaces failed(%d)", res);
+-      return res;
++      goto restore_failed;
+     }
+   }
+ 
+   res = _mtlk_mmb_send_hw_dep_cfg(hw);
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Recovery failed(%d)", res);
+-    return res;
++    goto restore_failed;
+   }
+ 
+   res = _mtlk_mmb_send_fw_log_severity(hw, LOGGER_SEVERITY_DEFAULT_LEVEL, UMI_CPU_ID_UM);
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Recovery failed(%d)", res);
+-    return res;
++    goto restore_failed;
+   }
+ 
+   res = mtlk_osal_timer_set(&hw->rx.pending.timer, MTLK_RX_BUFFS_RECOVERY_PERIOD);
+   if (res != MTLK_ERR_OK) {
+     ELOG_D("MMB_Restore mtlk_osal_timer_set failed(%d)", res);
+-    return res;
++    goto restore_failed;
+   }
+ 
+   hw->state = MTLK_HW_STATE_READY;
+ 
+   ILOG2_V("HW layer restored!");
+   return MTLK_ERR_OK;
++
++restore_failed:
++  /* A retry or teardown must not inherit active callbacks on partial state. */
++  _mtlk_mmb_stop_events_completely(hw);
++  mtlk_mmb_drv_recovery_irq_quiesce(hw);
++  return res;
+ }
+ 
+ static int

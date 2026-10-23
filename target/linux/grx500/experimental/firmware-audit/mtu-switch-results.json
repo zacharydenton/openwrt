@@ -1,0 +1,73 @@
+{
+  "schema": 1,
+  "status": "Switch PMAC limits and MTU API-error propagation corrected; hardware unverified",
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "new_factory_container": false,
+  "before": {
+    "port_gswr_pmac_limit": 1662,
+    "vendor_gswr_pmac_limit": 1728,
+    "requested_mtu": 8000,
+    "injected_first_read_failure_returned_success": true
+  },
+  "after": {
+    "both_pmac_limits": 9216,
+    "per_netdev_max_mtu": 8000,
+    "shared_limits_never_reduced": true,
+    "api_errors_propagated": true,
+    "software_mtu_and_jumbo_state_unchanged_on_api_failure": true,
+    "initial_mtu_programming_before_phy_subinterface_acquisition": true,
+    "register_transaction_atomic": false
+  },
+  "tests": {
+    "switch_cases_per_execution": 48047,
+    "native_asan_ubsan": "pass",
+    "mips_userspace": "pass",
+    "capacity_cases": 19183,
+    "capacity_asan_ubsan": "pass",
+    "scope": "Actual extracted functions and GSW_register_t; switch API/register storage and device objects modeled; no packet processing or hardware execution"
+  },
+  "build": {
+    "full_integrated_build": "pass; existing vendor warnings remain",
+    "prepared_ethernet_source_matches": true,
+    "compiled_mtu_function_pmac_9216_programming_sites": 2,
+    "compiled_init_checks_mtu_call_result": true
+  },
+  "inputs": {
+    "/home/zach/code/openwrt/target/linux/grx500/files/drivers/net/ethernet/lantiq/ltq_eth_drv_xrx500.c": "d26342cb6470c095bee4718a6996a36a6eb1a8f71a7192068b98fc64ae634531",
+    "/home/zach/code/openwrt/target/linux/grx500/tests/test-mtu-switch.py": "22f38946fdf2b398cbbdf0a54c7383915c084a820a9c381fd05c23736edbfd9e",
+    "/home/zach/code/openwrt/target/linux/grx500/tests/test-mtu.py": "14721d161d773f360c5bac9a088e1179d593f5cf3a43162ec40dd33f1080a98d",
+    "/home/zach/code/openwrt/target/linux/grx500/files/drivers/net/ethernet/lantiq/switch-api/gsw_reg.h": "42275b220433df01b9806c5e6ac9552f838f82827c4cd320535edfe62aa4e372",
+    "/home/zach/code/openwrt/target/linux/grx500/files/drivers/net/ethernet/lantiq/switch-api/gsw_flow_core.c": "8600d11a76d69358d0ddd3e1ab71501dbe15f92e968163f9334f9f6741fddd3e",
+    "/home/zach/code/openwrt/target/linux/grx500/files/include/net/switch_api/lantiq_gsw.h": "018e16e11ca3f0e4961d04cca04eb04c1b7e30fcf00ef70c21eb418a1565bb24",
+    "/home/zach/code/openwrt/target/linux/grx500/files/include/net/switch_api/lantiq_gsw_flow.h": "7cab4113ac9b9e1c5161f7d70ed3dcfc7f362422b4c72fc3f19f9fcb7c9b7e31",
+    "/home/zach/code/openwrt/target/linux/grx500/dts/grx500-ethernet.dtsi": "8a54fa0d86ef0a7168c32d20f76140a9129717787160428cb942d309e3b2aed3",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/mtu-switch-before/ltq_eth_drv_xrx500.c": "ef1011118c0f4c54fb000a9c023d115fa9b0e0a3b60344f0152adc124a608d5d",
+    "/home/zach/code/archer-ax3000-bringup/vendor/intel_GRX350/sdk/7.5.1.50/ugw/target/linux/lantiq/linux-3.10.104-sources/drivers/net/ethernet/lantiq/ltq_eth_drv_xrx500.c": "6951d3cda1fbfd44ce3e90a9cd098b0d6eb7dd59169f80fc2c983200f943d78c"
+  },
+  "logs": {
+    "mtu-switch-after.log": "1478ffc92e3b9165389c8648a2e13b92590e9d000d5aedd3eb386101e0f812fe",
+    "mtu-switch-before-failure.log": "93674afda6e99114de3a255f280bcd4b085675fb4a98921198454466112a05a5",
+    "mtu-switch-before-threshold.log": "9df7dc106f31ea8360986e07ced697a24913f3aaf2fa91fe8badfa0b3adb0ca0",
+    "mtu-switch-build.log": "3859b440f381878e26c8171c444f903774404367c98dfb8e258a647fec2f2f45",
+    "mtu-switch-capacity.log": "8146b3bfa7ee56ee0fdd9e96847c482aaf90e4798543b1c0d046de34fc203226",
+    "mtu-switch-mips.log": "edd5845e45d775f6ec6eeffae17bf05470c51665ff8af038c104a2a129f06a01"
+  },
+  "image_checks": {
+    "integrated-safety-content.json": "c946b01d9a029ddb0c0f2b10383c64c16ca16de0d24e4f5109d7a0b570ce88ea",
+    "integrated-safety-initramfs.json": "31cad60ff132d9cb746608461d2f678d05cb0ca0275dd5117d1fcbedb5088699",
+    "integrated-safety-sysupgrade.json": "d020c7c0cb164a09569160ad47111e5aff1678c00ea87f9439bfa5f1fda6bcc2"
+  },
+  "compiled_evidence": {
+    "ethernet-mtu.disassembly": "251efb240f5fda6b19094017bf6aeb430b05fdc8ea7c3f77f3b4d240c7e8c47a",
+    "gsw_reg_grow_len.vmlinux.disassembly": "f7449868bd37c92985774f10f7e4497acead83d621f8b0ccb6fe31435b35951e",
+    "ltq_change_mtu.vmlinux.disassembly": "3a99d43421253c315d5c75a037fceeb6986cfbf7ce6b5a4d8e9b9de19346fd8b",
+    "ltq_eth_init.vmlinux.disassembly": "41d723374165c8d29152faec8d96625c80ccf3681e8447843312255ab6e8756e"
+  },
+  "artifact_path": "/home/zach/code/archer-ax3000-bringup/artifacts/development-mtu-switch",
+  "remaining": [
+    "Physical Ethernet and tagged/jumbo traffic, queue pressure and throughput",
+    "Both Wi-Fi radios and complete peripheral/persistence behavior",
+    "Serial-free boot, NAND writes and reliable reset/power-loss fallback"
+  ]
+}

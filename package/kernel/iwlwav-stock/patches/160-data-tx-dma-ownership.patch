@@ -1,0 +1,140 @@
+--- a/wireless/driver/shared/hw_mmb.c
++++ b/wireless/driver/shared/hw_mmb.c
+@@ -1804,6 +1804,18 @@
+ 
+ #define HD_BD_INDEX_GET(hd) (MTLK_BFIELD_GET(LE32_TO_CPU((hd)->u32BdIndex), TX_DATA_BD_INDEX))
+ 
++static void
++wave_data_tx_unmap(mtlk_hw_t *hw, mtlk_hw_data_req_mirror_t *data_req)
++{
++  if (data_req->dma_mapped) {
++    mtlk_df_nbuf_unmap_phys_addr(mtlk_ccr_get_dev_ctx(hw->ccr),
++                               data_req->nbuf, data_req->dma_addr,
++                               data_req->size, MTLK_DATA_TO_DEVICE);
++    data_req->dma_mapped = false;
++  }
++  data_req->dma_addr = 0;
++}
++
+ static __INLINE void
+ _mtlk_mmb_handle_dat_cfm (mtlk_hw_t *hw,
+                           HOST_DSC  *hd)
+@@ -1860,14 +1872,7 @@
+     goto skip_process;
+   }
+ 
+-  if (data_req->dma_addr) { /* NULL keep-alive packets are not mapped */
+-    ILOG5_DDD("handling CFM: index %d, payload %08X, HD payload %08X", u32BdIndex, data_req->dma_addr, LE32_TO_CPU(hd->u32HostPayloadAddr));
+-      mtlk_df_nbuf_unmap_phys_addr(mtlk_ccr_get_dev_ctx(hw->ccr),
+-                                   data_req->nbuf,
+-                                   data_req->dma_addr,
+-                                   data_req->size,
+-                                   MTLK_DATA_TO_DEVICE);
+-  }
++  wave_data_tx_unmap(hw, data_req);
+ 
+   /* at this time status is not returned by FW */
+   data_req->status          = (UMI_STATUS)UMI_OK; //MTLK_BFIELD_GET(info, IND_REQ_TX_STATUS);
+@@ -1885,10 +1890,7 @@
+    * descriptor to the free pool, where recovery no longer finds it.
+    */
+   if (data_req->nbuf) {
+-    if (data_req->dma_addr)
+-      mtlk_df_nbuf_unmap_phys_addr(mtlk_ccr_get_dev_ctx(hw->ccr),
+-                                 data_req->nbuf, data_req->dma_addr,
+-                                 data_req->size, MTLK_DATA_TO_DEVICE);
++    wave_data_tx_unmap(hw, data_req);
+     mtlk_df_nbuf_free(data_req->nbuf);
+     data_req->nbuf = NULL;
+   }
+@@ -5016,17 +5018,12 @@
+                                                mtlk_hw_data_req_mirror_t,
+                                                hdr.list_entry);
+ 
+-    if (data_req->dma_addr) {
+-      mtlk_df_nbuf_unmap_phys_addr(mtlk_ccr_get_dev_ctx(hw->ccr),
+-                                   data_req->nbuf,
+-                                   data_req->dma_addr,
+-                                   data_req->size,
+-                                   MTLK_DATA_TO_DEVICE);
+-    }
++    wave_data_tx_unmap(hw, data_req);
+ 
+     /* Simply free the buffers without any statistic update due to with next steps
+        card will be completely deleted. */
+     mtlk_df_nbuf_free(data_req->nbuf);
++    data_req->nbuf = NULL;
+   }
+ }
+ 
+@@ -8431,11 +8428,14 @@
+                                     MTLK_DATA_TO_DEVICE);
+     if (dma_mapping_error(mtlk_ccr_get_dev_ctx(hw->ccr), data_req->dma_addr)) {
+       data_req->dma_addr = 0;
++      data_req->dma_mapped = false;
+       return MTLK_ERR_PKT_DROPPED;
+     }
++    data_req->dma_mapped = true;
+   }
+   else {
+     data_req->dma_addr = 0;
++    data_req->dma_mapped = false;
+   }
+ 
+   tx_bd.u32BdIndex         = CPU_TO_LE32(data_req->hdr.index);
+@@ -8504,20 +8504,30 @@
+ #ifdef BD_DBG
+   if (__UNLIKELY(data_req->hdr.index >= hw->tx.ring.size)) {
+     ELOG_D("BD index out of range, %d", data_req->hdr.index);
+-    mtlk_hw_set_prop(mtlk_vap_get_hwapi(vap_handle), MTLK_HW_RESET, NULL, 0);
+-    return MTLK_ERR_PKT_DROPPED;
++    goto tx_rejected;
+ 
+   }
+   if (__UNLIKELY(test_and_set_bit(data_req->hdr.index, hw->tx.used_bd_map))) {
+     ELOG_D("attempt to reuse BD without releasing (on TX), index %d\n", data_req->hdr.index);
+-    mtlk_hw_set_prop(mtlk_vap_get_hwapi(vap_handle), MTLK_HW_RESET, NULL, 0);
+-    return MTLK_ERR_PKT_DROPPED;
++    goto tx_rejected;
+   }
+ #endif
+ 
+   _mtlk_mmb_put_hd_to_ring(hw, &tx_bd, &hw->tx.ring);
+   CPU_STAT_END_TRACK(CPU_STAT_ID_TX_HW);
+   return res;
++
++#ifdef BD_DBG
++ tx_rejected:
++  /* Nothing was published to firmware. Release this attempt's mapping
++   * before the caller recycles the descriptor and disposes of the skb.
++   * A pre-existing used bit belongs to the earlier submission: keep it.
++   */
++  CPU_STAT_END_TRACK(CPU_STAT_ID_TX_HW);
++  wave_data_tx_unmap(hw, data_req);
++  mtlk_hw_set_prop(mtlk_vap_get_hwapi(vap_handle), MTLK_HW_RESET, NULL, 0);
++  return MTLK_ERR_PKT_DROPPED;
++#endif
+ }
+ 
+ static int
+@@ -8525,6 +8535,10 @@
+ {
+   mtlk_hw_data_req_mirror_t *data_req = DATA_REQ_MIRROR_PTR(msg);
+ 
++  /* Unsent packets remain caller-owned. Do not leave a borrowed skb in
++   * the free descriptor pool after that caller disposes of the packet.
++   */
++  data_req->nbuf = NULL;
+   _mtlk_mmb_free_sent_msg_to_data_pool(hw, data_req);
+ 
+   return MTLK_ERR_OK;
+--- a/wireless/driver/shared/hw_hal.h
++++ b/wireless/driver/shared/hw_hal.h
+@@ -120,6 +120,7 @@
+   mtlk_hw_mirror_hdr_t hdr;        /* Header */
+   mtlk_nbuf_t         *nbuf;       /* Network buffer   */
+   uint32               dma_addr;   /* DMA mapped address */
++  bool                 dma_mapped; /* Address zero may be a valid mapping */
+   uint32               size;       /* Data buffer size */
+   uint8                tid;        /* Packets priority */
+   mtlk_osal_timestamp_t ts;        /* Timestamp (used for TX monitoring) */

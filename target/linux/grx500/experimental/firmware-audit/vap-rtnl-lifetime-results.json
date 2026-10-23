@@ -1,0 +1,34 @@
+{
+  "release_gate_passed": false,
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "openwrt_base_commit": "d014acb494001606ce78720e240892e840302a9d",
+  "prepared_source_sha256": {
+    "driver_df_user": "6bae604de1d20beffccec2b39eddc85f3b0fd62045608321a5bcbdf7bbf98ca5",
+    "driver_df_linux": "9fe559af2edaa1a285f5fdd5272a09212873664fde3c80a7292fda3df5d40db5",
+    "driver_core": "1e51d2db36c5d9d67bb95b3cc7b4af375929354cebd89abc37692ed25dd9ecf5",
+    "driver_serializer": "2500855bba7dfbae094827e0af597e38d28ec9699f7d702a5d4d9abe36b333ba",
+    "driver_serializer_osdep": "6c8a95b5b87ed37909f6009e4b98c5fd040afd709c06cc3173d756765f4ec60f",
+    "driver_vap_manager": "c678df73bd5124d7104d65850b7d1f8ad19144048c3c67a02432cc7ee30151a0",
+    "driver_hw": "8f2d4ffd78d6d2c4a4d8b338e56d4849e72d7989ba7137774b5fe88a3aaa4b04",
+    "kernel_wext": "a2ec7a55f2727cab92a21380aaa913a850ba67250aba9550e115540e793154d4",
+    "kernel_netdev": "3862463c8c9e697181249003c201c596afb4a3152c09c9e0b964cc322a591550",
+    "kernel_nl80211": "46166d09f60bc1aa8e8fe04a50ced5351c262772dc29a310a0256d077b7d06fa"
+  },
+  "findings": [
+    {
+      "id": "rtnl-cross-thread",
+      "status": "unresolved",
+      "evidence": "WEXT and nl80211 NEW/DEL_INTERFACE hold RTNL in caller; synchronous requests wait on a serializer kthread; that kthread registers AP netdevs without RTNL or calls unregister_netdevice after failed rtnl_trylock."
+    },
+    {
+      "id": "vap-unpublish-after-cleanup",
+      "status": "unresolved",
+      "evidence": "VAP core/DF cleanup precedes guest_vap_array slot clearing; tasklet callbacks can fetch the published pointer without an in-flight reference."
+    }
+  ],
+  "limitations": [
+    "Source-level call-chain proof does not quantify occurrence on this router.",
+    "No physical boot, packet, association, upgrade or recovery test was run."
+  ]
+}

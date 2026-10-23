@@ -1,0 +1,571 @@
+{
+  "schema": 1,
+  "image": {
+    "path": "bin/targets/grx500/generic/openwrt-grx500-generic-tplink_archer-ax3000-v1-initramfs-kernel.bin",
+    "sha256": "81e156f426eef311b53f6e9109f8ac8edbf7b6644e3d7ded848296874a993e97",
+    "bytes": 8627864,
+    "load": "0xa4000000",
+    "entry": "0xa4000000"
+  },
+  "elf": {
+    "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/vmlinux-initramfs.debug",
+    "sha256": "728baafa9322d07b47de72ae30164416649faf3b40f4a115e9c0754fdc4c5c28",
+    "matches_image_kernel": true
+  },
+  "image_integrity": "passed",
+  "kernel_transport": {
+    "kind": "experimental-relocated-lzma",
+    "loader_elf_sha256": "be0346f3af51deb81994cd57089b797eb1ace72296c01d3d4480d76412542102",
+    "loader_sha256": "74a342a408bb55580a58ffb2a7502f6c1492fc025d7268cae663439a764dd035",
+    "inner_sha256": "c65f159e621d17a4dcb3796a5c4263a39f24477ca3ad483a82c759a1c02bb0e5",
+    "outer_destination": "0xa4000000",
+    "inner_destination": "0xa0020000",
+    "hardware_tested": false,
+    "limitation": "ELF binding and bounds do not execute startup or prove hardware boot"
+  },
+  "dtb_sha256": "48fb1411c0c48ea135f12c101b4752f754302dcb001916a6ba1894e3ed14c6a9",
+  "initramfs_entries": 942,
+  "checks": [
+    {
+      "check": "DT clock-provider dependencies",
+      "status": "present",
+      "evidence": {
+        "status": "pass",
+        "dtb_sha256": "48fb1411c0c48ea135f12c101b4752f754302dcb001916a6ba1894e3ed14c6a9",
+        "provider_sha256": "3817151ffcd4b62fbc90d51c20ec058c3ee8a40b7267ee9a2f5b75fc28796331",
+        "registered_ids": [
+          1,
+          2,
+          3,
+          4,
+          11,
+          12,
+          13,
+          14,
+          21,
+          22,
+          23,
+          24,
+          33,
+          107,
+          108,
+          111,
+          112,
+          114,
+          115,
+          116,
+          117,
+          120,
+          123,
+          124,
+          125,
+          126,
+          127,
+          128,
+          150,
+          151,
+          152,
+          153
+        ],
+        "required_gates": {
+          "GCLK_DMA0": {
+            "id": 107,
+            "status": 288,
+            "enable": 292,
+            "disable": 296,
+            "bit": 5
+          },
+          "GCLK_TOE": {
+            "id": 120,
+            "status": 288,
+            "enable": 292,
+            "disable": 296,
+            "bit": 22
+          },
+          "GCLK_CBM": {
+            "id": 111,
+            "status": 288,
+            "enable": 292,
+            "disable": 296,
+            "bit": 9
+          },
+          "GCLK_EBU": {
+            "id": 112,
+            "status": 288,
+            "enable": 292,
+            "disable": 296,
+            "bit": 10
+          },
+          "GCLK_PAE": {
+            "id": 123,
+            "status": 288,
+            "enable": 292,
+            "disable": 296,
+            "bit": 26
+          },
+          "GCLK_USB1": {
+            "id": 124,
+            "status": 288,
+            "enable": 292,
+            "disable": 296,
+            "bit": 27
+          },
+          "GCLK_GSWIP": {
+            "id": 125,
+            "status": 288,
+            "enable": 292,
+            "disable": 296,
+            "bit": 28
+          }
+        },
+        "references": [
+          {
+            "consumer": "/cpus/cpu@0",
+            "provider": "/clock-controller@16200000",
+            "id": 150,
+            "name": "CLK_CPU"
+          },
+          {
+            "consumer": "/cpus/cpu@1",
+            "provider": "/clock-controller@16200000",
+            "id": 150,
+            "name": "CLK_CPU"
+          },
+          {
+            "consumer": "/cpus/cpu@2",
+            "provider": "/clock-controller@16200000",
+            "id": 150,
+            "name": "CLK_CPU"
+          },
+          {
+            "consumer": "/cpus/cpu@3",
+            "provider": "/clock-controller@16200000",
+            "id": 150,
+            "name": "CLK_CPU"
+          },
+          {
+            "consumer": "/serial@16600000",
+            "provider": "/clock-controller@16200000",
+            "id": 13,
+            "name": "CLK_SSX4"
+          },
+          {
+            "consumer": "/serial@16600000",
+            "provider": "/clock-controller@16200000",
+            "id": 117,
+            "name": "GCLK_UART"
+          },
+          {
+            "consumer": "/dma@16e00000",
+            "provider": "/clock-controller@16200000",
+            "id": 107,
+            "name": "GCLK_DMA0"
+          },
+          {
+            "consumer": "/cbm@1e700000",
+            "provider": "/clock-controller@16200000",
+            "id": 11,
+            "name": "CLK_CBM"
+          },
+          {
+            "consumer": "/cbm@1e700000",
+            "provider": "/clock-controller@16200000",
+            "id": 111,
+            "name": "GCLK_CBM"
+          },
+          {
+            "consumer": "/dma@1e300000",
+            "provider": "/clock-controller@16200000",
+            "id": 120,
+            "name": "GCLK_TOE"
+          },
+          {
+            "consumer": "/switch@1c000000/gsw_core@0",
+            "provider": "/clock-controller@16200000",
+            "id": 22,
+            "name": "CLK_GSWIP"
+          },
+          {
+            "consumer": "/switch@1c000000/gsw_core@0",
+            "provider": "/clock-controller@16200000",
+            "id": 125,
+            "name": "GCLK_GSWIP"
+          },
+          {
+            "consumer": "/switch@1a000000/gsw_core@0",
+            "provider": "/clock-controller@16200000",
+            "id": 21,
+            "name": "CLK_PAE"
+          },
+          {
+            "consumer": "/switch@1a000000/gsw_core@0",
+            "provider": "/clock-controller@16200000",
+            "id": 123,
+            "name": "GCLK_PAE"
+          },
+          {
+            "consumer": "/pcie@18900000",
+            "provider": "/clock-controller@16200000",
+            "id": 126,
+            "name": "GCLK_PCIE0"
+          },
+          {
+            "consumer": "/pcie@18400000",
+            "provider": "/clock-controller@16200000",
+            "id": 127,
+            "name": "GCLK_PCIE1"
+          },
+          {
+            "consumer": "/pcie@18e00000",
+            "provider": "/clock-controller@16200000",
+            "id": 128,
+            "name": "GCLK_PCIE2"
+          },
+          {
+            "consumer": "/usb@1a500000",
+            "provider": "/clock-controller@16200000",
+            "id": 124,
+            "name": "GCLK_USB1"
+          },
+          {
+            "consumer": "/nand@16f00000",
+            "provider": "/clock-controller@16200000",
+            "id": 112,
+            "name": "GCLK_EBU"
+          }
+        ],
+        "compiled_branch_table": {
+          "address": "0x60c9a6f8",
+          "bytes": 2352,
+          "sha256": "ad7ca9cd50350ee7ba632026612dbc760f4e6873ef724719aed942c7decedd99",
+          "registered_ids": [
+            11,
+            12,
+            13,
+            14,
+            21,
+            22,
+            23,
+            24,
+            33,
+            107,
+            108,
+            111,
+            112,
+            114,
+            115,
+            116,
+            117,
+            120,
+            123,
+            124,
+            125,
+            126,
+            127,
+            128,
+            150,
+            151,
+            152,
+            153
+          ],
+          "status": "pass"
+        }
+      }
+    },
+    {
+      "check": "CBM driver",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "cbm_xrx500_probe",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "Ethernet transmit implementation",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "ltq_start_xmit",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "datapath implementation",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "dp_xmit",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "GPHY firmware loader",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "xrx500_phy_fw_init",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "PCIe host driver",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "intel_pcie_probe",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "BCH NAND driver",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "grx500_nand_probe",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "native cfg80211",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "cfg80211_init",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "native mac80211",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "ieee80211_init",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "USB host glue",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "grx500_dwc3_probe",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "USB PHY",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "grx500_usb_phy_probe",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "MT SMP startup",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "vsmp_boot_secondary",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "UBI attachment",
+      "status": "present",
+      "evidence": {
+        "required_builtin_symbol": "ubi_attach_mtd_dev",
+        "modular_alternatives": "not evaluated by this baseline audit"
+      }
+    },
+    {
+      "check": "CBM DT node",
+      "status": "present",
+      "evidence": {
+        "enabled_matching_nodes": [
+          "/cbm@1e700000"
+        ]
+      }
+    },
+    {
+      "check": "USB host DT node",
+      "status": "present",
+      "evidence": {
+        "enabled_matching_nodes": [
+          "/usb@1a500000"
+        ]
+      }
+    },
+    {
+      "check": "LED DT node",
+      "status": "present",
+      "evidence": {
+        "enabled_matching_nodes": [
+          "/leds"
+        ]
+      }
+    },
+    {
+      "check": "button DT node",
+      "status": "present",
+      "evidence": {
+        "enabled_matching_nodes": [
+          "/keys"
+        ]
+      }
+    },
+    {
+      "check": "calibration NAND DT node",
+      "status": "present",
+      "evidence": {
+        "enabled_matching_nodes": [
+          "/nand@16f00000"
+        ]
+      }
+    },
+    {
+      "check": "Ethernet DT node",
+      "status": "present",
+      "evidence": {
+        "enabled_matching_nodes": [
+          "/ethernet"
+        ]
+      }
+    },
+    {
+      "check": "PCIe DT node",
+      "status": "present",
+      "evidence": {
+        "enabled_matching_nodes": [
+          "/pcie@18900000",
+          "/pcie@18400000",
+          "/pcie@18e00000"
+        ]
+      }
+    },
+    {
+      "check": "GPHY loader DT node",
+      "status": "present",
+      "evidence": {
+        "enabled_matching_nodes": [
+          "/phy@1c003c00"
+        ]
+      }
+    },
+    {
+      "check": "GPHY payload",
+      "status": "present",
+      "evidence": {
+        "path": "lib/firmware/ltq_fw_PHY11G_IP_xRx5xx_A21.bin"
+      }
+    },
+    {
+      "check": "WAVE driver",
+      "status": "present",
+      "evidence": {
+        "modules": [
+          "lib/modules/6.18.55/mtlk.ko"
+        ],
+        "builtin_symbol": "mtlk_hw_mmb_init"
+      }
+    },
+    {
+      "check": "Gen6 radio AP firmware",
+      "status": "present",
+      "evidence": {
+        "paths": [
+          "lib/firmware/ap_ram_gen6_wrx_600_real_phy.bin"
+        ]
+      }
+    },
+    {
+      "check": "calibration preinit loader",
+      "status": "present",
+      "evidence": {
+        "path": "lib/preinit/81_grx500_calibration"
+      }
+    },
+    {
+      "check": "atomic upgrade implementation",
+      "status": "present",
+      "evidence": {
+        "path": "lib/upgrade/platform.sh"
+      }
+    },
+    {
+      "check": "factory UBI guard",
+      "status": "present",
+      "evidence": {
+        "path": "usr/sbin/grx500-check-ubi"
+      }
+    },
+    {
+      "check": "factory MAC loader",
+      "status": "present",
+      "evidence": {
+        "path": "lib/preinit/82_grx500_factory_mac"
+      }
+    },
+    {
+      "check": "LED configuration",
+      "status": "present",
+      "evidence": {
+        "path": "etc/board.d/01_leds"
+      }
+    },
+    {
+      "check": "combined WPS/radio button",
+      "status": "present",
+      "evidence": {
+        "path": "etc/rc.wps/00-grx500-combined"
+      }
+    },
+    {
+      "check": "LED toggle button",
+      "status": "present",
+      "evidence": {
+        "path": "etc/rc.button/lights_toggle"
+      }
+    },
+    {
+      "check": "regulatory database",
+      "status": "present",
+      "evidence": {
+        "path": "lib/firmware/regulatory.db"
+      }
+    },
+    {
+      "check": "Wi-Fi configuration tool",
+      "status": "present",
+      "evidence": {
+        "path": "sbin/wifi"
+      }
+    },
+    {
+      "check": "AP daemon",
+      "status": "present",
+      "evidence": {
+        "path": "usr/sbin/wpad"
+      }
+    },
+    {
+      "check": "NAND read utility",
+      "status": "present",
+      "evidence": {
+        "path": "usr/sbin/nanddump"
+      }
+    },
+    {
+      "check": "host-interface radio firmware",
+      "status": "present",
+      "evidence": {
+        "path": "lib/firmware/host_interface_gen6.bin"
+      }
+    },
+    {
+      "check": "board network setup",
+      "status": "present",
+      "evidence": {
+        "path": "etc/board.d/02_network"
+      }
+    }
+  ],
+  "static_prerequisites_met": true,
+  "hardware_tested": false,
+  "limitations": [
+    "Selected baseline driver names are checked; alternative implementations need manual review.",
+    "Presence does not validate driver bindings, reset sequencing, DMA ownership or firmware ABI.",
+    "Per-device calibration retrieval, physical flash layout and regulatory configuration remain unverified.",
+    "Boot, link, WAN/LAN isolation, both Wi-Fi bands and packet transfer require device tests."
+  ]
+}

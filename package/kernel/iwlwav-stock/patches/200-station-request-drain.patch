@@ -1,0 +1,226 @@
+--- a/wireless/driver/linux/mac80211.c
++++ b/wireless/driver/linux/mac80211.c
+@@ -15,6 +15,8 @@
+ #include <../net/wireless/core.h>
+ #endif
+ #include <linux/netdevice.h>
++#include <linux/spinlock.h>
++#include <linux/wait.h>
+ 
+ #include "mtlk_clipboard.h"
+ #include "mtlk_vap_manager.h"
+@@ -69,14 +71,87 @@
+ static void wv_ieee80211_csa_received(struct wiphy *wiphy, void *data,
+   int data_len);
+ 
++/* Counts queued station TX requests through their completion callback.
++ * This lifetime is deliberately separate from the hardware TX ring gate:
++ * recovery must not wait for work queued behind itself in a serializer. */
++struct wave_sta_tx_lifetime {
++  spinlock_t lock;
++  wait_queue_head_t wait;
++  unsigned int users;
++  bool stopping;
++};
++
+ struct _wv_mac80211_t
+ {
++  struct wave_sta_tx_lifetime tx_lifetime;
+   BOOL registered;
+   /* mtlk_vap_manager_t *vap_manager; */
+   wave_radio_t        *radio;
+   struct ieee80211_hw *mac80211_hw;
+   struct ieee80211_vif **vif_array;
+ };
++
++static void
++wave_sta_tx_lifetime_init(wv_mac80211_t *mac80211)
++{
++  spin_lock_init(&mac80211->tx_lifetime.lock);
++  init_waitqueue_head(&mac80211->tx_lifetime.wait);
++  mac80211->tx_lifetime.users = 0;
++  mac80211->tx_lifetime.stopping = false;
++}
++
++static bool
++wave_sta_tx_get(wv_mac80211_t *mac80211)
++{
++  unsigned long flags;
++  bool accepted;
++
++  spin_lock_irqsave(&mac80211->tx_lifetime.lock, flags);
++  accepted = !mac80211->tx_lifetime.stopping;
++  if (accepted)
++    mac80211->tx_lifetime.users++;
++  spin_unlock_irqrestore(&mac80211->tx_lifetime.lock, flags);
++  return accepted;
++}
++
++static void
++wave_sta_tx_put(wv_mac80211_t *mac80211)
++{
++  unsigned long flags;
++
++  spin_lock_irqsave(&mac80211->tx_lifetime.lock, flags);
++  if (WARN_ON_ONCE(!mac80211->tx_lifetime.users)) {
++    spin_unlock_irqrestore(&mac80211->tx_lifetime.lock, flags);
++    return;
++  }
++  if (!--mac80211->tx_lifetime.users)
++    wake_up_all(&mac80211->tx_lifetime.wait);
++  spin_unlock_irqrestore(&mac80211->tx_lifetime.lock, flags);
++}
++
++static bool
++wave_sta_tx_idle(wv_mac80211_t *mac80211)
++{
++  unsigned long flags;
++  bool idle;
++
++  /* Wait for the final put to finish touching the owner's waitqueue too. */
++  spin_lock_irqsave(&mac80211->tx_lifetime.lock, flags);
++  idle = !mac80211->tx_lifetime.users;
++  spin_unlock_irqrestore(&mac80211->tx_lifetime.lock, flags);
++  return idle;
++}
++
++void __MTLK_IFUNC
++wv_ieee80211_tx_quiesce(wv_mac80211_t *mac80211)
++{
++  unsigned long flags;
++
++  spin_lock_irqsave(&mac80211->tx_lifetime.lock, flags);
++  mac80211->tx_lifetime.stopping = true;
++  spin_unlock_irqrestore(&mac80211->tx_lifetime.lock, flags);
++  wait_event(mac80211->tx_lifetime.wait, wave_sta_tx_idle(mac80211));
++}
+ 
+ /* Per interface driver private date allocated by mac80211 upon interface creation*/
+ struct wv_vif_priv {
+@@ -458,6 +533,7 @@
+ /* The serializer copies mgmt_tx_params, not objects referenced by it. Keep
+  * both the cookie and packet ownership alive until request completion. */
+ struct wave_sta_tx_request {
++  wv_mac80211_t *mac80211;
+   struct ieee80211_hw *hw;
+   struct sk_buff *skb;
+   uint64 cookie;
+@@ -467,6 +543,7 @@
+ wave_sta_tx_request_done(mtlk_handle_t handle, int result, mtlk_clpb_t *clpb)
+ {
+   struct wave_sta_tx_request *request = HANDLE_T_PTR(struct wave_sta_tx_request, handle);
++  wv_mac80211_t *mac80211 = request->mac80211;
+ 
+   MTLK_UNREFERENCED_PARAM(result);
+   MTLK_UNREFERENCED_PARAM(clpb);
+@@ -475,6 +552,7 @@
+   if (request->skb)
+     ieee80211_free_txskb(request->hw, request->skb);
+   kfree(request);
++  wave_sta_tx_put(mac80211);
+ }
+ 
+ static void _wv_ieee80211_op_tx (struct ieee80211_hw *hw,
+@@ -490,7 +568,13 @@
+   mtlk_df_user_t *df_user;
+   struct mgmt_tx_params mtp;
+   struct wave_sta_tx_request *request;
++  wv_mac80211_t *mac80211 = hw->priv;
+   int in_chan;
++
++  if (!wave_sta_tx_get(mac80211)) {
++    ieee80211_free_txskb(hw, skb);
++    return;
++  }
+ 
+   if (!netif_running(skb->dev)) {
+     ELOG_V("You should bring interface up first");
+@@ -527,6 +611,7 @@
+   request = kzalloc(sizeof(*request), GFP_ATOMIC);
+   if (!request)
+     goto drop;
++  request->mac80211 = mac80211;
+   request->hw = hw;
+   request->skb = skb;
+ 
+@@ -546,6 +631,7 @@
+ 
+ drop:
+   ieee80211_free_txskb(hw, skb);
++  wave_sta_tx_put(mac80211);
+ }
+ 
+ static void _wv_ieee80211_op_stop (struct ieee80211_hw *hw, bool suspend)
+@@ -2150,6 +2236,7 @@
+   if (mac80211 == NULL)
+     return;
+ 
++  wv_ieee80211_tx_quiesce(mac80211);
+   if (mac80211->registered) {
+     ILOG0_V("Unregistering mac80211 HW");
+     ieee80211_unregister_hw(mac80211->mac80211_hw);
+@@ -2680,6 +2767,8 @@
+     return NULL;
+   }
+ 
++  wave_sta_tx_lifetime_init(mac80211);
++
+   /* link mac80211 with radio module */
+   mac80211->radio = radio;
+   mac80211->mac80211_hw = hw;
+--- a/wireless/driver/linux/mac80211.h
++++ b/wireless/driver/linux/mac80211.h
+@@ -22,6 +22,9 @@
+ wv_mac80211_t *       __MTLK_IFUNC wv_ieee80211_init (struct device *dev, void *radio_ctx, mtlk_handle_t hw_handle);
+ int                   __MTLK_IFUNC wv_ieee80211_setup_register(struct device *dev, wv_mac80211_t *mac80211, mtlk_handle_t hw_handle);
+ void                  __MTLK_IFUNC wv_ieee80211_free (wv_mac80211_t *mac80211);
++/* Process context, before destroying recovery/core state; never from a
++ * counted request or its serializer. Does not drain firmware completions. */
++void                  __MTLK_IFUNC wv_ieee80211_tx_quiesce (wv_mac80211_t *mac80211);
+ void                  __MTLK_IFUNC wv_ieee80211_unregister (wv_mac80211_t *mac80211);
+ void                  __MTLK_IFUNC wv_ieee80211_cleanup(wv_mac80211_t *mac80211);
+ void                  __MTLK_IFUNC wv_ieee80211_mngmn_frame_rx(mtlk_core_t *nic, const u8 *data, int size, int freq, int sig_dbm,
+--- a/wireless/driver/linux/mtlk_mmb_drv.c
++++ b/wireless/driver/linux/mtlk_mmb_drv.c
+@@ -1400,6 +1400,9 @@
+   MTLK_CLEANUP_BEGIN(mmb_drv, MTLK_OBJ_PTR(obj))
+     if (obj->hw_api)
+       wave_hw_tx_stop(obj->hw_api->hw);
++    /* Queued station TX may still own a callback and a mac80211 HW pointer.
++     * Drain it while core serializers and recovery context remain alive. */
++    wave_radio_mac80211_tx_quiesce(radio_descr);
+     MTLK_CLEANUP_STEP(mmb_drv, MMB_RCVRY_INIT_FINALIZE, MTLK_OBJ_PTR(obj),
+                       wave_rcvry_cleanup_finalize, (obj->hw_api->hw));
+     MTLK_CLEANUP_STEP(mmb_drv, MMB_RADIO_MAC80211_INIT, MTLK_OBJ_PTR(obj),
+--- a/wireless/driver/linux/wave_radio.c
++++ b/wireless/driver/linux/wave_radio.c
+@@ -565,6 +565,19 @@
+          * is released by _wave_radio_deinit after those producers stop.
+          */
+     }
++}
++
++void wave_radio_mac80211_tx_quiesce(wave_radio_descr_t *radio_descr)
++{
++  wave_int i;
++
++  if (!radio_descr)
++    return;
++
++  for (i = 0; i < radio_descr->num_radios; i++) {
++    if (radio_descr->radio[i].mac80211)
++      wv_ieee80211_tx_quiesce(radio_descr->radio[i].mac80211);
++  }
+ }
+ 
+ void wave_radio_mac80211_deinit(wave_radio_descr_t *radio_descr)
+--- a/wireless/driver/linux/wave_radio.h
++++ b/wireless/driver/linux/wave_radio.h
+@@ -132,6 +132,7 @@
+ void wave_radio_deinit(wave_radio_descr_t *radio_descr);
+ void wave_radio_deinit_finalize(wave_radio_descr_t *radio_descr);
+ void wave_radio_prepare_stop(wave_radio_descr_t *radio_descr);
++void wave_radio_mac80211_tx_quiesce(wave_radio_descr_t *radio_descr);
+ void wave_radio_mac80211_deinit(wave_radio_descr_t *radio_descr);
+ 
+ mtlk_hw_api_t *wave_radio_descr_hw_api_get(wave_radio_descr_t *radio_descr, wave_int radio_idx);

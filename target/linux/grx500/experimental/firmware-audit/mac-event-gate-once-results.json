@@ -1,0 +1,44 @@
+{
+  "passed": true,
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "openwrt_base_commit": "a25fb079b1463cd5d7d69c6d9a1c28d873291ebb",
+  "rea_commit": "c106cf20cbfcec8e1fcd953ad8e52bdfbf8c3f9c",
+  "patch_sha256": "15c4dfe594c61002c009d1d2dd9b4bf09204ee3dc1952cc45d07c4e75550feb6",
+  "prepared_hw_mmb_sha256": "e481db8b0488c66b500adbd469683ec8e0d5c783a1df6a6909ca5238c305f81e",
+  "source_gate_reads": 15,
+  "source_gate_writes": 6,
+  "unguarded_gate_accesses": 0,
+  "development_sysupgrade_sha256": "0ad2e491cfd030923a3f3760d7d7105cf0df388dfe58ccc2b09c4b66e0bb0d20",
+  "factory_sysupgrade_sha256": "9cb2748984c40dc4f3f858294135b79ef8b690367ded9dc80ff16fd50b6d165c",
+  "packaged_mtlk_sha256": "d149883612b3ab6ba4e28202fe0de2613aa6d836e96e80610ea0a5a14efb2ae0",
+  "candidate_sha256": "7c7e6e880eb6cb5fc4c0da6088bec407a4bbd13d21969b254d937bf331e19dec",
+  "candidate_bytes": 9039134,
+  "stock_checker_writer_cases": 16,
+  "factory_source_parity_inputs": 350,
+  "multipart_bytes": 9039514,
+  "rea_negative_controls": [
+    "dram_size",
+    "board_pointer",
+    "bootm_pointer"
+  ],
+  "reports_sha256": {
+    "243-development-initramfs-audit.json": "1016c01bd61540f3a210d1f13fe2c6e1a61ad3980a737527df45e5a0138eb6d9",
+    "243-development-sysupgrade-audit.json": "b8f2b3b6f6da60aa001788b872a012bbd102e41d0d688f72fd7c27fecd8e9c3f",
+    "243-factory-sysupgrade-audit.json": "694b0d2b24f8356c515e7c6372688ff6884e839c30bccd03791797249de95ad4",
+    "243-factory-prerequisites.json": "796728a37375101115b52ab60099800256bc77de4d7f78b9b3b5bb0445f06f3c",
+    "243-factory-source-parity.json": "f593e59506431874f7edbac6b2c252ecf57edb659e627308f1cee1927145a2a0",
+    "243-development-loader-handoff.json": "068820218463edb857eb3c9c4a00d4ecb8ad9e854f3b12603c96a57e122ba854",
+    "243-factory-loader-handoff.json": "8bea94423e4a031780d65a3841568194c1d94507aae5a442051f32690b370df8",
+    "243-stock-writer/results.json": "06554d4c18e4b794361d6b79fb393b3edc7482138b13934c07df61e2b71e360a",
+    "243-exact-stock-writer-summary.json": "2a03e1166e629e17d9a101001fba2d5f8b97f76279ec5dd19c4c8e33127a7b53",
+    "243-stock-web-route.json": "9eb709b3806c76a0a1bbd8a782aa55c2342e90389a0c8f05e021f8e201f97688",
+    "243-stock-uhttpd-ingress.json": "cc16c13fae8921f827c5b5261d19a2d1377ecbf44c34828df25ca7e2d5ad5112",
+    "243-rea-bootargs-layout.json": "4afc9354557d486d95acea011e7043ede836f2539ad450a31e4595b37c73b432"
+  },
+  "limitations": [
+    "READ_ONCE/WRITE_ONCE make the gate accesses explicit but do not wait for in-flight callbacks; later tasklet and serializer drains remain separate requirements.",
+    "Tests run cross-compiled code and isolated stock userspace, not router hardware, NAND or RF.",
+    "Boot, Ethernet, Wi-Fi, peripheral operation and fallback are not verified on the user device."
+  ]
+}

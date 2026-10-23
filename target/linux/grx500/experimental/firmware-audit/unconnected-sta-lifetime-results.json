@@ -1,0 +1,159 @@
+{
+  "schema": 1,
+  "base_commit": "bf46a5077ea14291164b145f62efcaf7d67a8f8a",
+  "date": "2026-10-23",
+  "status": "The known unconnected-station raw-wdev async lifetime and stale-interface stack-disclosure paths are source-level corrected; physical firmware, recovery and teardown qualification remains outstanding.",
+  "hardware_tested": false,
+  "release_gate": {
+    "unconnected_station_source_gate_passed": true,
+    "full_device_release_gate_passed": false,
+    "upload_recommended": false
+  },
+  "defects": {
+    "request_lifetime": "The vendor callback returned after queuing a raw wireless_dev pointer; the serializer later dereferenced it and emitted a cfg80211 event without retaining its owner.",
+    "error_event_initialization": "A failed first mtlk_df_user_from_wdev lookup reached the event path before vendor_unconnected_sta_res_data was initialized."
+  },
+  "patch": {
+    "path": "package/kernel/iwlwav-stock/patches/255-unconnected-sta-request-lifetime.patch",
+    "sha256": "c13187362bafbc99441239d0f4004194145815f0248f5570fdb56a4574dfe1a3",
+    "changes": [
+      "replace the void asynchronous core request with synchronous serialized invocation and clipboard cleanup",
+      "retain the nl80211 vendor callback and its wiphy lifetime until the request and event complete",
+      "propagate invocation and handler failures",
+      "initialize address, RSSI defaults and all remaining response bytes before the first interface lookup"
+    ]
+  },
+  "prepared_source": {
+    "wave_radio_c_sha256": "eda83591e14fd90705dc6182d78e7bf64c22a72dcdc2248f3d236f89a4dc7cc3",
+    "core_c_sha256": "4492079edac1f3331df5ef3db3d59b244e6531202f3d21b75b3a326983c7f29e"
+  },
+  "kernel_lock_contract": {
+    "kernel": "6.18.55",
+    "nl80211_c_sha256": "46166d09f60bc1aa8e8fe04a50ced5351c262772dc29a310a0256d077b7d06fa",
+    "test": "package/kernel/iwlwav-stock/tests/cfg80211-netdev-lock-contract.py",
+    "test_sha256": "9860a4b5609c376149caaa8bf3714ae8fcf97816e8c5e621f32e155608f1968d",
+    "exit_code": 0,
+    "assertions": [
+      "NL80211_CMD_VENDOR requires a wiphy and does not bypass the wiphy mutex",
+      "nl80211_pre_doit locks the wiphy and releases RTNL before the callback",
+      "nl80211_vendor_cmd calls the driver doit with the resolved wiphy and wdev",
+      "nl80211_post_doit unlocks the same wiphy"
+    ]
+  },
+  "lifetime_test": {
+    "path": "package/kernel/iwlwav-stock/tests/unconnected-sta-lifetime.py",
+    "sha256": "3d1ae4c56b0aa939e85317b99d3445d7904ae91c98f9cef0fc0592df04583242",
+    "compiler": "native GCC with ASan/UBSan and -Wall -Wextra -Werror",
+    "exit_code": 0,
+    "result": "PASS: synchronous unconnected-station request retains callback lifetime",
+    "cases": [
+      "ordinary request",
+      "core invocation error propagation",
+      "Gen6 rejection",
+      "wrong request length",
+      "null request data",
+      "broadcast station address"
+    ],
+    "structural_checks": [
+      "no asynchronous invocation remains in the submit function",
+      "synchronous invoke, result processing and callback return are ordered",
+      "response initialization precedes the first stale-interface exit",
+      "response initialization has one unambiguous owner"
+    ]
+  },
+  "full_driver_suite": {
+    "python_test_scripts": 27,
+    "python_exit_code": 0,
+    "he_wire_test": "pass",
+    "sanitizers": "ASan/UBSan where provided by each harness",
+    "scope": "Extracted production functions plus modeled kernel, serializer, DMA, workqueue, firmware and callback leaves; not a running target kernel."
+  },
+  "full_grx500_native_suite": {
+    "zero_argument_scripts": 15,
+    "exit_code": 0,
+    "enumerated_cases": 252192,
+    "trial_cases": 14,
+    "trial_worker_cases": 8,
+    "upgrade_cases": 9
+  },
+  "package_build": {
+    "command": "make package/kernel/iwlwav-stock/compile V=s -j4",
+    "exit_code": 0,
+    "architecture": "mips_24kc big-endian",
+    "objects": {
+      "wave_radio_o": {
+        "bytes": 524488,
+        "sha256": "0e37dbefb53799dd7c58e8171157798c7426d57c9aedec780647332c3d7e7ca5"
+      },
+      "core_o": {
+        "bytes": 1259252,
+        "sha256": "90c52bf89301fe07ca9ebc03d612ce077d47b621e764bb9b77b1a8ca82b5304a"
+      }
+    },
+    "modules": {
+      "mtlk_ko": {
+        "bytes": 8952460,
+        "sha256": "d499732977010398b5eb80ef91638a48f5e6e90b9e31148d9c1ca76fa8a4d3df"
+      },
+      "mtlkroot_ko": {
+        "bytes": 653672,
+        "sha256": "a08ee89dd58208b0e114348a3859446a2cfb6da66af4832ccb79019242087cef"
+      }
+    },
+    "package": {
+      "path": "bin/targets/grx500/generic/packages/kmod-iwlwav-stock-6.18.55.6.0.8.0.87.0.7-r1.apk",
+      "bytes": 688873,
+      "sha256": "96f0c5f1a15c2ba242d7a9ff4db9387392b488253bccfd09e1f1d5924b20ca6e"
+    }
+  },
+  "integrated_builds": {
+    "target_linux": {
+      "command": "make target/linux/compile V=s -j4",
+      "exit_code": 0
+    },
+    "development_image": {
+      "command": "make -j4",
+      "exit_code": 0
+    }
+  },
+  "development_images": {
+    "initramfs": {
+      "path": "bin/targets/grx500/generic/openwrt-grx500-generic-tplink_archer-ax3000-v1-initramfs-kernel.bin",
+      "bytes": 8629307,
+      "sha256": "51e9ce041ed4230b8cbbe64c6214b6a230473a5936e10f86376dd690e394fa52",
+      "audit": "current-image-audit.json",
+      "audit_sha256": "4e9526f5fdcb5b3088c67262264e48d318875c7ac8b4902290e8551d4a96db8b",
+      "audit_result": "pass"
+    },
+    "sysupgrade": {
+      "path": "bin/targets/grx500/generic/openwrt-grx500-generic-tplink_archer-ax3000-v1-squashfs-sysupgrade.bin",
+      "bytes": 9042205,
+      "sha256": "f05620fa8c8395ccf6f36b47f5c4cece173a73858bd366c335b23612dcaa80ed",
+      "audit": "current-sysupgrade-audit.json",
+      "audit_sha256": "c2a4a82c703a7cb5567a9c60237120bcde7ac91e55ef6a881f1eabcd39e7d4fa",
+      "audit_result": "pass",
+      "rootfs_mtlk_ko_sha256": "cfc8ad7a49e31f18b15bee4f84e6fa30cab57b129846983c4314975ed48c9d3f",
+      "rootfs_mtlkroot_ko_sha256": "7840da26d8a4dc265a398540c65d288d40ac293a6d5d7b77055a41b40dbed74c"
+    }
+  },
+  "packaged_mips_checksum_test": {
+    "report": "development-current-checksums-mips.json",
+    "report_sha256": "5f94a8a18971fb06391c62d3138268f661cad2bccacab840f0c36c3dc1892a9d",
+    "cases_passed": 3,
+    "flash_operations_performed": false
+  },
+  "factory_candidate": {
+    "rebuilt_with_patch_255": false,
+    "hardware_tested": false,
+    "upload_recommended": false
+  },
+  "remaining_release_gates": [
+    "Physical boot and module load/unload on Archer AX3000(US) v1.6",
+    "Real unconnected-station measurement latency, result event and error paths",
+    "Interface removal during real scan and firmware recovery contention",
+    "Ethernet forwarding and simultaneous 2.4/5 GHz Wi-Fi association and traffic",
+    "Flash-write, trial acceptance, reset and stock-bank fallback",
+    "Hardware watchdog or another demonstrated early-boot recovery mechanism",
+    "Verification of the user's installed stock firmware against the pinned US image"
+  ]
+}

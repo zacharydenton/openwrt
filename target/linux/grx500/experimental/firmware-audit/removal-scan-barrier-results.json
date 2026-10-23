@@ -1,0 +1,212 @@
+{
+  "schema": 1,
+  "base_commit": "bf46a5077ea14291164b145f62efcaf7d67a8f8a",
+  "date": "2026-10-23",
+  "status": "Patch 257 makes card-removal scan cleanup allocation-free and provides a stop/join fallback when the serializer barrier is unavailable. Source-level and build checks pass; physical device qualification remains outstanding.",
+  "hardware_tested": false,
+  "release_gate": {
+    "removal_scan_barrier_source_gate_passed": true,
+    "full_device_release_gate_passed": false,
+    "upload_recommended": false
+  },
+  "patch": {
+    "path": "package/kernel/iwlwav-stock/patches/257-removal-scan-barrier.patch",
+    "bytes": 5856,
+    "sha256": "4f3daad1d5776ab48e9a0ed5ab239b46eff21f6432438eef0d0bcc7264d22e7e"
+  },
+  "audit": {
+    "path": "target/linux/grx500/experimental/firmware-audit/removal-scan-barrier-audit.rst",
+    "bytes": 5060,
+    "sha256": "878897783e2d3061ce65881d62615a60b7a2f9b685aab9d98d8a919b322c6f5a"
+  },
+  "historical_failure": {
+    "test": {
+      "path": "target/linux/grx500/experimental/firmware-audit/verify-scan-barrier-failure.py",
+      "bytes": 8890,
+      "sha256": "0c450cec9b3c1a34251933e22053f7e0b00142307942ebeafa75f629727dc5fb"
+    },
+    "report": {
+      "path": "target/linux/grx500/experimental/firmware-audit/scan-barrier-failure-results.json",
+      "bytes": 1789,
+      "sha256": "b8e808a6abbdd4ca848b5a1c3e063303f518b887d75b2a12137ad1a1f0ac8a65"
+    },
+    "baseline": "Prepared sources with patch 257 reversed in a disposable temporary copy",
+    "ordinary_control_passed": true,
+    "unsafe_cases_reproduced": 5,
+    "default_exit_code": 1,
+    "expect_vulnerable_exit_code": 0,
+    "failures": [
+      "clipboard allocation",
+      "clipboard-copy allocation",
+      "core execution-context allocation",
+      "DUT/IGNORE recovery readiness rejection",
+      "disabled ALTER_SCAN ability"
+    ],
+    "scope": "Actual invocation, abort helper and radio-quiesce functions; modeled allocation, dispatch and pending-work leaves. Historical failed release gate is intentionally retained."
+  },
+  "correction": [
+    "Close channel admission and cancel control timers before a stack-owned serializer command.",
+    "Use the same user-priority FIFO as SET_CHAN and CAC_TIMEOUT, then wait on a Linux completion.",
+    "Run local scan abort/prevent outside ordinary readiness, ability and recovery-cancellation wrappers.",
+    "If command init, enqueue or execution fails, stop and join the serializer before local cleanup.",
+    "Make repeated stop safe for the single lifecycle owner; clear stop_done before each startup attempt."
+  ],
+  "lifecycle_contract": "Card-removal owner only; initialized master remains alive until later VAP stop. No concurrent serializer start/stop. A permanently hung worker blocks removal rather than permitting unsafe unregister.",
+  "prepared_sources": [
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/core.c",
+      "bytes": 629141,
+      "sha256": "3ed4de8c2f95f62b48527b2aa8c838211c835d634b1e5ea8de17a1a591630ae4"
+    },
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/wave_radio.c",
+      "bytes": 181474,
+      "sha256": "2235f93a3ad3fc5649a6542b8e47abab4775040e06f3e45a44242ceab63f1a8b"
+    },
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/shared/mtlk_core_iface.h",
+      "bytes": 4864,
+      "sha256": "a83f877dc50c4deeec48b2e61596379cf7bc38f1489895fc6bb9e9aa61e36a3e"
+    },
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/shared/mtlk_serializer.c",
+      "bytes": 14088,
+      "sha256": "9698ef5e84e174d032bc2b135abe72efaed847e555ecbd8455073db271290a77"
+    },
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/shared/mtlk_serializer.h",
+      "bytes": 11613,
+      "sha256": "1ccf8fe462417bfc0515317deebdd9363971460873c1dbd8beb1551f8b02862f"
+    }
+  ],
+  "regression_test": {
+    "path": "package/kernel/iwlwav-stock/tests/removal-scan-barrier.py",
+    "bytes": 8825,
+    "sha256": "a7a8fb78e07f7f71af3a421a55b6567f135c329f0b45e844f433e62ef5bc90fb",
+    "native": {
+      "exit_code": 0,
+      "compiler": "Native GCC, pthreads, ASan/UBSan, -Wall -Wextra -Werror"
+    },
+    "mips": {
+      "exit_code": 0,
+      "compiler": "OpenWrt GCC 14.4.0, static big-endian MIPS",
+      "runner": "/home/zach/code/archer-ax3000-bringup/web-upgrade-audit/usr/bin/qemu-mips-static",
+      "runner_sha256": "8d02f418b92f4ddf984ed8352954b0067d1a5cd810d38247aaf5f0fddc31c42e"
+    },
+    "cases": [
+      "two older requests precede ordinary barrier completion",
+      "recovery cancellation flag does not skip removal cleanup",
+      "explicit cancellation falls back to stop/join",
+      "command initialization failure",
+      "enqueue rejection",
+      "already-stopped serializer",
+      "repeated normal lifecycle stop"
+    ],
+    "scope": "Extracted quiesce functions, serializer invocation and serializer stop; modeled queue, stop/join and scan internals, not a running target kernel."
+  },
+  "teardown_order": {
+    "path": "package/kernel/iwlwav-stock/tests/teardown-order.py",
+    "bytes": 13779,
+    "sha256": "3345a3fe680521a76fc994b0c5b0803008347834ca31836c900e65863c66b865",
+    "cases": 556,
+    "exit_code": 0
+  },
+  "full_driver_suite": {
+    "python_test_scripts": 29,
+    "exit_code": 0,
+    "sanitizers": "ASan/UBSan where supplied by each harness",
+    "standalone_he_test_rerun": false,
+    "unrelated_target_suite_rerun": false
+  },
+  "builds": [
+    {
+      "command": "make package/kernel/iwlwav-stock/clean V=s && make package/kernel/iwlwav-stock/compile V=s -j4",
+      "exit_code": 0
+    },
+    {
+      "command": "make -j4",
+      "exit_code": 0
+    }
+  ],
+  "objects": [
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/core.o",
+      "bytes": 1262468,
+      "sha256": "49535222fdbaef74db7c0d0aabd876e8101a1a6523cecefe7c09d0d796d6ae60"
+    },
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/wave_radio.o",
+      "bytes": 524584,
+      "sha256": "ed8839bbae260c55055be009311bf3700eeb0806a400c91fdcf3470bb8f9266e"
+    },
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/shared/mtlk_serializer.o",
+      "bytes": 68088,
+      "sha256": "737574006eba9f50005a1b61e9fea16342cdc53315a75a8561f1257c3b1b9a58"
+    }
+  ],
+  "modules": [
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/mtlk.ko",
+      "bytes": 8961044,
+      "sha256": "2fcec175f73d2a5af78351faeca25d0c4c02aa8c75bb80bf8054a610eb877a28"
+    },
+    {
+      "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/mtlkroot.ko",
+      "bytes": 653672,
+      "sha256": "a08ee89dd58208b0e114348a3859446a2cfb6da66af4832ccb79019242087cef"
+    }
+  ],
+  "package": {
+    "path": "bin/targets/grx500/generic/packages/kmod-iwlwav-stock-6.18.55.6.0.8.0.87.0.7-r1.apk",
+    "bytes": 689793,
+    "sha256": "9b7163d6ef2368622abdaf0b9faf0da0b9d9e45a87cbfbab47f5c2e748b7af8e"
+  },
+  "development_images": [
+    {
+      "path": "bin/targets/grx500/generic/openwrt-grx500-generic-tplink_archer-ax3000-v1-initramfs-kernel.bin",
+      "bytes": 8628243,
+      "sha256": "e3efebf33755873ecc2dd024476023d1c19320be5a05e156b6e187d984cb662a",
+      "audit": {
+        "path": "target/linux/grx500/experimental/firmware-audit/current-image-audit.json",
+        "bytes": 14574,
+        "sha256": "7e4b001ac5f176d2865da9c08cb63ca7ac9bb39e0c41f3d2271f7e66dd3a3338"
+      },
+      "audit_result": "pass"
+    },
+    {
+      "path": "bin/targets/grx500/generic/openwrt-grx500-generic-tplink_archer-ax3000-v1-squashfs-sysupgrade.bin",
+      "bytes": 9052445,
+      "sha256": "ccdedebbf9b018dcc2e84f00a478e480308ea9b7632293997efc148797b1daec",
+      "audit": {
+        "path": "target/linux/grx500/experimental/firmware-audit/current-sysupgrade-audit.json",
+        "bytes": 7717,
+        "sha256": "8210373b6f659f1370fd6ea8e44aad20be00d66a51b1b843ae4f2adeb8209d11"
+      },
+      "audit_result": "pass",
+      "rootfs_mtlk_ko_sha256": "165329a32f7af5893fb08eb562911ce3cfa41beb325d0fffce48dd7522ef7b93",
+      "rootfs_mtlkroot_ko_sha256": "7840da26d8a4dc265a398540c65d288d40ac293a6d5d7b77055a41b40dbed74c"
+    }
+  ],
+  "packaged_mips_checksums": {
+    "path": "target/linux/grx500/experimental/firmware-audit/development-current-checksums-mips.json",
+    "bytes": 1158,
+    "sha256": "f58ab90a79e32b68951be3a2f7b3385f2732b9ee07a68efdd082f9f983b9b944",
+    "cases_passed": 3,
+    "flash_operations_performed": false
+  },
+  "factory_candidate": {
+    "rebuilt_with_patch_257": false,
+    "hardware_tested": false,
+    "upload_recommended": false
+  },
+  "remaining_release_gates": [
+    "Physical boot and module load/unload on Archer AX3000(US) v1.6",
+    "Real recovery, DFS/CAC, scan cancellation and interface teardown under traffic",
+    "Firmware channel switching, serializer contention and cfg80211 notifications",
+    "Ethernet forwarding and simultaneous 2.4/5 GHz association and traffic",
+    "Flash-write, trial acceptance, reset and stock-bank fallback",
+    "Hardware watchdog or demonstrated early-boot recovery",
+    "Verification of installed stock firmware against the pinned US image"
+  ]
+}

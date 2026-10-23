@@ -1,0 +1,17 @@
+#!/bin/sh
+
+. /lib/functions/uci-defaults.sh
+
+board_config_update
+
+case "$(board_name)" in
+tplink,archer-ax3000-v1)
+	ucidef_set_led_netdev "lan" "LAN" "blue:lan" "br-lan"
+	ucidef_set_led_netdev "wan" "WAN" "blue:internet" "wan"
+	ucidef_set_led_usbport "usb" "USB" "blue:usb" "usb1-port1" "usb2-port1"
+	;;
+esac
+
+board_config_flush
+
+exit 0

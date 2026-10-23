@@ -1,0 +1,553 @@
+--- a/drivers/net/ethernet/lantiq/cqm/grx500/cbm.c
++++ b/drivers/net/ethernet/lantiq/cqm/grx500/cbm.c
+@@ -45,7 +45,8 @@
+ struct clk *g_cbm_clk;
+ static void *std_buf_base;
+ static void *jbo_buf_base;
+-static phys_addr_t cbm_desc_phys;
++static phys_addr_t cbm_desc_phys, cbm_dqm_phys;
++static resource_size_t cbm_desc_size, cbm_dqm_size;
+ static bool cbm_ready;
+ 
+ bool grx500_cbm_ready(void)
+@@ -632,7 +633,7 @@
+ 			}
+ 		} else {
+ 			LOGF_KLOG_ERROR("%s error in allocating memory", __func__);
+-			return -1;
++			return -ENOMEM;
+ 		}
+ 	} else if ((!local_entry) &&
+ 		   ((flags & DP_F_MPE_ACCEL) ||
+@@ -4098,6 +4099,22 @@
+ 	return CBM_SUCCESS;
+ }
+ 
++/* Peripheral rings need resource addresses, never RPHYSADDR(ioremap()). */
++phys_addr_t grx500_cbm_mmio_phys(const void *addr)
++{
++	unsigned long ptr = (unsigned long)addr;
++	unsigned long base = (unsigned long)CBM_DQM_BASE;
++	if (!grx500_cbm_ready())
++		return 0;
++	if (ptr >= base && ptr - base < cbm_dqm_size)
++		return cbm_dqm_phys + ptr - base;
++	base = (unsigned long)CBM_DMADESC_BASE;
++	if (ptr >= base && ptr - base < cbm_desc_size)
++		return cbm_desc_phys + ptr - base;
++	return 0;
++}
++EXPORT_SYMBOL_GPL(grx500_cbm_mmio_phys);
++
+ s32
+ dequeue_port_resources_get(
+ 	u32	dp_port,
+@@ -4141,6 +4158,7 @@
+ 			}
+ 		} else {
+ 			LOGF_KLOG_ERROR("%s error in allocating memory", __func__);
++			return -ENOMEM;
+ 		}
+ 	} else {
+ 		LOGF_KLOG_ERROR("%s: unallocated pmac port\r\n", __func__);
+@@ -5183,6 +5201,9 @@
+ 	}
+ 	#endif
+ 	cbm_desc_phys = res[11]->start;
++	cbm_desc_size = resource_size(res[11]);
++	cbm_dqm_phys = res[8]->start;
++	cbm_dqm_size = resource_size(res[8]);
+ 	g_cbm_ctrl.id = pdev->id;
+ 	g_cbm_ctrl.dev = &pdev->dev;
+ 	g_cbm_ctrl.jumbo_size_mask = (CONFIG_CBM_JBO_PKT_SIZE == 0x2000) ? 0xffffe000 : 0xffffc000;
+--- a/drivers/dma/intel/hdma.c
++++ b/drivers/dma/intel/hdma.c
+@@ -247,6 +247,14 @@
+ 	return true;
+ }
+ EXPORT_SYMBOL_GPL(grx500_dma_ready);
++struct device *grx500_dma_device(unsigned int id)
++{
++	if (id >= DMAMAX || !smp_load_acquire(&dma_controller_ready[id]))
++		return NULL;
++	return ltq_dma_controller[id].dev;
++}
++EXPORT_SYMBOL_GPL(grx500_dma_device);
++
+ static int dma_chan_data_buf_free(struct dmax_chan *pch);
+ static void dma_chan_desc_free(struct dmax_chan *pch);
+ 
+--- a/net/bridge/br_fdb.c
++++ b/net/bridge/br_fdb.c
+@@ -896,6 +896,34 @@
+ 	}
+ 	spin_unlock_bh(&br->hash_lock);
+ }
++
++/* DirectConnect station teardown: preserve bridge policy/static entries. */
++int dc_dp_br_fdb_delete(struct net_device *dev, const unsigned char *addr)
++{
++	struct net_bridge_port *p;
++	struct net_bridge_fdb_entry *f;
++	struct hlist_node *next;
++	int ret = -ENODEV;
++
++	rcu_read_lock();
++	p = br_port_get_rcu(dev);
++	if (!p)
++		goto out;
++	spin_lock_bh(&p->br->hash_lock);
++	hlist_for_each_entry_safe(f, next, &p->br->fdb_list, fdb_node) {
++		if (READ_ONCE(f->dst) != p || test_bit(BR_FDB_LOCAL, &f->flags) ||
++		    test_bit(BR_FDB_STATIC, &f->flags) ||
++		    (addr && !ether_addr_equal(f->key.addr.addr, addr)))
++			continue;
++		fdb_delete(p->br, f, true);
++	}
++	spin_unlock_bh(&p->br->hash_lock);
++	ret = 0;
++ out:
++	rcu_read_unlock();
++	return ret;
++}
++EXPORT_SYMBOL_GPL(dc_dp_br_fdb_delete);
+ 
+ #if IS_ENABLED(CONFIG_ATM_LANE)
+ /* Interface used by ATM LANE hook to test
+--- a/net/bridge/br_private.h
++++ b/net/bridge/br_private.h
+@@ -2349,4 +2349,7 @@
+ 		       u16 vid, struct net_bridge_port *p, struct nd_msg *msg);
+ struct nd_msg *br_is_nd_neigh_msg(const struct sk_buff *skb, struct nd_msg *m);
+ bool br_is_neigh_suppress_enabled(const struct net_bridge_port *p, u16 vid);
+-#endif
++int dc_dp_br_fdb_delete(struct net_device *dev, const unsigned char *addr);
++
++#endif
++
+--- a/drivers/dma/Kconfig
++++ b/drivers/dma/Kconfig
+@@ -803,3 +803,15 @@
+ 	bool
+ 
+ endif
++
++config GRX500_UMT
++ bool "Experimental GRX500 UMT transport"
++ depends on INTEL_HDMA && LTQ_CBM
++ select LTQ_UMT_EXPAND_MODE
++ select LTQ_UMT_SW_MODE
++
++config LTQ_UMT_EXPAND_MODE
++ bool
++
++config LTQ_UMT_SW_MODE
++ bool
+--- a/drivers/dma/Makefile
++++ b/drivers/dma/Makefile
+@@ -94,3 +94,5 @@
+ obj-y += xilinx/
+ 
+ obj-$(CONFIG_INTEL_MIPS) += intel/
++
++obj-$(CONFIG_GRX500_UMT) += grx500-umt.o
+--- a/include/linux/ltq_hwmcpy.h
++++ b/include/linux/ltq_hwmcpy.h
+@@ -92,4 +92,7 @@
+ int umt_reset_port_dq_idx(u32 cbm_id);
+ #endif
+ 
++bool grx500_umt_ready(void);
++
+ #endif /* __LTQ_HWMCPY_H__ */
++
+--- a/include/linux/dma/lantiq_dmax.h
++++ b/include/linux/dma/lantiq_dmax.h
+@@ -1333,5 +1333,8 @@
+ u32 ltq_dma_chan_get_desc_vir_base(u32 chan);
+ 
+ /* @ } */
++struct device *grx500_dma_device(unsigned int id);
++
+ #endif /* LANTIQ_DMAX_H */
+ 
++
+--- a/include/net/lantiq_cbm_api.h
++++ b/include/net/lantiq_cbm_api.h
+@@ -1730,4 +1730,7 @@
+ 	return 0;
+ }
+ #endif
++phys_addr_t grx500_cbm_mmio_phys(const void *addr);
++
+ #endif
++
+--- /dev/null
++++ b/drivers/dma/grx500-umt.c
+@@ -0,0 +1,366 @@
++// SPDX-License-Identifier: GPL-2.0-only
++/* GRX500 UMT: Intel register ABI with native Linux timer scheduling.
++ * Register layout and MSG1 workaround from Intel ltq_umt_expand.c (2016).
++ * MSG0 remains hardware-generated. MSG1 reports CBM dequeue deltas, as in
++ * CONFIG_LTQ_UMT_SW_MODE, without the vendor GPTC/MIPS yield-thread runtime.
++ */
++#include <linux/clk.h>
++#include <linux/interrupt.h>
++#include <linux/dma/lantiq_dmax.h>
++#include <linux/hrtimer.h>
++#include <linux/io.h>
++#include <linux/iopoll.h>
++#include <asm/mipsregs.h>
++#include <linux/ltq_hwmcpy.h>
++#include <linux/module.h>
++#include <linux/of.h>
++#include <linux/platform_device.h>
++#include <net/lantiq_cbm_api.h>
++
++#define UMT_PORTS 4
++#define UMT_TICK_US 40
++#define GCTRL 0x200
++#define TRG_MUX 0xe0
++#define CNT_CTRL 0xe4
++
++struct grx500_umt_port {
++	u32 ep, cbm, dma, dq, dq_idx, dst, msgmode, period, msg1_period;
++	void __iomem *notify;
++	u64 next_ns;
++	bool enabled, suspended;
++};
++struct grx500_umt {
++	void __iomem *base;
++	struct clk *clk;
++	u32 ticks_per_us;
++	struct hrtimer timer;
++	struct grx500_umt_port ports[UMT_PORTS];
++};
++/* Also serializes lifetime against exported callbacks and timer writes. */
++static DEFINE_SPINLOCK(umt_lock);
++static struct grx500_umt *umt;
++
++bool grx500_umt_ready(void)
++{
++	return READ_ONCE(umt) != NULL;
++}
++EXPORT_SYMBOL_GPL(grx500_umt_ready);
++
++static u32 umt_reg(unsigned int id, u32 primary, u32 offset)
++{
++	return id ? 0x400 + (id - 1) * 0x100 + offset : primary;
++}
++static void umt_mask(struct grx500_umt *u, u32 reg, u32 mask, u32 value)
++{
++	writel((readl(u->base + reg) & ~mask) | value, u->base + reg);
++}
++static void umt_hw_enable(struct grx500_umt *u, unsigned int id, bool enable)
++{
++	unsigned int bit = id ? 17 + (id - 1) * 3 : 2;
++	umt_mask(u, GCTRL, BIT(bit), enable ? BIT(bit) : 0);
++}
++static enum hrtimer_restart umt_tick(struct hrtimer *timer)
++{
++	struct grx500_umt *u = container_of(timer, struct grx500_umt, timer);
++	unsigned long flags;
++	unsigned int i;
++	u64 now = ktime_get_ns();
++	bool active = false;
++
++	spin_lock_irqsave(&umt_lock, flags);
++	for (i = 0; i < UMT_PORTS; i++) {
++		struct grx500_umt_port *p = &u->ports[i];
++		u32 count, delta;
++		if (!p->enabled || p->suspended || !p->notify ||
++		    !(p->msgmode & UMT_MSG1_ONLY))
++			continue;
++		active = true;
++		if (now < p->next_ns)
++			continue;
++		p->next_ns = now + (u64)p->msg1_period * NSEC_PER_USEC;
++		if (cbm_dequeue_dma_port_stats_get(p->dq, &count, 0))
++			continue;
++		delta = count - p->dq_idx; /* unsigned wrap matches stock counter */
++		delta = min(delta, 32U);
++		if (delta) {
++			writel(delta, p->notify + 4);
++			p->dq_idx += delta;
++		}
++	}
++	if (active)
++		hrtimer_forward_now(timer, ns_to_ktime(UMT_TICK_US * NSEC_PER_USEC));
++	spin_unlock_irqrestore(&umt_lock, flags);
++	return active ? HRTIMER_RESTART : HRTIMER_NORESTART;
++}
++static void umt_start_timer(struct grx500_umt *u)
++{
++	/* Called with umt_lock: hrtimer_start is safe in atomic context. */
++	hrtimer_start(&u->timer, ns_to_ktime(UMT_TICK_US * NSEC_PER_USEC), HRTIMER_MODE_REL);
++}
++
++int ltq_umt_request(u32 ep, u32 cbm, u32 *controller, u32 *channel, u32 *id)
++{
++	cbm_dq_port_res_t res = {0};
++	unsigned long flags;
++	int i, free = -1, ret = 0;
++	u32 dq;
++	if (!ep || cbm >= UMT_PORTS || !controller || !channel || !id)
++		return -EINVAL;
++	if (cbm_dequeue_port_resources_get(ep, &res, 0) || !res.deq_info || !res.num_deq_ports) {
++		kfree(res.deq_info);
++		return -EINVAL;
++	}
++	dq = res.deq_info[0].port_no;
++	kfree(res.deq_info);
++	if (dq != 4 && dq != 24 && dq != 25 && dq != 26)
++		return -EINVAL;
++	spin_lock_irqsave(&umt_lock, flags);
++	if (!umt) { ret = -ENODEV; goto out; }
++	for (i = 0; i < UMT_PORTS; i++) {
++		if (umt->ports[i].ep == ep && umt->ports[i].cbm == cbm) {
++			free = i;
++			break;
++		}
++		if (!umt->ports[i].ep && free < 0)
++			free = i;
++	}
++	if (free < 0) { ret = -ENOSPC; goto out; }
++	umt->ports[free].ep = ep;
++	umt->ports[free].cbm = cbm;
++	umt->ports[free].dq = dq;
++	umt_mask(umt, TRG_MUX, 0xf000fU << (free * 4),
++		 (umt->ports[free].dma << (free * 4)) | (cbm << (16 + free * 4)));
++	*controller = DMA1TX;
++	*channel = umt->ports[free].dma;
++	*id = free;
++ out:
++	spin_unlock_irqrestore(&umt_lock, flags);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(ltq_umt_request);
++
++int ltq_umt_set_mode(u32 id, u32 ep, struct umt_set_mode *mode)
++{
++	struct grx500_umt_port *p;
++	unsigned long flags;
++	unsigned int bit;
++	u32 old_mode;
++	int ret = 0;
++	if (id >= UMT_PORTS || !mode || mode->umt_mode >= UMT_MODE_MAX ||
++	    mode->msg_mode >= UMT_MSG_MAX || mode->enable >= UMT_STATUS_MAX ||
++	    !mode->phy_dst || !mode->umt_ep_dst || mode->period < 20 ||
++	    mode->period > 1000000)
++		return -EINVAL;
++	spin_lock_irqsave(&umt_lock, flags);
++	if (!umt) { ret = -ENODEV; goto out; }
++	p = &umt->ports[id];
++	if (!ep || p->ep != ep) { ret = -EINVAL; goto out; }
++	umt_hw_enable(umt, id, false);
++	bit = id ? 16 + (id - 1) * 3 : 1;
++	old_mode = readl(umt->base + GCTRL) & BIT(bit);
++	umt_mask(umt, GCTRL, BIT(bit), old_mode ? 0 : BIT(bit));
++	umt_mask(umt, GCTRL, BIT(bit), mode->umt_mode ? BIT(bit) : 0);
++	p->dst = mode->phy_dst;
++	p->notify = (void __iomem *)(unsigned long)mode->umt_ep_dst;
++	p->period = mode->period;
++	p->msg1_period = max(mode->msg1_period ? mode->msg1_period : mode->period, UMT_TICK_US);
++	p->msgmode = mode->msg_mode;
++	p->next_ns = 0;
++	p->enabled = mode->enable == UMT_ENABLE;
++	writel(p->msgmode, umt->base + umt_reg(id, 0x94, 0x34));
++	writel(p->dst, umt->base + umt_reg(id, 0x230, 0x30));
++	writel(p->period * umt->ticks_per_us, umt->base + umt_reg(id, 0xdc, 0x20));
++	umt_hw_enable(umt, id, p->enabled);
++	if (p->enabled)
++		umt_start_timer(umt);
++ out:
++	spin_unlock_irqrestore(&umt_lock, flags);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(ltq_umt_set_mode);
++
++int ltq_umt_enable(u32 id, u32 ep, u32 enable)
++{
++	unsigned long flags;
++	int ret = 0;
++	if (id >= UMT_PORTS || enable >= UMT_STATUS_MAX)
++		return -EINVAL;
++	spin_lock_irqsave(&umt_lock, flags);
++	if (!umt) { ret = -ENODEV; goto out; }
++	if (!ep || umt->ports[id].ep != ep || !umt->ports[id].dst) { ret = -EINVAL; goto out; }
++	umt->ports[id].enabled = enable == UMT_ENABLE;
++	umt_hw_enable(umt, id, enable == UMT_ENABLE);
++	if (enable)
++		umt_start_timer(umt);
++ out:
++	spin_unlock_irqrestore(&umt_lock, flags);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(ltq_umt_enable);
++
++int ltq_umt_set_period(u32 id, u32 ep, enum umt_msg_mode msg, u32 period)
++{
++	unsigned long flags;
++	int ret = 0;
++	if (id >= UMT_PORTS || msg >= UMT_MSG_MAX || period < 20 || period > 1000000)
++		return -EINVAL;
++	spin_lock_irqsave(&umt_lock, flags);
++	if (!umt) { ret = -ENODEV; goto out; }
++	if (!ep || umt->ports[id].ep != ep) { ret = -EINVAL; goto out; }
++	if (msg & UMT_MSG1_ONLY)
++		umt->ports[id].msg1_period = max(period, UMT_TICK_US);
++	if (msg & UMT_MSG0_ONLY) {
++		umt->ports[id].period = period;
++		writel(period * umt->ticks_per_us, umt->base + umt_reg(id, 0xdc, 0x20));
++	}
++ out:
++	spin_unlock_irqrestore(&umt_lock, flags);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(ltq_umt_set_period);
++
++int ltq_umt_suspend(u32 id, u32 ep, u32 suspend)
++{
++	unsigned long flags;
++	int ret = 0;
++	if (id >= UMT_PORTS || suspend > 1)
++		return -EINVAL;
++	spin_lock_irqsave(&umt_lock, flags);
++	if (!umt) { ret = -ENODEV; goto out; }
++	if (!ep || umt->ports[id].ep != ep) { ret = -EINVAL; goto out; }
++	umt->ports[id].suspended = suspend;
++	umt_mask(umt, CNT_CTRL, BIT(id), suspend ? BIT(id) : 0);
++	if (!suspend && umt->ports[id].enabled)
++		umt_start_timer(umt);
++ out:
++	spin_unlock_irqrestore(&umt_lock, flags);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(ltq_umt_suspend);
++
++int ltq_umt_release(u32 id, u32 ep)
++{
++	unsigned long flags;
++	u32 dma;
++	int ret = 0;
++	if (id >= UMT_PORTS)
++		return -EINVAL;
++	spin_lock_irqsave(&umt_lock, flags);
++	if (!umt) { ret = -ENODEV; goto out; }
++	if (!ep || umt->ports[id].ep != ep) { ret = -EINVAL; goto out; }
++	umt_hw_enable(umt, id, false);
++	dma = umt->ports[id].dma;
++	memset(&umt->ports[id], 0, sizeof(umt->ports[id]));
++	umt->ports[id].dma = dma;
++ out:
++	spin_unlock_irqrestore(&umt_lock, flags);
++	return ret;
++}
++EXPORT_SYMBOL_GPL(ltq_umt_release);
++
++int umt_reset_port_dq_idx(u32 cbm_id)
++{
++	unsigned long flags;
++	int i;
++	spin_lock_irqsave(&umt_lock, flags);
++	if (umt)
++		for (i = 0; i < UMT_PORTS; i++)
++			if (umt->ports[i].dq == cbm_id)
++				umt->ports[i].dq_idx = 0;
++	spin_unlock_irqrestore(&umt_lock, flags);
++	return 0;
++}
++EXPORT_SYMBOL_GPL(umt_reset_port_dq_idx);
++
++static int grx500_umt_probe(struct platform_device *pdev)
++{
++	struct grx500_umt *u;
++	unsigned long flags, rate;
++	u32 value, seg;
++	int i, ret;
++	if (!grx500_dma_ready() || !grx500_cbm_ready())
++		return -EPROBE_DEFER;
++	u = devm_kzalloc(&pdev->dev, sizeof(*u), GFP_KERNEL);
++	if (!u)
++		return -ENOMEM;
++	u->base = devm_platform_ioremap_resource(pdev, 0);
++	if (IS_ERR(u->base))
++		return PTR_ERR(u->base);
++	u->clk = devm_clk_get_optional(&pdev->dev, "freq");
++	if (IS_ERR(u->clk))
++		return PTR_ERR(u->clk);
++	rate = u->clk ? clk_get_rate(u->clk) : 0;
++	/* Stock fallback: 0x17ac ticks in20us. */
++	u->ticks_per_us = rate ? rate / 1000000 : 0x17ac / 20;
++	if (!u->ticks_per_us || u->ticks_per_us > 1000)
++		return -EINVAL;
++	for (i = 0; i < UMT_PORTS; i++) {
++		char name[32];
++		u32 channel = 7 + i;
++		snprintf(name, sizeof(name), "lantiq,umt%d-dmacid", i);
++		of_property_read_u32(pdev->dev.of_node, name, &channel);
++		if (channel > 15)
++			return -EINVAL;
++		u->ports[i].dma = channel;
++	}
++	/* Reset the shared MCPY/UMT block, as stock mcpy_init does. No memcpy
++	 * channels are enabled by this transport-only driver. Poll the actual
++	 * bit (the stock loop incorrectly compared BIT(4) with one).
++	 */
++	umt_mask(u, GCTRL, BIT(4), BIT(4));
++	ret = readl_poll_timeout(u->base + GCTRL, value, !(value & BIT(4)), 1, 10000);
++	if (ret)
++		return dev_err_probe(&pdev->dev, ret, "MCPY reset timeout\n");
++	writel(0, u->base + 0x88); /* MCPY_INT_EN */
++	writel(0, u->base + 0x80); /* MCPY_INT_MASK */
++	/* Preserve the stock EVA segment translation ABI. UMT destinations
++	 * themselves are physical PCIe addresses supplied by the endpoint.
++	 */
++	seg = read_c0_segctl0();
++	writel(seg & 0xffff, u->base + 0x240);
++	writel(seg >> 16, u->base + 0x250);
++	seg = read_c0_segctl1();
++	writel(seg & 0xffff, u->base + 0x260);
++	writel(seg >> 16, u->base + 0x270);
++	seg = read_c0_segctl2();
++	writel(seg & 0xffff, u->base + 0x280);
++	writel(seg >> 16, u->base + 0x290);
++	hrtimer_setup(&u->timer, umt_tick, CLOCK_MONOTONIC, HRTIMER_MODE_REL);
++	spin_lock_irqsave(&umt_lock, flags);
++	if (umt) { spin_unlock_irqrestore(&umt_lock, flags); return -EBUSY; }
++	/* Enable engine and expanded UMT; descriptor-word swap as in stock. */
++	umt_mask(u, GCTRL, BIT(31) | BIT(29) | BIT(28) | BIT(0),
++		 BIT(31) | BIT(29) | BIT(0) | (IS_ENABLED(CONFIG_CPU_BIG_ENDIAN) ? 0 : BIT(28)));
++	for (i = 0; i < UMT_PORTS; i++)
++		umt_hw_enable(u, i, false);
++	umt = u;
++	spin_unlock_irqrestore(&umt_lock, flags);
++	platform_set_drvdata(pdev, u);
++	return 0;
++}
++static void grx500_umt_remove(struct platform_device *pdev)
++{
++	struct grx500_umt *u = platform_get_drvdata(pdev);
++	unsigned long flags;
++	int i;
++	spin_lock_irqsave(&umt_lock, flags);
++	for (i = 0; i < UMT_PORTS; i++) {
++		u->ports[i].enabled = false;
++		umt_hw_enable(u, i, false);
++	}
++	umt = NULL;
++	spin_unlock_irqrestore(&umt_lock, flags);
++	hrtimer_cancel(&u->timer);
++}
++static const struct of_device_id grx500_umt_match[] = {
++	{ .compatible = "lantiq,mcpy-xrx500" }, {}
++};
++MODULE_DEVICE_TABLE(of, grx500_umt_match);
++static struct platform_driver grx500_umt_driver = {
++	.probe = grx500_umt_probe,
++	.remove = grx500_umt_remove,
++	.driver = { .name = "grx500-umt", .of_match_table = grx500_umt_match },
++};
++module_platform_driver(grx500_umt_driver);
++MODULE_LICENSE("GPL");
++MODULE_DESCRIPTION("GRX500 DirectConnect UMT counters");

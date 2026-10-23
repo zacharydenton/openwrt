@@ -1,0 +1,37 @@
+{
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "passed": true,
+  "scenario_count_per_shell": 57,
+  "native_test_groups": 14,
+  "mips_test_groups": 14,
+  "scope": "Actual preinit and acceptance controls in isolated native and packaged-MIPS shells; the worker safely reuses its private directory and excludes duplicate loops. Flash, reboot and network leaves are mocked.",
+  "logs": {
+    "manual-acceptance-native.log": "b1c7bd6cf9f6c417fcc871c09eeefafd738ff52ece48acdd9db7fe51b19f901a",
+    "manual-acceptance-mips.log": "b11ad9f5a5ab3a26bf2a2a6b2a211b759e31796a3e5e24ceb893b729c1888eed",
+    "manual-worker-native.log": "1b5e2e3544bc939d5c6a9c389db5ca925451ad0eeeed0074c710573927106b84",
+    "manual-worker-mips.log": "0ae94c38fba239dfccea6a66dc86773b0d7bd9c119f62a9e2c83d95f087c9f39"
+  },
+  "source_sha256": {
+    "target/linux/grx500/base-files/lib/functions/grx500-trial.sh": "50e17f86c3010104017d041093f5de9de38ebcc52885ff92b36cdcd33a0ca148",
+    "target/linux/grx500/base-files/lib/preinit/79_grx500_trial": "c77d8025569d068c90b8d9bc0120150abfd02e0031dcaf0d125c91cbdf8ca44f",
+    "target/linux/grx500/base-files/etc/init.d/grx500-trial": "09b71b7140eb6868012158f9c34ff7768c92283d3486f1e2979841993d36d137",
+    "target/linux/grx500/base-files/usr/libexec/grx500-trial": "4b06a655364ad02caddf116901227d54d8181191c7fc125784729852674736a9",
+    "target/linux/grx500/base-files/lib/upgrade/platform.sh": "4dad5e73290373bbcadda4d41e32b069012e85e3db774287875596f2220dfa60",
+    "target/linux/grx500/tests/test-trial.py": "f4ca503fcf5472693f3ceb24d0565f35bfff8f2ebdb7c96c4ffbe7167c25c662",
+    "target/linux/grx500/tests/test-upgrade.py": "c1594d1099cd1f7879fbee7f431289e95c93b4fd2d1b61001f3a744e3a520339",
+    "package/utils/grx500-factory/Makefile": "d010043b2643e278e83be9bbbcc4a9b13ac32d82e07be3d3c9ea8055dea375b3",
+    "package/utils/grx500-factory/files/grx500-trialctl": "2de2a057b84d8d02741b4f04589be2b4d61eb44bff7f0d6e95a7632fed473feb",
+    "target/linux/grx500/tests/test-trial-worker.py": "ac781d9a52ec27eeb20deeadb49fd554eb49d8c19b81caa2edc6403c11bdcb33"
+  },
+  "factory_prerequisites_sha256": "2c29e39d3daf8b40fc0455d9ba9f58d2127d65af6d9206290d2e6de9621f313c",
+  "packaged_mips_busybox_sha256": "d57eafed62b524c529c1fc52b967a18acaa4071e145fd915ce0034fd9bfe30d3",
+  "limitations": [
+    "Manual acceptance records a tester decision; it does not measure Ethernet/Wi-Fi/USB behavior.",
+    "No real NAND writes, packet traffic, radio operation or reset.",
+    "Early hangs before userspace, failed reboot and environment power-loss behavior remain outside these policy tests."
+  ],
+  "upstream_commit": "a25fb079b1463cd5d7d69c6d9a1c28d873291ebb",
+  "log_dir": "/home/zach/code/archer-ax3000-bringup/one-shot-audit/env-geometry-final",
+  "worker_test_groups_per_shell": 8
+}

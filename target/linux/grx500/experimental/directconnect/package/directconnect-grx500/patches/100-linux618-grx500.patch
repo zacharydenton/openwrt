@@ -1,0 +1,793 @@
+diff --git a/Makefile b/Makefile
+index b073cb4..6754b4e 100755
+--- a/Makefile
++++ b/Makefile
+@@ -1,4 +1,5 @@
+-obj-m += common/ dc_mode/ test/
++obj-m += common/ dc_mode/
++subdir-ccflags-y += -I$(src)/include -DHAVE_DATAPATH_API -DCONFIG_INTEL_DATAPATH=1 -DCONFIG_INTEL_DATAPATH_HAL_GSWIP30=1 -DCONFIG_DIRECTCONNECT_DP_XRX500=1 -DCONFIG_LTQ_UMT_EXPAND_MODE=1 -DCONFIG_LTQ_UMT_SW_MODE=1
+ 
+ clean:
+ 	rm -f common/{*.ko,*.o,.*.o.cmd}
+diff --git a/common/directconnect_dp_api.c b/common/directconnect_dp_api.c
+index 5531eb3..039e925 100644
+--- a/common/directconnect_dp_api.c
++++ b/common/directconnect_dp_api.c
+@@ -1,3 +1,4 @@
++#include <net/grx500_skb.h>
+ /*
+  * DirectConnect provides a common interface for the network devices to achieve the full or partial
+    acceleration services from the underlying packet acceleration engine
+@@ -1167,7 +1168,7 @@ dc_dp_mark_pkt_devqos(int32_t port_id, struct net_device *dst_netif, struct sk_b
+     }
+ 
+ #if !defined(CONFIG_X86_INTEL_LGM) && !defined(CONFIG_PRX300_CQM)
+-    desc_1 = (struct dma_tx_desc_1 *) &skb->DW1;
++    desc_1 = (struct dma_tx_desc_1 *) &grx500_skb_cb(skb)->DW1;
+ #endif /* #if !defined(CONFIG_X86_INTEL_LGM) */
+ 
+     /* Find the registered device index */
+@@ -1561,7 +1562,12 @@ static __init int dc_dp_init_module(void)
+     if (!g_dc_dp_init_ok) {
+         dc_dp_device_init();
+         dc_dp_dcmode_init();
+-        dc_dp_notify_init();
++        ret = dc_dp_notify_init();
++        if (ret) {
++            dc_dp_dcmode_exit();
++            dc_dp_device_exit();
++            return ret;
++        }
+         dc_dp_parser_init();
+ 
+ #ifdef CONFIG_PROC_FS
+diff --git a/common/directconnect_dp_macdb.c b/common/directconnect_dp_macdb.c
+index dc37264..1fc93a7 100644
+--- a/common/directconnect_dp_macdb.c
++++ b/common/directconnect_dp_macdb.c
+@@ -34,6 +34,7 @@
+ struct macdb_entry {
+     struct hlist_node hlist;
+     unsigned char addr[ETH_ALEN];
++    u16 vid;
+     struct net_device *dev;
+     struct net_device *real_dev;
+     struct rcu_head rcu;
+@@ -56,12 +57,12 @@ mac_hash(const unsigned char *mac)
+ 
+ static struct
+ macdb_entry *macdb_find(struct hlist_head *head,
+-                            const unsigned char *addr)
++                            const unsigned char *addr, u16 vid)
+ {
+     struct macdb_entry *m;
+ 
+     hlist_for_each_entry(m, head, hlist) {
+-        if (ether_addr_equal(m->addr, addr))
++        if (m->vid == vid && ether_addr_equal(m->addr, addr))
+             return m;
+     }
+     return NULL;
+@@ -71,13 +72,16 @@ static struct
+ macdb_entry *macdb_add(struct hlist_head *head,
+                        const unsigned char *addr,
+                        struct net_device *dev,
+-                       struct net_device *real_dev)
++                       struct net_device *real_dev, u16 vid)
+ {
+     struct macdb_entry *m;
+ 
+     m = kmem_cache_alloc(macdb_cache, GFP_ATOMIC);
+     if (m) {
+         memcpy(m->addr, addr, ETH_ALEN);
++        m->vid = vid;
++        dev_hold(dev);
++        dev_hold(real_dev);
+         m->dev = dev;
+         m->real_dev = real_dev;
+         hlist_add_head_rcu(&m->hlist, head);
+@@ -90,6 +94,8 @@ macdb_free_rcu(struct rcu_head *head)
+ {
+     struct macdb_entry *m =
+         container_of(head, struct macdb_entry, rcu);
++    dev_put(m->dev);
++    dev_put(m->real_dev);
+     kmem_cache_free(macdb_cache, m);
+ }
+ 
+@@ -103,8 +109,7 @@ macdb_delete(struct macdb_entry *m)
+ static inline void
+ macdb_delete_sync(struct macdb_entry *m)
+ {
+-    hlist_del(&m->hlist);
+-    kmem_cache_free(macdb_cache, m);
++    macdb_delete(m);
+ }
+ 
+ static void
+@@ -133,14 +138,17 @@ dc_dp_rx_event(void *data)
+     uint8_t *addr;
+     struct net_device *dev, *old_dev;
+     struct net_device *real_dev, *old_real_dev;
+-    bool updated;
++    bool updated, old_refs;
++    u16 vid;
+     struct dc_dp_priv_dev_info *p_devinfo;
+     struct hlist_head *macdb_head;
+     struct macdb_entry *m;
+ 
+     do {
++        dev = real_dev = old_dev = old_real_dev = NULL;
++        old_refs = false;
+         /* Receive the data packet (blocking) */
+-        skb = skb_recv_datagram(sk, 0, 0, &ret);
++        skb = skb_recv_datagram(sk, 0, &ret);
+         if (!skb) {
+             pr_debug("DC DP: Invalid netlink data!\n");
+             continue;
+@@ -157,6 +165,8 @@ dc_dp_rx_event(void *data)
+          * FIXME:
+          * For the routed interface, ndm_family=AF_INET/AF_INET6 can be used
+          */
++        if (nlmsg_len(nlh) < sizeof(*ndm))
++            goto drop;
+         ndm = nlmsg_data(nlh);
+         if (((nlh->nlmsg_type != RTM_NEWNEIGH) &&
+              (nlh->nlmsg_type != RTM_DELNEIGH)) ||
+@@ -185,9 +195,12 @@ dc_dp_rx_event(void *data)
+         }
+ 
+         addr = nla_data(tb[NDA_LLADDR]);
++        if (tb[NDA_VLAN] && nla_len(tb[NDA_VLAN]) != sizeof(u16))
++            goto drop;
++        vid = tb[NDA_VLAN] ? nla_get_u16(tb[NDA_VLAN]) : 0;
+ 
+         /* Extract associated interface */
+-        dev = __dev_get_by_index(&init_net, ndm->ndm_ifindex);
++        dev = dev_get_by_index(&init_net, ndm->ndm_ifindex);
+         if (dev == NULL) {
+             pr_debug("DC DP: nlmsg with unknown ifindex!\n");
+             goto drop;
+@@ -197,10 +210,11 @@ dc_dp_rx_event(void *data)
+         real_dev = dev;
+         if (is_vlan_dev(dev))
+             real_dev = vlan_dev_real_dev(dev);
++        dev_hold(real_dev);
+ 
+         updated = false;
+         macdb_head = &macdb_hash[mac_hash(addr)];
+-        m = macdb_find(macdb_head, addr);
++        m = macdb_find(macdb_head, addr, vid);
+         switch (nlh->nlmsg_type) {
+         case RTM_NEWNEIGH:
+             pr_debug("DC DP: RTM_NEWNEIGH event for mac=%pM on dev=%s\n",
+@@ -214,10 +228,13 @@ dc_dp_rx_event(void *data)
+              *     platform api call to flush acceleration entries.
+              */
+             if (likely(!m))
+-                macdb_add(macdb_head, addr, dev, real_dev);
++                macdb_add(macdb_head, addr, dev, real_dev, vid);
+             else if (likely(dev != m->dev)) {
+                 old_dev = m->dev;
+                 old_real_dev = m->real_dev;
++                old_refs = true; /* release old entry's references after callbacks */
++                dev_hold(dev);
++                dev_hold(real_dev);
+                 m->dev = dev;
+                 m->real_dev = real_dev;
+ 
+@@ -263,6 +280,14 @@ dc_dp_rx_event(void *data)
+         }
+ 
+ drop:
++        if (old_refs) {
++            dev_put(old_dev);
++            dev_put(old_real_dev);
++        }
++        if (real_dev)
++            dev_put(real_dev);
++        if (dev)
++            dev_put(dev);
+         skb_free_datagram(sk, skb);
+     } while (!kthread_should_stop());
+ 
+@@ -323,9 +348,12 @@ dc_dp_notify_init(void)
+         goto err_out_sock;
+     }
+ 
++    /* Bound kthread_stop latency even when no routing events arrive. */
++    g_nl_sock->sk->sk_rcvtimeo = HZ;
+     /* Start a event receiver thread */
+     evt_rx_thread = kthread_run(dc_dp_rx_event, g_nl_sock->sk, "evt_rx");
+     if (IS_ERR(evt_rx_thread)) {
++        evt_rx_thread = NULL;
+         pr_err("failed to start event rx thread!");
+         ret = -1;
+         goto err_out_sock;
+diff --git a/common/directconnect_dp_proc.c b/common/directconnect_dp_proc.c
+index b06c14d..bf271c0 100644
+--- a/common/directconnect_dp_proc.c
++++ b/common/directconnect_dp_proc.c
+@@ -151,49 +151,44 @@ static inline int32_t _dc_dp_get_port_status_str_size(void)
+ 
+ static struct proc_dir_entry *g_dc_dp_proc = NULL;
+ 
+-static struct file_operations g_dc_dp_dbg_proc_fops = {
+-    .owner      = THIS_MODULE,
+-    .open       = proc_read_dc_dp_dbg_seq_open,
+-    .read       = seq_read,
+-    .write      = proc_write_dc_dp_dbg,
+-    .llseek     = seq_lseek,
+-    .release    = seq_release,
++static struct proc_ops g_dc_dp_dbg_proc_fops = {
++    .proc_open       = proc_read_dc_dp_dbg_seq_open,
++    .proc_read       = seq_read,
++    .proc_write      = proc_write_dc_dp_dbg,
++    .proc_lseek     = seq_lseek,
++    .proc_release    = seq_release,
+ };
+ 
+-static struct file_operations g_dc_dp_dev_proc_fops = {
+-    .owner      = THIS_MODULE,
+-    .open       = proc_read_dc_dp_dev_open,
+-    .read       = seq_read,
++static struct proc_ops g_dc_dp_dev_proc_fops = {
++    .proc_open       = proc_read_dc_dp_dev_open,
++    .proc_read       = seq_read,
+ #if 0
+-    .write      = proc_write_dc_dp_dev,
++    .proc_write      = proc_write_dc_dp_dev,
+ #endif
+-    .llseek     = seq_lseek,
+-    .release    = single_release,
++    .proc_lseek     = seq_lseek,
++    .proc_release    = single_release,
+ };
+ 
+-static struct file_operations g_dc_dp_dcmode_proc_fops = {
+-    .owner      = THIS_MODULE,
+-    .open       = proc_read_dc_dp_dcmode_open,
+-    .read       = seq_read,
+-    .llseek     = seq_lseek,
+-    .release    = single_release,
++static struct proc_ops g_dc_dp_dcmode_proc_fops = {
++    .proc_open       = proc_read_dc_dp_dcmode_open,
++    .proc_read       = seq_read,
++    .proc_lseek     = seq_lseek,
++    .proc_release    = single_release,
+ };
+ 
+-static struct file_operations g_dc_dp_macdb_proc_fops = {
+-    .owner      = THIS_MODULE,
+-    .open       = proc_read_dc_dp_macdb_open,
+-    .read       = seq_read,
+-    .llseek     = seq_lseek,
+-    .release    = single_release,
++static struct proc_ops g_dc_dp_macdb_proc_fops = {
++    .proc_open       = proc_read_dc_dp_macdb_open,
++    .proc_read       = seq_read,
++    .proc_lseek     = seq_lseek,
++    .proc_release    = single_release,
+ };
+ 
+-static struct file_operations g_dc_dp_protodb_proc_fops = {
+-    .owner      = THIS_MODULE,
+-    .open       = proc_read_dc_dp_protodb_open,
+-    .read       = seq_read,
+-    .write      = proc_write_dc_dp_protodb,
+-    .llseek     = seq_lseek,
+-    .release    = single_release,
++static struct proc_ops g_dc_dp_protodb_proc_fops = {
++    .proc_open       = proc_read_dc_dp_protodb_open,
++    .proc_read       = seq_read,
++    .proc_write      = proc_write_dc_dp_protodb,
++    .proc_lseek     = seq_lseek,
++    .proc_release    = single_release,
+ };
+ 
+ /*
+diff --git a/dc_mode/dc_mode0/dc_mode0_xrx500.c b/dc_mode/dc_mode0/dc_mode0_xrx500.c
+index 652420f..e972016 100644
+--- a/dc_mode/dc_mode0/dc_mode0_xrx500.c
++++ b/dc_mode/dc_mode0/dc_mode0_xrx500.c
+@@ -1,3 +1,4 @@
++#include <net/grx500_skb.h>
+ /*
+  * DirectConnect provides a common interface for the network devices to achieve the full or partial
+    acceleration services from the underlying packet acceleration engine
+@@ -25,6 +26,9 @@
+ //#include <net/lantiq_cbm.h>
+ #include <net/lantiq_cbm_api.h>
+ #include <linux/ltq_hwmcpy.h>
++extern phys_addr_t grx500_cbm_mmio_phys(const void *addr);
++extern struct device *grx500_dma_device(unsigned int id);
++extern bool grx500_umt_ready(void);
+ #if IS_ENABLED(CONFIG_PPA)
+ #include <net/ppa/ppa_api.h>
+ #endif /* #if IS_ENABLED(CONFIG_PPA) */
+@@ -486,7 +490,9 @@ xrx500_setup_pmac_port(int32_t port_id, int32_t dma_cid, int32_t ref_port_id, ui
+             egCfg.nFlowIDMsb    = j;
+             egCfg.bTCEnable     = 1;
+ 
+-            gsw_api_kioctl(gswr, GSW_PMAC_EG_CFG_SET, &egCfg);
++            if (gsw_api_kioctl(gswr, GSW_PMAC_EG_CFG_SET, &egCfg) != GSW_statusOk)
++
++                goto error;
+         }
+     }
+ 
+@@ -505,7 +511,7 @@ xrx500_setup_pmac_port(int32_t port_id, int32_t dma_cid, int32_t ref_port_id, ui
+     igCfg.bErrPktsDisc  = 1;
+ 
+     igCfg.bPmapDefault  = 1;
+-    igCfg.bPmapEna      = 0;
++    igCfg.bPmapEna      = 1; /* Always use the CPU-only default map. */
+ 
+     igCfg.defPmacHdr[0] = 0;
+     igCfg.defPmacHdr[1] = 0;
+@@ -517,10 +523,13 @@ xrx500_setup_pmac_port(int32_t port_id, int32_t dma_cid, int32_t ref_port_id, ui
+     else
+         igCfg.defPmacHdr[4] &= ~0x80;
+     igCfg.defPmacHdr[5] = 0;
+-    igCfg.defPmacHdr[6] = 0xFF;
+-    igCfg.defPmacHdr[7] = 0xFF;
++    /* Native Linux bridge owns VLAN, STP and AP isolation decisions. */
++    igCfg.defPmacHdr[6] = 0;
++    igCfg.defPmacHdr[7] = BIT(DP_CPU_LPID);
++
++    if (gsw_api_kioctl(gswr, GSW_PMAC_IG_CFG_SET, &igCfg) != GSW_statusOk)
+ 
+-    gsw_api_kioctl(gswr, GSW_PMAC_IG_CFG_SET, &igCfg);
++        goto error;
+ 
+     /* No Rx FCS, then allow any short packet without padding */
+     /* SDMA_PRIO:USIGN */
+@@ -530,47 +539,35 @@ xrx500_setup_pmac_port(int32_t port_id, int32_t dma_cid, int32_t ref_port_id, ui
+ 
+     memset((void *)&regCfg, 0x00, sizeof(regCfg));
+     regCfg.nRegAddr = SDMA_PRIO_REG_BASE + (SDMA_PRIO_REG_PORT_STEP * port_id);
+-    gsw_api_kioctl(gswr, GSW_REGISTER_GET, &regCfg);
++    if (gsw_api_kioctl(gswr, GSW_REGISTER_GET, &regCfg) != GSW_statusOk)
++        goto error;
+ 
+     if ( (dev_cap_req & DC_DP_F_DEV_REQ_RX_FCS) )
+         regCfg.nData &= ~SDMA_PRIO_REG_USIGN;
+     else
+         regCfg.nData |= SDMA_PRIO_REG_USIGN;
+ 
+-    gsw_api_kioctl(gswr, GSW_REGISTER_SET, &regCfg);
+-
+-    /* FIMXE : setup based on DSL or not */
+-        /* Allow traffic from one VAP to any VAP */
++    if (gsw_api_kioctl(gswr, GSW_REGISTER_SET, &regCfg) != GSW_statusOk)
+ 
+-        /* PCE_PCTRL_3:IGPTRM */
+-        #define PCE_PCTRL_3_REG_BASE 0x483
+-        #define PCE_PCTRL_3_REG_PORT_STEP 10
+-        #define PCE_PCTRL_3_REG_IGPTRM 0x4000
++        goto error;
+ 
+-        memset((void *)&regCfg, 0x00, sizeof(regCfg));
+-        regCfg.nRegAddr = PCE_PCTRL_3_REG_BASE + (PCE_PCTRL_3_REG_PORT_STEP * port_id);
+-        gsw_api_kioctl(gswr, GSW_REGISTER_GET, &regCfg);
+-        regCfg.nData |= PCE_PCTRL_3_REG_IGPTRM;
+-        gsw_api_kioctl(gswr, GSW_REGISTER_SET, &regCfg);
+-
+-        /* PCE_IGPTRM:SUBx
+-         *
+-         * Don't set this settings as it creates traffic loop between
+-         * two end-stations behind same 4Addr mode repeater link,
+-         * specifically where both shares same SID={vapid,staid}.
+-         */
++    /* Do not enable stock IGPTRM same-port VAP forwarding. */
+ 
+     gsw_api_kclose(gswr);
+ 
+     DC_DP_DEBUG(DC_DP_DBG_FLAG_DBG, "GSW PMAC Init Done.\n");
+     return 0;
++error:
++    gsw_api_kclose(gswr);
++    return -EIO;
+ }
+ 
+ static int32_t
+ xrx500_alloc_ring_buffers(uint32_t num_bufs_req, int32_t *num_bufpools, struct dc_dp_buf_pool **buflist)
+ {
+     int32_t i;
+-    uint32_t order;
++    struct device *dma_dev = grx500_dma_device(DMA1TX);
++    dma_addr_t dma_handle;
+     uint32_t max_buf_pool_num;
+     uint32_t max_bufs_req_sz;
+     struct dc_dp_buf_pool *buflist_base = NULL;
+@@ -581,7 +578,7 @@ xrx500_alloc_ring_buffers(uint32_t num_bufs_req, int32_t *num_bufpools, struct d
+     uint32_t tmp_buf_pool_sz;
+     uint8_t *buf_addr_base = NULL;
+ 
+-    if (num_bufs_req <= 0) {
++    if (!dma_dev || !num_bufs_req || num_bufs_req > 65536) {
+         return -1;
+     }
+ 
+@@ -608,9 +605,8 @@ xrx500_alloc_ring_buffers(uint32_t num_bufs_req, int32_t *num_bufpools, struct d
+     for (i = 0; i < num_buflist_entries; i++) {
+         tmp_num_bufs_req = MIN(num_buf_req_rem, max_buf_pool_num);
+         tmp_buf_pool_sz = tmp_num_bufs_req * DC_DP_PKT_BUF_SIZE_DEFAULT;
+-        order = get_order(tmp_buf_pool_sz);
+ 
+-        buf_addr_base = (uint8_t *)__get_free_pages(GFP_KERNEL, order);
++        buf_addr_base = dma_alloc_coherent(dma_dev, tmp_buf_pool_sz, &dma_handle, GFP_KERNEL);
+         if (!buf_addr_base) {
+             DC_DP_ERROR("failed to allocate pool %d of size %d KB!!!\n",
+                             (i + 1), (tmp_buf_pool_sz >> 10));
+@@ -619,7 +615,7 @@ xrx500_alloc_ring_buffers(uint32_t num_bufs_req, int32_t *num_bufpools, struct d
+ 
+         /* Buffer pool */
+         buflist_base[i].pool = (void *)buf_addr_base;
+-        buflist_base[i].phys_pool = (void *)virt_to_phys(buf_addr_base);
++        buflist_base[i].phys_pool = (void *)(unsigned long)dma_handle;
+         buflist_base[i].size = tmp_buf_pool_sz;
+ 
+         num_buf_req_rem -= tmp_num_bufs_req;
+@@ -641,7 +637,7 @@ static void
+ xrx500_free_ring_buffers(int32_t num_bufpools, struct dc_dp_buf_pool **buflist_base)
+ {
+     int32_t i;
+-    uint32_t order;
++    struct device *dma_dev = grx500_dma_device(DMA1TX);
+     struct dc_dp_buf_pool *buflist;
+ 
+     if (NULL == buflist_base)
+@@ -654,8 +650,8 @@ xrx500_free_ring_buffers(int32_t num_bufpools, struct dc_dp_buf_pool **buflist_b
+         DC_DP_DEBUG(DC_DP_DBG_FLAG_DBG, "De-allocating %d DMA1-Tx buffer pools.\n", num_bufpools);
+         for (i = 0; i < num_bufpools; i++) {
+             if (buflist[i].pool && buflist[i].size) {
+-                order = get_order(buflist[i].size);
+-                free_pages((unsigned long)buflist[i].pool, order);
++                dma_free_coherent(dma_dev, buflist[i].size, buflist[i].pool,
++                                  (dma_addr_t)(unsigned long)buflist[i].phys_pool);
+                 buflist[i].pool = NULL;
+                 buflist[i].size = 0;
+             }
+@@ -756,6 +752,10 @@ xrx500_setup_ring_resources(struct xrx500_dcmode0_dev_info *dev_ctx, int32_t por
+     int32_t buflist_idx;
+     cbm_dq_port_res_t cbm_res = {0};
+ 
++    if (!res->rings.dev2soc.size || res->rings.dev2soc.size > 65536 ||
++        !res->num_bufs_req || res->num_bufs_req > 65536)
++        return -EINVAL;
++
+     /* Allocate DMA1-TX DMA channel */
+     ret = ltq_request_dma(dev_ctx->shared_info->dma_ch, "dma1tx dc");
+     if (ret) {
+@@ -773,7 +773,7 @@ xrx500_setup_ring_resources(struct xrx500_dcmode0_dev_info *dev_ctx, int32_t por
+ 
+     /* Update returned 'resource' structure */
+     res->rings.dev2soc.phys_base = (void *)ltq_dma_chan_get_desc_phys_base(dev_ctx->shared_info->dma_ch);
+-    res->rings.dev2soc.base = (void *)CKSEG1ADDR((uint32_t)res->rings.dev2soc.phys_base);
++    res->rings.dev2soc.base = (void *)ltq_dma_chan_get_desc_vir_base(dev_ctx->shared_info->dma_ch);
+     /* res->rings.dev2soc.size unchanged */
+     res->rings.dev2soc.desc_dwsz = 4;
+ 
+@@ -790,13 +790,21 @@ xrx500_setup_ring_resources(struct xrx500_dcmode0_dev_info *dev_ctx, int32_t por
+         goto err_out_free_desc;
+     }
+ 
++    if (!cbm_res.num_deq_ports || !cbm_res.deq_info ||
++        !grx500_cbm_mmio_phys(cbm_res.cbm_buf_free_base) ||
++        !grx500_cbm_mmio_phys(cbm_res.deq_info[0].cbm_dq_port_base) ||
++        !cbm_res.deq_info[0].num_desc) {
++        kfree(cbm_res.deq_info);
++        ret = -EINVAL;
++        goto err_out_free_desc;
++    }
+     res->rings.soc2dev_ret.base = (void *)cbm_res.cbm_buf_free_base;
+-    res->rings.soc2dev_ret.phys_base = (void *)RPHYSADDR((uint32_t)cbm_res.cbm_buf_free_base);
++    res->rings.soc2dev_ret.phys_base = (void *)grx500_cbm_mmio_phys(cbm_res.cbm_buf_free_base);
+     res->rings.soc2dev_ret.size = 32; // FIXME : cbm_res.num_free_entries;
+     res->rings.soc2dev_ret.desc_dwsz = 1;
+     if (cbm_res.num_deq_ports) {
+         res->rings.soc2dev.base = (void *)cbm_res.deq_info[0].cbm_dq_port_base;
+-        res->rings.soc2dev.phys_base = (void *)RPHYSADDR((uint32_t)cbm_res.deq_info[0].cbm_dq_port_base);
++        res->rings.soc2dev.phys_base = (void *)grx500_cbm_mmio_phys(cbm_res.deq_info[0].cbm_dq_port_base);
+         res->rings.soc2dev.size = cbm_res.deq_info[0].num_desc;
+         res->rings.soc2dev.desc_dwsz = 4;
+ 
+@@ -851,6 +859,8 @@ xrx500_setup_ring_resources(struct xrx500_dcmode0_dev_info *dev_ctx, int32_t por
+ 
+ err_out_free_buf:
+     xrx500_free_ring_buffers(num_bufpools, &buflist);
++    dev_ctx->shared_info->buflist = NULL;
++    dev_ctx->shared_info->num_bufpools = 0;
+ 
+ err_out_free_desc:
+     ltq_dma_chan_desc_free(dev_ctx->shared_info->dma_ch);
+@@ -1134,6 +1144,31 @@ static inline void dcmode_ring_inc_write_index(dcmode_chan_t *ch, uint32_t idx)
+         (ch->ring.trck.wp + idx) % ch->ring.trck.size;
+ }
+ 
++static void *xrx500_fragment_buffer(dcmode_chan_t *ch, u32 dma, u32 length)
++{
++    struct xrx500_dcmode0_dev_shared_info *shared =
++        container_of(ch, struct xrx500_dcmode0_dev_shared_info, ch[DCMODE_CHAN_DEV2SOC]);
++    int i;
++    if (length > DC_DP_PKT_BUF_SIZE_DEFAULT)
++        return NULL;
++    for (i = 0; i < shared->num_bufpools; i++) {
++        struct dc_dp_buf_pool *pool = &shared->buflist[i];
++        u32 base = (u32)(unsigned long)pool->phys_pool;
++        if (dma >= base && dma - base < pool->size &&
++            !((dma - base) % DC_DP_PKT_BUF_SIZE_DEFAULT) &&
++            length <= pool->size - (dma - base))
++            return pool->pool + (dma - base);
++    }
++    return NULL;
++}
++
++static bool xrx500_frag_ready(struct dma_rx_desc *desc)
++{
++    typeof(desc->status) status;
++    status.all = READ_ONCE(desc->status.all);
++    return status.field.dic;
++}
++
+ static int32_t
+ handle_dev2soc_frag_exception(dcmode_chan_t *ch, uint32_t start_idx)
+ {
+@@ -1154,6 +1189,7 @@ handle_dev2soc_frag_exception(dcmode_chan_t *ch, uint32_t start_idx)
+      uint32_t dest_data_end_pointer = 0;
+      uint32_t total_packet_len = 0;
+      uint32_t padlen = 0;
++     u32 checked = 0;
+ 
+      ret = dcmode_set_ring_start_index(ch, start_idx);
+      if (ret < 0)
+@@ -1163,11 +1199,11 @@ handle_dev2soc_frag_exception(dcmode_chan_t *ch, uint32_t start_idx)
+      do {
+          desc_bd_p = (struct dma_rx_desc *)dcmode_get_bdp_from_ring(ch);
+ 
+-         if (!FRAG_READY(desc_bd_p)) {
++         if (!xrx500_frag_ready(desc_bd_p)) {
+              /* Loop some time in case HD is not written yet */
+              int iter = FRAG_READY_ITER_CNTR;
+              do {
+-                 if (FRAG_READY(desc_bd_p))
++                 if (xrx500_frag_ready(desc_bd_p))
+                      break;
+              } while (--iter);
+ 
+@@ -1179,10 +1215,22 @@ handle_dev2soc_frag_exception(dcmode_chan_t *ch, uint32_t start_idx)
+              }
+          }
+ 
++         dma_rmb();
++         if (++checked > ch->ring.trck.size)
++             return -EINVAL;
+          desc_byte_offset = BYTE_OFFSET(desc_bd_p);
+          desc_data_len = DATA_LEN(desc_bd_p);
+          desc_total_len = (desc_byte_offset + desc_data_len);
++         if ((!first_desc_bd_p && !SOP(desc_bd_p)) ||
++             (first_desc_bd_p && SOP(desc_bd_p)) || (SOP(desc_bd_p) && EOP(desc_bd_p)))
++             return -EINVAL;
+          total_packet_len += desc_data_len;
++         data_vpointer = (u32)(unsigned long)xrx500_fragment_buffer(ch, DATA_POINTER(desc_bd_p),
++             max(desc_total_len, desc_data_len + desc_unaligned_data_len +
++                 (EOP(desc_bd_p) && total_packet_len < DCDP_SHORT_PKT_LEN ?
++                  DCDP_SHORT_PKT_LEN - total_packet_len : 0)));
++         if (!data_vpointer)
++             return -EINVAL;
+ 
+          /* Handling for intermediate fragment of a packet */
+          if ( (0 == SOP(desc_bd_p)) && (0 == EOP(desc_bd_p)) ) {
+@@ -1193,9 +1241,6 @@ handle_dev2soc_frag_exception(dcmode_chan_t *ch, uint32_t start_idx)
+ 
+              if (desc_byte_offset || desc_unaligned_data_len ||
+                            (desc_data_len & DMA1TX_SIZE_ALIGNMENT_MASK)) {
+-                 data_vpointer = (uint32_t)phys_to_virt(DATA_POINTER(desc_bd_p));
+-                 (void)dma_map_single(NULL, (void *)data_vpointer,
+-                       (desc_data_len + desc_unaligned_data_len), DMA_FROM_DEVICE);
+ 
+                  dest_data_pointer = (data_vpointer + desc_unaligned_data_len);
+                  src_data_pointer = (data_vpointer + desc_byte_offset);
+@@ -1209,14 +1254,13 @@ handle_dev2soc_frag_exception(dcmode_chan_t *ch, uint32_t start_idx)
+                  desc_unaligned_data_len = (desc_total_data_len & DMA1TX_SIZE_ALIGNMENT_MASK);
+                  desc_aligned_data_len = (desc_total_data_len - desc_unaligned_data_len);
+                  desc_unaligned_data_vpos = (data_vpointer + desc_aligned_data_len);
+-                 if (desc_aligned_data_len)
+-                     (void)dma_map_single(NULL, (void *)data_vpointer, desc_aligned_data_len, DMA_TO_DEVICE);
+ 
+                  DATA_LEN(desc_bd_p) = desc_aligned_data_len;
+                  BYTE_OFFSET(desc_bd_p) = 0;
+              }
+ 
+              FRAG_READY(desc_bd_p) = 0;
++             dma_wmb();
+              OWN(desc_bd_p) = 1;
+ 
+ //             DC_DP_DEBUG(DC_DP_DBG_FLAG_DUMP_RX_DESCRIPTOR, "DW0=0x%08x DW1=0x%08x DW2=0x%08x DW3=0x%08x.\n",
+@@ -1232,10 +1276,10 @@ handle_dev2soc_frag_exception(dcmode_chan_t *ch, uint32_t start_idx)
+              first_desc_bd_p = desc_bd_p; // Save first desc of the packet, to set OWN bit as the last action
+              desc_unaligned_data_len = (desc_total_len & DMA1TX_SIZE_ALIGNMENT_MASK);
+              if (desc_unaligned_data_len) {
++                 if (desc_unaligned_data_len > desc_data_len)
++                     return -EINVAL;
+                  desc_aligned_data_len = (desc_data_len - desc_unaligned_data_len);
+-                 data_vpointer = (uint32_t)phys_to_virt(DATA_POINTER(desc_bd_p));
+                  desc_unaligned_data_vpos = (data_vpointer + desc_byte_offset + desc_aligned_data_len);
+-                 (void)dma_map_single(NULL, (void *)desc_unaligned_data_vpos, desc_unaligned_data_len, DMA_FROM_DEVICE);
+                  DATA_LEN(desc_bd_p) = desc_aligned_data_len;
+              }
+ 
+@@ -1253,8 +1297,6 @@ handle_dev2soc_frag_exception(dcmode_chan_t *ch, uint32_t start_idx)
+              if ((desc_byte_offset || desc_unaligned_data_len) ||
+                       (total_packet_len < DCDP_SHORT_PKT_LEN)) {
+                  desc_total_data_len = (desc_data_len + desc_unaligned_data_len);
+-                 data_vpointer = (uint32_t)phys_to_virt(DATA_POINTER(desc_bd_p));
+-                 (void)dma_map_single(NULL, (void *)data_vpointer, (desc_data_len + desc_unaligned_data_len), DMA_FROM_DEVICE);
+ 
+                  if (desc_byte_offset || desc_unaligned_data_len) {
+                      dest_data_pointer = (data_vpointer + desc_unaligned_data_len);
+@@ -1275,16 +1317,16 @@ handle_dev2soc_frag_exception(dcmode_chan_t *ch, uint32_t start_idx)
+                      if (first_desc_bd_p)
+                          CLASSID(first_desc_bd_p) |= 0x8;
+                  }
+-                 (void)dma_map_single(NULL, (void *)data_vpointer, desc_total_data_len, DMA_TO_DEVICE);
+                  DATA_LEN(desc_bd_p) = desc_total_data_len;
+              }
+ 
+              FRAG_READY(desc_bd_p) = 0;
++             dma_wmb();
+              OWN(desc_bd_p) = 1;
+ //           DC_DP_DEBUG(DC_DP_DBG_FLAG_DUMP_RX_DESCRIPTOR, "DW0=0x%08x DW1=0x%08x DW2=0x%08x DW3=0x%08x.\n",
+ //                       desc_bd_p->dw0.all, desc_bd_p->dw1.all, desc_bd_p->data_pointer, desc_bd_p->status.all);
+ 
+-             wmb();
++             dma_wmb();
+ 
+              /* Set the OWN bit of 1st fragment */
+              if (first_desc_bd_p)
+@@ -1306,7 +1348,8 @@ static inline void
+ get_soc_capability(uint32_t *cap)
+ {
+     /* Linux offload capability */
+-    *cap = DC_DP_F_HOST_CAP_SG | DC_DP_F_HOST_CAP_HW_CSUM | DC_DP_F_HOST_CAP_RXCSUM;
++    /* Native datapath currently linearizes and completes checksums in software. */
++    *cap = 0;
+ #ifdef CONFIG_TOE_DRIVER
+     *cap |= DC_DP_F_HOST_CAP_TSO;
+     *cap |= DC_DP_F_HOST_CAP_TSO6;
+@@ -1346,7 +1389,7 @@ xrx500_dcmode0_get_host_capability(struct dc_dp_host_cap *cap, uint32_t flags)
+ {
+     int32_t ret = -1;
+ 
+-    if (cap) {
++    if (cap && grx500_umt_ready()) {
+         cap->fastpath.support = 1;
+         cap->fastpath.hw_dcmode = DC_DP_MODE_TYPE_0;
+ 
+@@ -1378,6 +1421,7 @@ xrx500_dcmode0_register_dev_ex(void *ctx,
+     int32_t ret;
+     struct xrx500_dcmode0_dev_info *dev_ctx = (struct xrx500_dcmode0_dev_info *)ctx;
+     dp_cb_t dp_cb = {0};
++    bool rings_ready = false;
+ 
+     DC_DP_DEBUG(DC_DP_DBG_FLAG_DBG, "dev_ctx=%p, owner=%p, port_id=%u, dev=%p, datapathcb=%p, "
+                     "resources=%p, dev_spec=%p, flags=0x%08X\n",
+@@ -1493,6 +1537,7 @@ xrx500_dcmode0_register_dev_ex(void *ctx,
+                             dev_ctx->shared_info->dma_ch);
+             goto err_out_res_pmac;
+         }
++        rings_ready = true;
+     }
+ 
+     /* FIXME : prepare returned resources */
+@@ -1514,8 +1559,11 @@ xrx500_dcmode0_register_dev_ex(void *ctx,
+     return ret;
+ 
+ err_out_res_pmac:
++    if (rings_ready)
++        xrx500_cleanup_ring_resources(dev_ctx, dev_ctx->shared_info->port_id, resources, flags);
+ err_out_rel_umt:
+-    xrx500_cleanup_umt_port(dev_ctx->shared_info->port_id,
++    if (!is_multiport_sub(alloc_flags))
++        xrx500_cleanup_umt_port(dev_ctx->shared_info->port_id,
+                             dev_ctx->shared_info->umt_id,
+                             dev_ctx->shared_info->umt_period);
+ 
+@@ -1702,8 +1750,8 @@ xrx500_dcmode0_xmit(void *ctx, struct net_device *rx_if,
+     uint32_t dp_flags = 0;
+     struct xrx500_dcmode0_dev_info *dev_ctx = (struct xrx500_dcmode0_dev_info *)ctx;
+     int32_t subif_idx;
+-    struct dma_tx_desc_0 *desc_0 = (struct dma_tx_desc_0 *) &skb->DW0;
+-    struct dma_tx_desc_1 *desc_1 = (struct dma_tx_desc_1 *) &skb->DW1;
++    struct dma_tx_desc_0 *desc_0 = (struct dma_tx_desc_0 *) &grx500_skb_cb(skb)->DW0;
++    struct dma_tx_desc_1 *desc_1 = (struct dma_tx_desc_1 *) &grx500_skb_cb(skb)->DW1;
+ 
+     subif_idx = XRX500_DCMODE0_GET_SUBIFIDX(tx_subif->subif);
+ 
+@@ -1915,6 +1963,11 @@ xrx500_dcmode0_rx_cb(struct net_device *rxif, struct net_device *txif,
+         return -1;
+     }
+ 
++    if (len < sizeof(*pmac) + ETH_HLEN || len > skb->len ||
++        !pskb_may_pull(skb, sizeof(*pmac) + ETH_HLEN)) {
++        dev_kfree_skb_any(skb);
++        goto out;
++    }
+     pmac = (struct pmac_rx_hdr *)(skb->data);
+     rx_subif->port_id = pmac->sppid;
+     rx_subif->subif = (pmac->src_sub_inf_id << 8);
+@@ -1935,8 +1988,8 @@ xrx500_dcmode0_rx_cb(struct net_device *rxif, struct net_device *txif,
+     if ( is_multiport(dev_ctx->alloc_flags) )
+         multiport_wa_reverse_map_subifid(dev_ctx, rx_subif);
+ 
+-    if ( (rxif->features & NETIF_F_RXCSUM) )
+-        skb->ip_summed = CHECKSUM_UNNECESSARY;
++    /* The native transport has no validated per-packet checksum status. */
++    skb->ip_summed = CHECKSUM_NONE;
+ 
+     ret = dc_dp_rx(rxif, txif, rx_subif, skb, skb->len, 0);
+     if (!ret) {
+diff --git a/include/directconnect_dp_api.h b/include/directconnect_dp_api.h
+index 0bec356..b99ac23 100644
+--- a/include/directconnect_dp_api.h
++++ b/include/directconnect_dp_api.h
+@@ -1,3 +1,4 @@
++#include <net/grx500_skb.h>
+ /*
+  * DirectConnect provides a common interface for the network devices to achieve the full or partial
+    acceleration services from the underlying packet acceleration engine
+@@ -1632,7 +1633,7 @@ dc_dp_set_ep_pkt (
+ 		return DC_DP_FAILURE;
+ 	}
+ 
+-	desc_1 = (struct dma_tx_desc_1 *) &skb->DW1;
++	desc_1 = (struct dma_tx_desc_1 *) &grx500_skb_cb(skb)->DW1;
+ 	desc_1->field.ep = port_id;
+ 
+ 	return DC_DP_SUCCESS;
+@@ -1659,7 +1660,7 @@ dc_dp_get_ep_pkt (
+ 		return DC_DP_FAILURE;
+ 	}
+ 
+-	desc_1 = (struct dma_tx_desc_1 *) &skb->DW1;
++	desc_1 = (struct dma_tx_desc_1 *) &grx500_skb_cb(skb)->DW1;
+ 	*port_id = desc_1->field.ep;
+ 
+ 	return DC_DP_SUCCESS;
+@@ -1689,7 +1690,7 @@ dc_dp_set_subifid_pkt (
+ 	if (!skb)
+ 		return DC_DP_FAILURE;
+ 
+-	desc_0 = (struct dma_tx_desc_0 *) &skb->DW0;
++	desc_0 = (struct dma_tx_desc_0 *) &grx500_skb_cb(skb)->DW0;
+ 	desc_0->field.dest_sub_if_id = subif_id;
+ 
+ 	return DC_DP_SUCCESS;
+@@ -1717,7 +1718,7 @@ dc_dp_get_subifid_pkt (
+ 	if (!skb || !subif_id)
+ 		return DC_DP_FAILURE;
+ 
+-	desc_0 = (struct dma_tx_desc_0 *) &skb->DW0;
++	desc_0 = (struct dma_tx_desc_0 *) &grx500_skb_cb(skb)->DW0;
+ 	*subif_id = desc_0->field.dest_sub_if_id;
+ 
+ 	return DC_DP_SUCCESS;
+@@ -1746,7 +1747,7 @@ dc_dp_set_mark_pkt (
+ 	if (!skb)
+ 		return DC_DP_FAILURE;
+ 
+-	desc_3 = (struct dma_tx_desc_3 *) &skb->DW3;
++	desc_3 = (struct dma_tx_desc_3 *) &grx500_skb_cb(skb)->DW3;
+ 	desc_3->field.c = 1;
+ 
+ 	return DC_DP_SUCCESS;
+@@ -1773,7 +1774,7 @@ dc_dp_get_mark_pkt (
+ 	if (!skb)
+ 		return DC_DP_FAILURE;
+ 
+-	desc_3 = (struct dma_tx_desc_3 *) &skb->DW3;
++	desc_3 = (struct dma_tx_desc_3 *) &grx500_skb_cb(skb)->DW3;
+ 	return (desc_3->field.c == 1) ? 1 : 0;
+ }
+ 

@@ -1,0 +1,33 @@
+--- a/wireless/driver/shared/mtlk_serializer.c
++++ b/wireless/driver/shared/mtlk_serializer.c
+@@ -284,9 +284,17 @@
+   return FALSE;
+ }
+ 
+-static void _mtlk_serializer_invoke_command(mtlk_command_t* command)
++static void _mtlk_serializer_invoke_command(mtlk_serializer_t *szr, mtlk_command_t* command)
+ {
+   command->cmd_callback(command->user_context);
++  /* Completion may free the command or wake an owner that does so. Remove
++   * the diagnostic reader's pointer under the same lock used by enumeration
++   * before handing ownership to completion. Do not hold the lock in callbacks. */
++  mtlk_osal_lock_acquire(&szr->lock);
++  MTLK_ASSERT(szr->current_command == command);
++  szr->current_command = NULL;
++  mtlk_osal_lock_release(&szr->lock);
++
+   command->post_exec_callback(MTLK_CMD_EXECUTED, command,
+                               command->post_exec_callback_ctx);
+ }
+@@ -320,10 +328,7 @@
+ 
+       if(szr->current_command)
+       {
+-        _mtlk_serializer_invoke_command(szr->current_command);
+-        mtlk_osal_lock_acquire(&szr->lock);
+-        szr->current_command = NULL;
+-        mtlk_osal_lock_release(&szr->lock);
++        _mtlk_serializer_invoke_command(szr, szr->current_command);
+         break;
+       }
+     }

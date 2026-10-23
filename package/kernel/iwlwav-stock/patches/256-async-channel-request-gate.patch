@@ -1,0 +1,134 @@
+--- a/wireless/driver/shared/scan_support.h
++++ b/wireless/driver/shared/scan_support.h
+@@ -243,6 +243,9 @@ typedef struct scan_support
+   mtlk_core_t *requester_core;
+   uint32 flags;        /* flags from scanDescriptionFlags */
+   BOOL removal_pending; /* End scans even when fatal recovery would defer them */
++  spinlock_t channel_req_lock; /* Serialize async channel admission with removal */
++  wait_queue_head_t channel_req_wait;
++  unsigned channel_req_users;
+   struct mtlk_chan_def orig_chandef; /* what to return to after scan, if any */
+   u8 max_widths[NUM_SUPPORTED_BANDS];
+   struct mtlk_scan_request req; /* sched scan stuff can get saved here, too */
+@@ -326,6 +329,8 @@ int mtlk_scan_recovery_get_channel(mtlk
+ int mtlk_scan_recovery_continue_scan(mtlk_core_t *core, BOOL is_bg_scan);
+ 
+ void abort_scan(struct scan_support *ss);
++BOOL scan_support_channel_request_enter(struct scan_support *ss);
++void scan_support_channel_request_exit(struct scan_support *ss);
+ void scan_support_prepare_remove(struct scan_support *ss);
+ int abort_scan_sync(mtlk_core_t *core);
+ int pause_or_prevent_scan(mtlk_core_t *core);
+--- a/wireless/driver/shared/scan_support.c
++++ b/wireless/driver/shared/scan_support.c
+@@ -313,7 +313,10 @@ int cac_timer_serialized_func (mtlk_hand
+      * as cfg80211_cac_event will trigger all interface up and channel switch procedures */
+     cpd.dont_notify_kernel = TRUE;
+ 
+-    _mtlk_df_user_invoke_core_async(df, WAVE_RADIO_REQ_SET_CHAN, &cpd, sizeof(cpd), NULL, 0);
++    if (scan_support_channel_request_enter(ss)) {
++      _mtlk_df_user_invoke_core_async(df, WAVE_RADIO_REQ_SET_CHAN, &cpd, sizeof(cpd), NULL, 0);
++      scan_support_channel_request_exit(ss);
++    }
+   }
+   mtlk_core_cfg_set_block_tx(core, 0);
+   return MTLK_ERR_OK;
+@@ -333,6 +336,9 @@ int scan_support_init(mtlk_core_t *core,
+ 
+   memset(ss, 0, sizeof(*ss));
+ 
++  spin_lock_init(&ss->channel_req_lock);
++  init_waitqueue_head(&ss->channel_req_wait);
++
+   ss->last_chan_idx = -1;
+   ss->last_chan_band = -1;
+   ss->max_widths[UMI_PHY_TYPE_BAND_2_4_GHZ] = CW_40;
+@@ -646,9 +652,52 @@ void abort_scan(struct scan_support *ss)
+   }
+ }
+ 
++BOOL scan_support_channel_request_enter(struct scan_support *ss)
++{
++  unsigned long flags;
++  BOOL accepted;
++
++  spin_lock_irqsave(&ss->channel_req_lock, flags);
++  accepted = !ss->removal_pending;
++  if (accepted)
++    ss->channel_req_users++;
++  spin_unlock_irqrestore(&ss->channel_req_lock, flags);
++
++  return accepted;
++}
++
++void scan_support_channel_request_exit(struct scan_support *ss)
++{
++  unsigned long flags;
++
++  spin_lock_irqsave(&ss->channel_req_lock, flags);
++  if (WARN_ON_ONCE(!ss->channel_req_users)) {
++    spin_unlock_irqrestore(&ss->channel_req_lock, flags);
++    return;
++  }
++  if (!--ss->channel_req_users)
++    wake_up_all(&ss->channel_req_wait);
++  spin_unlock_irqrestore(&ss->channel_req_lock, flags);
++}
++
++static BOOL scan_support_channel_requests_idle(struct scan_support *ss)
++{
++  unsigned long flags;
++  BOOL idle;
++
++  spin_lock_irqsave(&ss->channel_req_lock, flags);
++  idle = !ss->channel_req_users;
++  spin_unlock_irqrestore(&ss->channel_req_lock, flags);
++  return idle;
++}
++
+ void scan_support_prepare_remove(struct scan_support *ss)
+ {
+-  WRITE_ONCE(ss->removal_pending, TRUE);
++  unsigned long flags;
++
++  spin_lock_irqsave(&ss->channel_req_lock, flags);
++  WRITE_ONCE(ss->removal_pending, TRUE);
++  spin_unlock_irqrestore(&ss->channel_req_lock, flags);
+ 
+   /* A queued CAC handler may be waiting on this event in the same serializer
+    * needed for the scan abort. Release it before waiting for either timer.
+@@ -657,6 +706,10 @@ void scan_support_prepare_remove(struct s
+   wave_radio_on_rcvry_isolate(wave_vap_radio_get(ss->master_core->vap_handle));
+   mtlk_osal_timer_cancel_sync(&ss->master_core->slow_ctx->cac_timer);
+   mtlk_osal_timer_cancel_sync(&ss->master_core->slow_ctx->sched_scan_timer);
++
++  /* A producer admitted before removal may still be copying its request. */
++  wait_event(ss->channel_req_wait,
++             scan_support_channel_requests_idle(ss));
+ }
+ 
+ static int scan_timeout_func(mtlk_core_t *core, mtlk_scan_support_t *ss);
+--- a/wireless/driver/linux/core.c
++++ b/wireless/driver/linux/core.c
+@@ -8838,9 +8838,13 @@ _mtlk_core_switch_channel_normal(mtlk_co
+   mtlk_df_t *master_df = mtlk_vap_manager_get_master_df(mtlk_vap_get_manager(master_core->vap_handle));
+   mtlk_vap_handle_t master_vap_handle = mtlk_df_get_vap_handle(master_df);
+   struct set_chan_param_data cpd;
++  mtlk_scan_support_t *ss = __wave_core_scan_support_get(master_core);
+ 
+   ILOG0_V("Seen a beacon changing channel to type normal");
+ 
++  if (!scan_support_channel_request_enter(ss))
++    return MTLK_ERR_NOT_READY;
++
+   memset(&cpd, 0, sizeof(cpd));
+   cpd.vap_id = mtlk_vap_get_id(master_vap_handle);
+   cpd.ndev = mtlk_df_user_get_ndev(mtlk_df_get_user(master_df));
+@@ -8854,6 +8858,7 @@ _mtlk_core_switch_channel_normal(mtlk_co
+   _mtlk_df_user_invoke_core_async(master_df,
+     WAVE_RADIO_REQ_SET_CHAN, &cpd, sizeof(cpd),
+     NULL, 0);
++  scan_support_channel_request_exit(ss);
+ 
+   return MTLK_ERR_OK;
+ }

@@ -1,0 +1,2577 @@
+{
+  "schema": 1,
+  "evidence_type": "static DTB bytes and packaged/source configuration",
+  "stock_dtb": {
+    "file": "stock-board-410.dtb",
+    "bytes": 23461,
+    "sha256": "98872195bcc1e16f8f56b6f21eecee4335dc6c9a788f1c224014432ede48c198"
+  },
+  "model": [
+    "EASY350 ANYWAN (GRX350) Router model"
+  ],
+  "limitations": [
+    "No boot, physical port, PCI enumeration, or packet transfer observed.",
+    "Embedded reference DTB can be modified or superseded by the bootloader.",
+    "A status=ok PCIe controller does not prove an attached radio or its silicon revision.",
+    "Modern GIC indices are derived from the vendor legacy domain; interrupt trigger types are not encoded by its one-cell binding."
+  ],
+  "pcie": [
+    {
+      "path": "/ssx3@18000000/pcie@900000",
+      "registers": [
+        {
+          "index": 0,
+          "name": "csr",
+          "bus_address": "0x900000",
+          "size": "0x100000",
+          "cpu_physical_address": "0x18900000"
+        },
+        {
+          "index": 1,
+          "name": "cfg",
+          "bus_address": "0xa3000000",
+          "size": "0x800000",
+          "cpu_physical_address": "0xbb000000"
+        },
+        {
+          "index": 2,
+          "name": "app",
+          "bus_address": "0x800000",
+          "size": "0x100000",
+          "cpu_physical_address": "0x18800000"
+        },
+        {
+          "index": 3,
+          "name": "phy",
+          "bus_address": "0x500000",
+          "size": "0x100000",
+          "cpu_physical_address": "0x18500000"
+        },
+        {
+          "index": 4,
+          "name": "msi",
+          "bus_address": "0x600000",
+          "size": "0x100000",
+          "cpu_physical_address": "0x18600000"
+        },
+        {
+          "index": 5,
+          "name": "pic",
+          "bus_address": "0x700000",
+          "size": "0x100000",
+          "cpu_physical_address": "0x18700000"
+        }
+      ],
+      "interrupts": {
+        "raw_cells": [
+          136,
+          137,
+          138,
+          139,
+          140,
+          141,
+          142,
+          143,
+          160
+        ],
+        "controller": "/ssx6@12000000/gic@320000",
+        "derived_modern_GIC_SHARED_indices": [
+          128,
+          129,
+          130,
+          131,
+          132,
+          133,
+          134,
+          135,
+          152
+        ]
+      },
+      "reset": {
+        "controller": "/ssx4@16000000/gpio@c00100",
+        "bank": 1,
+        "line": 11,
+        "raw_gpio_flags": 0,
+        "active_level": "low",
+        "interval_ms": 200,
+        "phy_reset_controller": "/ssx4@16000000/reset-controller@0000000",
+        "phy_reset_bit": 12
+      },
+      "settings": {
+        "phy-mode": 5,
+        "clkout": 22,
+        "inbound-shift": 5,
+        "outbound-shift": 4,
+        "inbound-swap": 1,
+        "outbound-swap": 0
+      },
+      "ranges": [
+        {
+          "flags": "0x2000000",
+          "pci_bus_address": "0xa0000000",
+          "parent_bus_address": "0xa0000000",
+          "size": "0x3000000",
+          "cpu_physical_address": "0xb8000000"
+        },
+        {
+          "flags": "0x1000000",
+          "pci_bus_address": "0xa3800000",
+          "parent_bus_address": "0xa3800000",
+          "size": "0x100000",
+          "cpu_physical_address": "0xbb800000"
+        }
+      ],
+      "intx": [
+        {
+          "pin": 1,
+          "raw_irq": 144,
+          "derived_modern_GIC_SHARED_index": 136
+        },
+        {
+          "pin": 2,
+          "raw_irq": 145,
+          "derived_modern_GIC_SHARED_index": 137
+        },
+        {
+          "pin": 3,
+          "raw_irq": 146,
+          "derived_modern_GIC_SHARED_index": 138
+        },
+        {
+          "pin": 4,
+          "raw_irq": 147,
+          "derived_modern_GIC_SHARED_index": 139
+        }
+      ]
+    },
+    {
+      "path": "/ssx3@18000000/pcie@400000",
+      "registers": [
+        {
+          "index": 0,
+          "name": "csr",
+          "bus_address": "0x400000",
+          "size": "0x100000",
+          "cpu_physical_address": "0x18400000"
+        },
+        {
+          "index": 1,
+          "name": "cfg",
+          "bus_address": "0x9f000000",
+          "size": "0x800000",
+          "cpu_physical_address": "0xb7000000"
+        },
+        {
+          "index": 2,
+          "name": "app",
+          "bus_address": "0x300000",
+          "size": "0x100000",
+          "cpu_physical_address": "0x18300000"
+        },
+        {
+          "index": 3,
+          "name": "phy",
+          "bus_address": "0x0",
+          "size": "0x100000",
+          "cpu_physical_address": "0x18000000"
+        },
+        {
+          "index": 4,
+          "name": "msi",
+          "bus_address": "0x100000",
+          "size": "0x100000",
+          "cpu_physical_address": "0x18100000"
+        },
+        {
+          "index": 5,
+          "name": "pic",
+          "bus_address": "0x200000",
+          "size": "0x100000",
+          "cpu_physical_address": "0x18200000"
+        }
+      ],
+      "interrupts": {
+        "raw_cells": [
+          45,
+          46,
+          47,
+          48,
+          49,
+          50,
+          51,
+          52,
+          57
+        ],
+        "controller": "/ssx6@12000000/gic@320000",
+        "derived_modern_GIC_SHARED_indices": [
+          37,
+          38,
+          39,
+          40,
+          41,
+          42,
+          43,
+          44,
+          49
+        ]
+      },
+      "reset": {
+        "controller": "/ssx4@16000000/gpio@c00100",
+        "bank": 1,
+        "line": 29,
+        "raw_gpio_flags": 0,
+        "active_level": "low",
+        "interval_ms": 200,
+        "phy_reset_controller": "/ssx4@16000000/reset-controller@0000000",
+        "phy_reset_bit": 13
+      },
+      "settings": {
+        "phy-mode": 5,
+        "clkout": 23,
+        "inbound-shift": 9,
+        "outbound-shift": 8,
+        "inbound-swap": 1,
+        "outbound-swap": 0
+      },
+      "ranges": [
+        {
+          "flags": "0x2000000",
+          "pci_bus_address": "0x9c000000",
+          "parent_bus_address": "0x9c000000",
+          "size": "0x3000000",
+          "cpu_physical_address": "0xb4000000"
+        },
+        {
+          "flags": "0x1000000",
+          "pci_bus_address": "0x9f800000",
+          "parent_bus_address": "0x9f800000",
+          "size": "0x100000",
+          "cpu_physical_address": "0xb7800000"
+        }
+      ],
+      "intx": [
+        {
+          "pin": 1,
+          "raw_irq": 17,
+          "derived_modern_GIC_SHARED_index": 9
+        },
+        {
+          "pin": 2,
+          "raw_irq": 18,
+          "derived_modern_GIC_SHARED_index": 10
+        },
+        {
+          "pin": 3,
+          "raw_irq": 19,
+          "derived_modern_GIC_SHARED_index": 11
+        },
+        {
+          "pin": 4,
+          "raw_irq": 20,
+          "derived_modern_GIC_SHARED_index": 12
+        }
+      ]
+    },
+    {
+      "path": "/ssx3@18000000/pcie@E00000",
+      "registers": [
+        {
+          "index": 0,
+          "name": "csr",
+          "bus_address": "0xe00000",
+          "size": "0x100000",
+          "cpu_physical_address": "0x18e00000"
+        },
+        {
+          "index": 1,
+          "name": "cfg",
+          "bus_address": "0xa7000000",
+          "size": "0x800000",
+          "cpu_physical_address": "0xbf000000"
+        },
+        {
+          "index": 2,
+          "name": "app",
+          "bus_address": "0xd00000",
+          "size": "0x100000",
+          "cpu_physical_address": "0x18d00000"
+        },
+        {
+          "index": 3,
+          "name": "phy",
+          "bus_address": "0xa00000",
+          "size": "0x100000",
+          "cpu_physical_address": "0x18a00000"
+        },
+        {
+          "index": 4,
+          "name": "msi",
+          "bus_address": "0xb00000",
+          "size": "0x100000",
+          "cpu_physical_address": "0x18b00000"
+        },
+        {
+          "index": 5,
+          "name": "pic",
+          "bus_address": "0xc00000",
+          "size": "0x100000",
+          "cpu_physical_address": "0x18c00000"
+        }
+      ],
+      "interrupts": {
+        "raw_cells": [
+          32,
+          33,
+          34,
+          35,
+          36,
+          37,
+          38,
+          39,
+          63
+        ],
+        "controller": "/ssx6@12000000/gic@320000",
+        "derived_modern_GIC_SHARED_indices": [
+          24,
+          25,
+          26,
+          27,
+          28,
+          29,
+          30,
+          31,
+          55
+        ]
+      },
+      "reset": {
+        "controller": "/ssx4@16000000/gpio@c00000",
+        "bank": 0,
+        "line": 14,
+        "raw_gpio_flags": 0,
+        "active_level": "high",
+        "interval_ms": 200,
+        "phy_reset_controller": "/ssx4@16000000/reset-controller@0000000",
+        "phy_reset_bit": 10
+      },
+      "settings": {
+        "phy-mode": 5,
+        "clkout": 24,
+        "inbound-shift": 13,
+        "outbound-shift": 12,
+        "inbound-swap": 1,
+        "outbound-swap": 0
+      },
+      "ranges": [
+        {
+          "flags": "0x2000000",
+          "pci_bus_address": "0xa4000000",
+          "parent_bus_address": "0xa4000000",
+          "size": "0x3000000",
+          "cpu_physical_address": "0xbc000000"
+        },
+        {
+          "flags": "0x1000000",
+          "pci_bus_address": "0xa7800000",
+          "parent_bus_address": "0xa7800000",
+          "size": "0x100000",
+          "cpu_physical_address": "0xbf800000"
+        }
+      ],
+      "intx": [
+        {
+          "pin": 1,
+          "raw_irq": 163,
+          "derived_modern_GIC_SHARED_index": 155
+        },
+        {
+          "pin": 2,
+          "raw_irq": 164,
+          "derived_modern_GIC_SHARED_index": 156
+        },
+        {
+          "pin": 3,
+          "raw_irq": 165,
+          "derived_modern_GIC_SHARED_index": 157
+        },
+        {
+          "pin": 4,
+          "raw_irq": 166,
+          "derived_modern_GIC_SHARED_index": 158
+        }
+      ]
+    }
+  ],
+  "ethernet": [
+    {
+      "path": "/ssx0@1E000000/eth@a00000/interface@0/ethernet@0",
+      "dt_port_number": 1,
+      "wan": false,
+      "phy": null,
+      "mdio_address": null,
+      "interrupts": null
+    },
+    {
+      "path": "/ssx0@1E000000/eth@a00000/interface@1/ethernet@1",
+      "dt_port_number": 2,
+      "wan": false,
+      "phy": "/ssx0@1E000000/mdio@0/ethernet-phy@2",
+      "mdio_address": 2,
+      "interrupts": {
+        "raw_cells": [
+          120
+        ],
+        "controller": "/ssx6@12000000/gic@320000",
+        "derived_modern_GIC_SHARED_indices": [
+          112
+        ]
+      }
+    },
+    {
+      "path": "/ssx0@1E000000/eth@a00000/interface@2/ethernet@2",
+      "dt_port_number": 3,
+      "wan": false,
+      "phy": "/ssx0@1E000000/mdio@0/ethernet-phy@3",
+      "mdio_address": 3,
+      "interrupts": {
+        "raw_cells": [
+          121
+        ],
+        "controller": "/ssx6@12000000/gic@320000",
+        "derived_modern_GIC_SHARED_indices": [
+          113
+        ]
+      }
+    },
+    {
+      "path": "/ssx0@1E000000/eth@a00000/interface@3/ethernet@3",
+      "dt_port_number": 4,
+      "wan": false,
+      "phy": "/ssx0@1E000000/mdio@0/ethernet-phy@4",
+      "mdio_address": 4,
+      "interrupts": {
+        "raw_cells": [
+          134
+        ],
+        "controller": "/ssx6@12000000/gic@320000",
+        "derived_modern_GIC_SHARED_indices": [
+          126
+        ]
+      }
+    },
+    {
+      "path": "/ssx0@1E000000/eth@a00000/interface@4/ethernet@4",
+      "dt_port_number": 5,
+      "wan": false,
+      "phy": "/ssx0@1E000000/mdio@0/ethernet-phy@5",
+      "mdio_address": 5,
+      "interrupts": {
+        "raw_cells": [
+          135
+        ],
+        "controller": "/ssx6@12000000/gic@320000",
+        "derived_modern_GIC_SHARED_indices": [
+          127
+        ]
+      }
+    },
+    {
+      "path": "/ssx0@1E000000/eth@a00000/interface@5/ethernet@5",
+      "dt_port_number": 7,
+      "wan": false,
+      "phy": null,
+      "mdio_address": null,
+      "interrupts": null
+    },
+    {
+      "path": "/ssx0@1E000000/eth@a00000/interface@6/ethernet@6",
+      "dt_port_number": 1,
+      "wan": true,
+      "phy": "/ssx0@1E000000/mdio@1/ethernet-phy@1",
+      "mdio_address": 1,
+      "interrupts": {
+        "raw_cells": [
+          119
+        ],
+        "controller": "/ssx6@12000000/gic@320000",
+        "derived_modern_GIC_SHARED_indices": [
+          111
+        ]
+      }
+    }
+  ],
+  "cbm": [
+    {
+      "path": "/ssx0@1E000000/cbm@700000",
+      "registers": [
+        {
+          "index": 0,
+          "name": null,
+          "bus_address": "0x700000",
+          "size": "0x1000",
+          "cpu_physical_address": "0x1e700000"
+        },
+        {
+          "index": 1,
+          "name": null,
+          "bus_address": "0x710000",
+          "size": "0x10000",
+          "cpu_physical_address": "0x1e710000"
+        },
+        {
+          "index": 2,
+          "name": null,
+          "bus_address": "0x720000",
+          "size": "0x4000",
+          "cpu_physical_address": "0x1e720000"
+        },
+        {
+          "index": 3,
+          "name": null,
+          "bus_address": "0x730000",
+          "size": "0x14000",
+          "cpu_physical_address": "0x1e730000"
+        },
+        {
+          "index": 4,
+          "name": null,
+          "bus_address": "0x750000",
+          "size": "0x400",
+          "cpu_physical_address": "0x1e750000"
+        },
+        {
+          "index": 5,
+          "name": null,
+          "bus_address": "0x750800",
+          "size": "0x400",
+          "cpu_physical_address": "0x1e750800"
+        },
+        {
+          "index": 6,
+          "name": null,
+          "bus_address": "0x760000",
+          "size": "0x10000",
+          "cpu_physical_address": "0x1e760000"
+        },
+        {
+          "index": 7,
+          "name": null,
+          "bus_address": "0x780000",
+          "size": "0x20000",
+          "cpu_physical_address": "0x1e780000"
+        },
+        {
+          "index": 8,
+          "name": null,
+          "bus_address": "0x7c0000",
+          "size": "0x30000",
+          "cpu_physical_address": "0x1e7c0000"
+        },
+        {
+          "index": 9,
+          "name": null,
+          "bus_address": "0x800000",
+          "size": "0x100000",
+          "cpu_physical_address": "0x1e800000"
+        },
+        {
+          "index": 10,
+          "name": null,
+          "bus_address": "0x900000",
+          "size": "0x100000",
+          "cpu_physical_address": "0x1e900000"
+        },
+        {
+          "index": 11,
+          "name": null,
+          "bus_address": "0x500000",
+          "size": "0x100000",
+          "cpu_physical_address": "0x1e500000"
+        }
+      ],
+      "interrupts": {
+        "raw_cells": [
+          182,
+          186,
+          187,
+          188,
+          189
+        ],
+        "controller": "/ssx6@12000000/gic@320000",
+        "derived_modern_GIC_SHARED_indices": [
+          174,
+          178,
+          179,
+          180,
+          181
+        ]
+      },
+      "queue_configuration": {
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ1": {
+          "tmu_port": 1,
+          "tmu_queue": 34,
+          "dma_controller": 255,
+          "dma_channel": 255,
+          "port_enable": 5,
+          "descriptors": 1
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ3": {
+          "tmu_port": 3,
+          "tmu_queue": 36,
+          "dma_controller": 255,
+          "dma_channel": 255,
+          "port_enable": 4,
+          "descriptors": 1
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ6": {
+          "tmu_port": 6,
+          "tmu_queue": 16,
+          "dma_controller": 2,
+          "dma_channel": 1,
+          "port_enable": 1,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ7": {
+          "tmu_port": 7,
+          "tmu_queue": 17,
+          "dma_controller": 2,
+          "dma_channel": 2,
+          "port_enable": 1,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ8": {
+          "tmu_port": 8,
+          "tmu_queue": 18,
+          "dma_controller": 2,
+          "dma_channel": 3,
+          "port_enable": 1,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ9": {
+          "tmu_port": 9,
+          "tmu_queue": 19,
+          "dma_controller": 2,
+          "dma_channel": 4,
+          "port_enable": 1,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ10": {
+          "tmu_port": 10,
+          "tmu_queue": 20,
+          "dma_controller": 2,
+          "dma_channel": 5,
+          "port_enable": 1,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ11": {
+          "tmu_port": 11,
+          "tmu_queue": 21,
+          "dma_controller": 2,
+          "dma_channel": 6,
+          "port_enable": 1,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ12": {
+          "tmu_port": 12,
+          "tmu_queue": 22,
+          "dma_controller": 2,
+          "dma_channel": 9,
+          "port_enable": 1,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ13": {
+          "tmu_port": 13,
+          "tmu_queue": 23,
+          "dma_controller": 2,
+          "dma_channel": 10,
+          "port_enable": 1,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ14": {
+          "tmu_port": 14,
+          "tmu_queue": 24,
+          "dma_controller": 2,
+          "dma_channel": 11,
+          "port_enable": 1,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ15": {
+          "tmu_port": 15,
+          "tmu_queue": 25,
+          "dma_controller": 2,
+          "dma_channel": 12,
+          "port_enable": 1,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ16": {
+          "tmu_port": 16,
+          "tmu_queue": 26,
+          "dma_controller": 2,
+          "dma_channel": 13,
+          "port_enable": 1,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ17": {
+          "tmu_port": 17,
+          "tmu_queue": 27,
+          "dma_controller": 2,
+          "dma_channel": 14,
+          "port_enable": 1,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ19": {
+          "tmu_port": 19,
+          "tmu_queue": 28,
+          "dma_controller": 1,
+          "dma_channel": 15,
+          "port_enable": 1,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ20": {
+          "tmu_port": 20,
+          "tmu_queue": 29,
+          "dma_controller": 1,
+          "dma_channel": 5,
+          "port_enable": 1,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ21": {
+          "tmu_port": 21,
+          "tmu_queue": 30,
+          "dma_controller": 1,
+          "dma_channel": 6,
+          "port_enable": 1,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ22": {
+          "tmu_port": 22,
+          "tmu_queue": 41,
+          "dma_controller": 1,
+          "dma_channel": 11,
+          "port_enable": 1,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ18": {
+          "tmu_port": 18,
+          "tmu_queue": 0,
+          "dma_controller": 1,
+          "dma_channel": 13,
+          "port_enable": 1,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ23": {
+          "tmu_port": 23,
+          "tmu_queue": 31,
+          "dma_controller": 255,
+          "dma_channel": 255,
+          "port_enable": 1,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ24": {
+          "tmu_port": 24,
+          "tmu_queue": 38,
+          "dma_controller": 255,
+          "dma_channel": 255,
+          "port_enable": 1,
+          "descriptors": 32
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ25": {
+          "tmu_port": 25,
+          "tmu_queue": 39,
+          "dma_controller": 255,
+          "dma_channel": 255,
+          "port_enable": 1,
+          "descriptors": 32
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ26": {
+          "tmu_port": 26,
+          "tmu_queue": 40,
+          "dma_controller": 255,
+          "dma_channel": 255,
+          "port_enable": 1,
+          "descriptors": 32
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ4": {
+          "tmu_port": 4,
+          "tmu_queue": 32,
+          "dma_controller": 255,
+          "dma_channel": 255,
+          "port_enable": 1,
+          "descriptors": 32
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ2": {
+          "tmu_port": 2,
+          "tmu_queue": 35,
+          "dma_controller": 255,
+          "dma_channel": 255,
+          "port_enable": 2,
+          "descriptors": 1
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ5": {
+          "tmu_port": 5,
+          "tmu_queue": 37,
+          "dma_controller": 255,
+          "dma_channel": 255,
+          "port_enable": 1,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ1": {
+          "tmu_port": 0,
+          "tmu_queue": 255,
+          "dma_controller": 255,
+          "dma_channel": 255,
+          "port_enable": 2,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ2": {
+          "tmu_port": 1,
+          "tmu_queue": 255,
+          "dma_controller": 255,
+          "dma_channel": 255,
+          "port_enable": 3,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ3": {
+          "tmu_port": 2,
+          "tmu_queue": 255,
+          "dma_controller": 255,
+          "dma_channel": 255,
+          "port_enable": 4,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ4": {
+          "tmu_port": 3,
+          "tmu_queue": 255,
+          "dma_controller": 255,
+          "dma_channel": 255,
+          "port_enable": 5,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ5": {
+          "tmu_port": 5,
+          "tmu_queue": 2,
+          "dma_controller": 14,
+          "dma_channel": 0,
+          "port_enable": 7,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ5_1": {
+          "tmu_port": 5,
+          "tmu_queue": 2,
+          "dma_controller": 30,
+          "dma_channel": 1,
+          "port_enable": 7,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ6": {
+          "tmu_port": 6,
+          "tmu_queue": 2,
+          "dma_controller": 15,
+          "dma_channel": 0,
+          "port_enable": 7,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ6_1": {
+          "tmu_port": 6,
+          "tmu_queue": 2,
+          "dma_controller": 31,
+          "dma_channel": 1,
+          "port_enable": 7,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ7": {
+          "tmu_port": 7,
+          "tmu_queue": 1,
+          "dma_controller": 0,
+          "dma_channel": 0,
+          "port_enable": 8,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ7_1": {
+          "tmu_port": 7,
+          "tmu_queue": 1,
+          "dma_controller": 16,
+          "dma_channel": 1,
+          "port_enable": 8,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ8": {
+          "tmu_port": 8,
+          "tmu_queue": 1,
+          "dma_controller": 15,
+          "dma_channel": 0,
+          "port_enable": 8,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ8_1": {
+          "tmu_port": 8,
+          "tmu_queue": 1,
+          "dma_controller": 31,
+          "dma_channel": 1,
+          "port_enable": 8,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ9": {
+          "tmu_port": 9,
+          "tmu_queue": 255,
+          "dma_controller": 255,
+          "dma_channel": 255,
+          "port_enable": 9,
+          "descriptors": 2
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ12": {
+          "tmu_port": 12,
+          "tmu_queue": 1,
+          "dma_controller": 3,
+          "dma_channel": 0,
+          "port_enable": 11,
+          "descriptors": 1024
+        },
+        "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ15": {
+          "tmu_port": 15,
+          "tmu_queue": 255,
+          "dma_controller": 255,
+          "dma_channel": 255,
+          "port_enable": 10,
+          "descriptors": 32
+        }
+      }
+    }
+  ],
+  "gpio": [
+    {
+      "path": "/ssx4@16000000/gpio@c00000",
+      "registers": [
+        {
+          "index": 0,
+          "name": null,
+          "bus_address": "0xc00000",
+          "size": "0x80",
+          "cpu_physical_address": "0x16c00000"
+        }
+      ],
+      "interrupts": {
+        "raw_cells": [
+          180
+        ],
+        "controller": "/ssx6@12000000/gic@320000",
+        "derived_modern_GIC_SHARED_indices": [
+          172
+        ]
+      }
+    },
+    {
+      "path": "/ssx4@16000000/gpio@c00100",
+      "registers": [
+        {
+          "index": 0,
+          "name": null,
+          "bus_address": "0xc00100",
+          "size": "0x80",
+          "cpu_physical_address": "0x16c00100"
+        }
+      ],
+      "interrupts": {
+        "raw_cells": [
+          181
+        ],
+        "controller": "/ssx6@12000000/gic@320000",
+        "derived_modern_GIC_SHARED_indices": [
+          173
+        ]
+      }
+    }
+  ],
+  "switches": [
+    {
+      "path": "/ssx1@1c000000/gswitch@000000",
+      "registers": [
+        {
+          "index": 0,
+          "name": null,
+          "bus_address": "0x0",
+          "size": "0x3000",
+          "cpu_physical_address": "0x1c000000"
+        }
+      ],
+      "interrupts": null
+    },
+    {
+      "path": "/ssx2@1a000000/gswitch@000000",
+      "registers": [
+        {
+          "index": 0,
+          "name": null,
+          "bus_address": "0x0",
+          "size": "0x3000",
+          "cpu_physical_address": "0x1a000000"
+        }
+      ],
+      "interrupts": null
+    }
+  ],
+  "supporting_files": {
+    "lib/switch/core_phy.sh": {
+      "file": "core_phy.sh",
+      "bytes": 10942,
+      "sha256": "dbc647bfe8c5c2184e00f827522a7a379aa98e19811701d0200a6f785f6f6267"
+    },
+    "etc/preinit.d/load_gphy_firmware_preinit.sh": {
+      "file": "load_gphy_firmware_preinit.sh",
+      "bytes": 2615,
+      "sha256": "7da2e9a418b940bf52f2ca2ee662f12042a97ef0fc3ec2202c9dbb92ab259a48"
+    },
+    "etc/init.d/switch": {
+      "file": "switch",
+      "bytes": 565,
+      "sha256": "1bcc448740667dad42c2437a29956d16b0b91bfa4ec150c61977d3f624c4acdf"
+    },
+    "etc/init.d/phyport": {
+      "file": "phyport",
+      "bytes": 465,
+      "sha256": "3b4691c9843320ec8cc42afaeb152955123391586cde81ec9d19b10221863750"
+    },
+    "product-sdk.config": {
+      "file": "sdk.config",
+      "bytes": 149725,
+      "sha256": "525f0876824170e5a571a6f4f69c8c87e3f845bebe415014b1d39089be6094f7"
+    }
+  },
+  "raw_nodes": {
+    "/": {
+      "#address-cells": {
+        "dtb_offset": "0x4c",
+        "hex": "00000001"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x5c",
+        "hex": "00000001"
+      },
+      "compatible": {
+        "dtb_offset": "0x6c",
+        "hex": "6c616e7469712c677278353030006c616e7469712c78727835303000"
+      },
+      "model": {
+        "dtb_offset": "0x94",
+        "hex": "4541535933353020414e5957414e20284752583335302920526f75746572206d6f64656c00"
+      }
+    },
+    "/aliases": {
+      "serial0": {
+        "dtb_offset": "0xd4",
+        "hex": "2f737378344031363030303030302f73657269616c4036303030303000"
+      },
+      "serial1": {
+        "dtb_offset": "0x100",
+        "hex": "2f737378344031363030303030302f73657269616c4037303030303000"
+      },
+      "dma0": {
+        "dtb_offset": "0x12c",
+        "hex": "2f737378344031363030303030302f646d614045303030303000"
+      },
+      "dma1": {
+        "dtb_offset": "0x154",
+        "hex": "2f737378324031613030303030302f646d614031303030303000"
+      },
+      "dma2": {
+        "dtb_offset": "0x17c",
+        "hex": "2f737378324031613030303030302f646d614032303030303000"
+      },
+      "dma3": {
+        "dtb_offset": "0x1a4",
+        "hex": "2f737378314031633030303030302f646d614031303030303000"
+      },
+      "dma4": {
+        "dtb_offset": "0x1cc",
+        "hex": "2f737378314031633030303030302f646d614032303030303000"
+      },
+      "dma5": {
+        "dtb_offset": "0x1f4",
+        "hex": "2f737378304031453030303030302f646d614033303030303000"
+      },
+      "dma6": {
+        "dtb_offset": "0x21c",
+        "hex": "2f737378304031453030303030302f646d614034303030303000"
+      },
+      "pcie0": {
+        "dtb_offset": "0x244",
+        "hex": "2f737378334031383030303030302f706369654039303030303000"
+      },
+      "pcie1": {
+        "dtb_offset": "0x26c",
+        "hex": "2f737378334031383030303030302f706369654034303030303000"
+      },
+      "pcie2": {
+        "dtb_offset": "0x294",
+        "hex": "2f737378334031383030303030302f706369654045303030303000"
+      },
+      "usb0": {
+        "dtb_offset": "0x2bc",
+        "hex": "2f737378324031613030303030302f7573624033303030303000"
+      },
+      "usb1": {
+        "dtb_offset": "0x2e4",
+        "hex": "2f737378324031613030303030302f7573624035303030303000"
+      },
+      "spi1": {
+        "dtb_offset": "0x30c",
+        "hex": "2f737378344031363030303030302f7370694039303030303000"
+      },
+      "xbar0": {
+        "dtb_offset": "0x334",
+        "hex": "2f737378304031453030303030302f78626172403146303030303000"
+      },
+      "xbar1": {
+        "dtb_offset": "0x35c",
+        "hex": "2f737378314031633030303030302f78626172403146303030303000"
+      },
+      "xbar2": {
+        "dtb_offset": "0x384",
+        "hex": "2f737378324031613030303030302f78626172403146303030303000"
+      },
+      "xbar6": {
+        "dtb_offset": "0x3ac",
+        "hex": "2f737378364031323030303030302f78626172403146303030303000"
+      },
+      "xbar7": {
+        "dtb_offset": "0x3d4",
+        "hex": "2f737378374061303030303030302f78626172403330303030303000"
+      },
+      "usb0_phy": {
+        "dtb_offset": "0x3fc",
+        "hex": "2f737378324031613030303030302f7068794034303030303000"
+      },
+      "usb1_phy": {
+        "dtb_offset": "0x424",
+        "hex": "2f737378324031613030303030302f7068794036303030303000"
+      }
+    },
+    "/chosen": {},
+    "/gphy-fw": {
+      "compatible": {
+        "dtb_offset": "0x54a0",
+        "hex": "6c616e7469712c787761792d7068792d667700"
+      },
+      "fw-mode": {
+        "dtb_offset": "0x54c0",
+        "hex": "3131472d465700"
+      },
+      "no_of_phys": {
+        "dtb_offset": "0x54d4",
+        "hex": "00000005"
+      }
+    },
+    "/memory@0": {
+      "device_type": {
+        "dtb_offset": "0x5348",
+        "hex": "6d656d6f727900"
+      },
+      "reg": {
+        "dtb_offset": "0x535c",
+        "hex": "200000001e000000"
+      }
+    },
+    "/phy-xrx500": {
+      "compatible": {
+        "dtb_offset": "0x53dc",
+        "hex": "6c616e7469712c7068792d78727835303000"
+      },
+      "firmware": {
+        "dtb_offset": "0x53fc",
+        "hex": "6c616e7469712f7068793131675f69705f42452e62696e00"
+      },
+      "phy_id": {
+        "dtb_offset": "0x5420",
+        "hex": "0001020304"
+      },
+      "resets": {
+        "dtb_offset": "0x5434",
+        "hex": "0000000b0000001d0000000b0000001c0000000b0000001a0000000b000000190000000b0000001f"
+      },
+      "reset-names": {
+        "dtb_offset": "0x5468",
+        "hex": "70687930007068793100706879320070687933007068793400"
+      }
+    },
+    "/ssx0@1E000000": {
+      "#address-cells": {
+        "dtb_offset": "0x574",
+        "hex": "00000001"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x584",
+        "hex": "00000001"
+      },
+      "compatible": {
+        "dtb_offset": "0x594",
+        "hex": "6c616e7469712c7373780073696d706c652d62757300"
+      },
+      "reg": {
+        "dtb_offset": "0x5b8",
+        "hex": "1e00000002000000"
+      },
+      "ranges": {
+        "dtb_offset": "0x5cc",
+        "hex": "000000001e00000002000000"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000": {
+      "status": {
+        "dtb_offset": "0x8bc",
+        "hex": "6f6b00"
+      },
+      "compatible": {
+        "dtb_offset": "0x8cc",
+        "hex": "6c616e7469712c63626d2d78727835303000"
+      },
+      "reg": {
+        "dtb_offset": "0x8ec",
+        "hex": "00700000000010000071000000010000007200000000400000730000000140000075000000000400007508000000040000760000000100000078000000020000007c000000030000008000000010000000900000001000000050000000100000"
+      },
+      "interrupt-parent": {
+        "dtb_offset": "0x958",
+        "hex": "00000001"
+      },
+      "interrupts": {
+        "dtb_offset": "0x968",
+        "hex": "000000b6000000ba000000bb000000bc000000bd"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports": {},
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ1": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0x9a4",
+        "hex": "0000000100000022000000ff000000ff0000000500000001"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ10": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xac8",
+        "hex": "0000000a0000001400000002000000050000000100000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ11": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xafc",
+        "hex": "0000000b0000001500000002000000060000000100000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ12": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xb30",
+        "hex": "0000000c0000001600000002000000090000000100000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ13": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xb64",
+        "hex": "0000000d00000017000000020000000a0000000100000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ14": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xb98",
+        "hex": "0000000e00000018000000020000000b0000000100000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ15": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xbcc",
+        "hex": "0000000f00000019000000020000000c0000000100000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ16": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xc00",
+        "hex": "000000100000001a000000020000000d0000000100000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ17": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xc34",
+        "hex": "000000110000001b000000020000000e0000000100000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ18": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xd38",
+        "hex": "0000001200000000000000010000000d0000000100000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ19": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xc68",
+        "hex": "000000130000001c000000010000000f0000000100000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ2": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xe68",
+        "hex": "0000000200000023000000ff000000ff0000000200000001"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ20": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xc9c",
+        "hex": "000000140000001d00000001000000050000000100000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ21": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xcd0",
+        "hex": "000000150000001e00000001000000060000000100000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ22": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xd04",
+        "hex": "0000001600000029000000010000000b0000000100000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ23": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xd6c",
+        "hex": "000000170000001f000000ff000000ff0000000100000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ24": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xda0",
+        "hex": "0000001800000026000000ff000000ff0000000100000020"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ25": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xdd4",
+        "hex": "0000001900000027000000ff000000ff0000000100000020"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ26": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xe08",
+        "hex": "0000001a00000028000000ff000000ff0000000100000020"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ3": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0x9d4",
+        "hex": "0000000300000024000000ff000000ff0000000400000001"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ4": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xe38",
+        "hex": "0000000400000020000000ff000000ff0000000100000020"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ5": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xe98",
+        "hex": "0000000500000025000000ff000000ff0000000100000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ6": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xa04",
+        "hex": "000000060000001000000002000000010000000100000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ7": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xa34",
+        "hex": "000000070000001100000002000000020000000100000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ8": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xa64",
+        "hex": "000000080000001200000002000000030000000100000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_dqm_ports/DQ9": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xa94",
+        "hex": "000000090000001300000002000000040000000100000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_eqm_ports": {},
+    "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ1": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xee0",
+        "hex": "00000000000000ff000000ff000000ff0000000200000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ12": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0x1164",
+        "hex": "0000000c0000000100000003000000000000000b00000400"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ15": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0x1198",
+        "hex": "0000000f000000ff000000ff000000ff0000000a00000020"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ2": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xf10",
+        "hex": "00000001000000ff000000ff000000ff0000000300000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ3": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xf40",
+        "hex": "00000002000000ff000000ff000000ff0000000400000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ4": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xf70",
+        "hex": "00000003000000ff000000ff000000ff0000000500000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ5": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xfa0",
+        "hex": "00000005000000020000000e000000000000000700000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ5_1": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0xfd4",
+        "hex": "00000005000000020000001e000000010000000700000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ6": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0x1004",
+        "hex": "00000006000000020000000f000000000000000700000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ6_1": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0x1038",
+        "hex": "00000006000000020000001f000000010000000700000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ7": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0x1068",
+        "hex": "000000070000000100000000000000000000000800000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ7_1": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0x109c",
+        "hex": "000000070000000100000010000000010000000800000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ8": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0x10cc",
+        "hex": "00000008000000010000000f000000000000000800000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ8_1": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0x1100",
+        "hex": "00000008000000010000001f000000010000000800000002"
+      }
+    },
+    "/ssx0@1E000000/cbm@700000/ltq_eqm_ports/EQ9": {
+      "lantiq,cbm-config": {
+        "dtb_offset": "0x1130",
+        "hex": "00000009000000ff000000ff000000ff0000000900000002"
+      }
+    },
+    "/ssx0@1E000000/eth@a00000": {
+      "#address-cells": {
+        "dtb_offset": "0x12a0",
+        "hex": "00000001"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x12b0",
+        "hex": "00000000"
+      },
+      "compatible": {
+        "dtb_offset": "0x12c0",
+        "hex": "6c616e7469712c7872783530302d6e657400"
+      },
+      "interrupt-parent": {
+        "dtb_offset": "0x12e0",
+        "hex": "00000001"
+      },
+      "interrupts": {
+        "dtb_offset": "0x12f0",
+        "hex": "0000003800000035"
+      },
+      "lantiq,eth-rx-csum-offload": {
+        "dtb_offset": "0x1304",
+        "hex": "00000001"
+      },
+      "status": {
+        "dtb_offset": "0x1314",
+        "hex": "6f6b00"
+      }
+    },
+    "/ssx0@1E000000/eth@a00000/interface@0": {
+      "compatible": {
+        "dtb_offset": "0x1334",
+        "hex": "6c616e7469712c7872783530302d70646900"
+      },
+      "#address-cells": {
+        "dtb_offset": "0x1354",
+        "hex": "00000001"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x1364",
+        "hex": "00000000"
+      },
+      "reg": {
+        "dtb_offset": "0x1374",
+        "hex": "00000001"
+      }
+    },
+    "/ssx0@1E000000/eth@a00000/interface@0/ethernet@0": {
+      "compatible": {
+        "dtb_offset": "0x1394",
+        "hex": "6c616e7469712c7872783530302d7064692d706f727400"
+      },
+      "reg": {
+        "dtb_offset": "0x13b8",
+        "hex": "00000001"
+      },
+      "phy-mode": {
+        "dtb_offset": "0x13c8",
+        "hex": "72676d696900"
+      }
+    },
+    "/ssx0@1E000000/eth@a00000/interface@1": {
+      "compatible": {
+        "dtb_offset": "0x13f4",
+        "hex": "6c616e7469712c7872783530302d70646900"
+      },
+      "#address-cells": {
+        "dtb_offset": "0x1414",
+        "hex": "00000001"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x1424",
+        "hex": "00000000"
+      },
+      "reg": {
+        "dtb_offset": "0x1434",
+        "hex": "00000001"
+      }
+    },
+    "/ssx0@1E000000/eth@a00000/interface@1/ethernet@1": {
+      "compatible": {
+        "dtb_offset": "0x1454",
+        "hex": "6c616e7469712c7872783530302d7064692d706f727400"
+      },
+      "reg": {
+        "dtb_offset": "0x1478",
+        "hex": "00000002"
+      },
+      "interrupt-parent": {
+        "dtb_offset": "0x1488",
+        "hex": "00000001"
+      },
+      "interrupts": {
+        "dtb_offset": "0x1498",
+        "hex": "00000078"
+      },
+      "phy-mode": {
+        "dtb_offset": "0x14a8",
+        "hex": "72676d696900"
+      },
+      "phy-handle": {
+        "dtb_offset": "0x14bc",
+        "hex": "00000003"
+      }
+    },
+    "/ssx0@1E000000/eth@a00000/interface@2": {
+      "compatible": {
+        "dtb_offset": "0x14e4",
+        "hex": "6c616e7469712c7872783530302d70646900"
+      },
+      "#address-cells": {
+        "dtb_offset": "0x1504",
+        "hex": "00000001"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x1514",
+        "hex": "00000000"
+      },
+      "reg": {
+        "dtb_offset": "0x1524",
+        "hex": "00000002"
+      }
+    },
+    "/ssx0@1E000000/eth@a00000/interface@2/ethernet@2": {
+      "compatible": {
+        "dtb_offset": "0x1544",
+        "hex": "6c616e7469712c7872783530302d7064692d706f727400"
+      },
+      "reg": {
+        "dtb_offset": "0x1568",
+        "hex": "00000003"
+      },
+      "interrupt-parent": {
+        "dtb_offset": "0x1578",
+        "hex": "00000001"
+      },
+      "interrupts": {
+        "dtb_offset": "0x1588",
+        "hex": "00000079"
+      },
+      "phy-mode": {
+        "dtb_offset": "0x1598",
+        "hex": "72676d696900"
+      },
+      "phy-handle": {
+        "dtb_offset": "0x15ac",
+        "hex": "00000004"
+      }
+    },
+    "/ssx0@1E000000/eth@a00000/interface@3": {
+      "compatible": {
+        "dtb_offset": "0x15d4",
+        "hex": "6c616e7469712c7872783530302d70646900"
+      },
+      "#address-cells": {
+        "dtb_offset": "0x15f4",
+        "hex": "00000001"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x1604",
+        "hex": "00000000"
+      },
+      "reg": {
+        "dtb_offset": "0x1614",
+        "hex": "00000003"
+      }
+    },
+    "/ssx0@1E000000/eth@a00000/interface@3/ethernet@3": {
+      "compatible": {
+        "dtb_offset": "0x1634",
+        "hex": "6c616e7469712c7872783530302d7064692d706f727400"
+      },
+      "reg": {
+        "dtb_offset": "0x1658",
+        "hex": "00000004"
+      },
+      "interrupt-parent": {
+        "dtb_offset": "0x1668",
+        "hex": "00000001"
+      },
+      "interrupts": {
+        "dtb_offset": "0x1678",
+        "hex": "00000086"
+      },
+      "phy-mode": {
+        "dtb_offset": "0x1688",
+        "hex": "72676d696900"
+      },
+      "phy-handle": {
+        "dtb_offset": "0x169c",
+        "hex": "00000005"
+      }
+    },
+    "/ssx0@1E000000/eth@a00000/interface@4": {
+      "compatible": {
+        "dtb_offset": "0x16c4",
+        "hex": "6c616e7469712c7872783530302d70646900"
+      },
+      "#address-cells": {
+        "dtb_offset": "0x16e4",
+        "hex": "00000001"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x16f4",
+        "hex": "00000000"
+      },
+      "reg": {
+        "dtb_offset": "0x1704",
+        "hex": "00000004"
+      }
+    },
+    "/ssx0@1E000000/eth@a00000/interface@4/ethernet@4": {
+      "compatible": {
+        "dtb_offset": "0x1724",
+        "hex": "6c616e7469712c7872783530302d7064692d706f727400"
+      },
+      "reg": {
+        "dtb_offset": "0x1748",
+        "hex": "00000005"
+      },
+      "interrupt-parent": {
+        "dtb_offset": "0x1758",
+        "hex": "00000001"
+      },
+      "interrupts": {
+        "dtb_offset": "0x1768",
+        "hex": "00000087"
+      },
+      "phy-mode": {
+        "dtb_offset": "0x1778",
+        "hex": "72676d696900"
+      },
+      "phy-handle": {
+        "dtb_offset": "0x178c",
+        "hex": "00000006"
+      }
+    },
+    "/ssx0@1E000000/eth@a00000/interface@5": {
+      "compatible": {
+        "dtb_offset": "0x17b4",
+        "hex": "6c616e7469712c7872783530302d70646900"
+      },
+      "#address-cells": {
+        "dtb_offset": "0x17d4",
+        "hex": "00000001"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x17e4",
+        "hex": "00000000"
+      },
+      "reg": {
+        "dtb_offset": "0x17f4",
+        "hex": "00000005"
+      }
+    },
+    "/ssx0@1E000000/eth@a00000/interface@5/ethernet@5": {
+      "compatible": {
+        "dtb_offset": "0x1814",
+        "hex": "6c616e7469712c7872783530302d7064692d706f727400"
+      },
+      "reg": {
+        "dtb_offset": "0x1838",
+        "hex": "00000007"
+      }
+    },
+    "/ssx0@1E000000/eth@a00000/interface@6": {
+      "compatible": {
+        "dtb_offset": "0x1860",
+        "hex": "6c616e7469712c7872783530302d70646900"
+      },
+      "#address-cells": {
+        "dtb_offset": "0x1880",
+        "hex": "00000001"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x1890",
+        "hex": "00000000"
+      },
+      "reg": {
+        "dtb_offset": "0x18a0",
+        "hex": "00000006"
+      },
+      "lantiq,wan": {
+        "dtb_offset": "0x18b0",
+        "hex": ""
+      }
+    },
+    "/ssx0@1E000000/eth@a00000/interface@6/ethernet@6": {
+      "compatible": {
+        "dtb_offset": "0x18cc",
+        "hex": "6c616e7469712c7872783530302d7064692d706f727400"
+      },
+      "reg": {
+        "dtb_offset": "0x18f0",
+        "hex": "00000001"
+      },
+      "interrupt-parent": {
+        "dtb_offset": "0x1900",
+        "hex": "00000001"
+      },
+      "interrupts": {
+        "dtb_offset": "0x1910",
+        "hex": "00000077"
+      },
+      "phy-mode": {
+        "dtb_offset": "0x1920",
+        "hex": "72676d696900"
+      },
+      "phy-handle": {
+        "dtb_offset": "0x1934",
+        "hex": "00000007"
+      }
+    },
+    "/ssx0@1E000000/mdio@0": {
+      "#address-cells": {
+        "dtb_offset": "0x195c",
+        "hex": "00000001"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x196c",
+        "hex": "00000000"
+      },
+      "compatible": {
+        "dtb_offset": "0x197c",
+        "hex": "6c616e7469712c7872783530302d6d64696f00"
+      }
+    },
+    "/ssx0@1E000000/mdio@0/ethernet-phy@2": {
+      "reg": {
+        "dtb_offset": "0x19b0",
+        "hex": "00000002"
+      },
+      "compatible": {
+        "dtb_offset": "0x19c0",
+        "hex": "6c616e7469712c7068793131670065746865726e65742d7068792d696565653830322e332d63323200"
+      },
+      "linux,phandle": {
+        "dtb_offset": "0x19f8",
+        "hex": "00000003"
+      },
+      "phandle": {
+        "dtb_offset": "0x1a08",
+        "hex": "00000003"
+      }
+    },
+    "/ssx0@1E000000/mdio@0/ethernet-phy@3": {
+      "reg": {
+        "dtb_offset": "0x1a30",
+        "hex": "00000003"
+      },
+      "compatible": {
+        "dtb_offset": "0x1a40",
+        "hex": "6c616e7469712c7068793131670065746865726e65742d7068792d696565653830322e332d63323200"
+      },
+      "linux,phandle": {
+        "dtb_offset": "0x1a78",
+        "hex": "00000004"
+      },
+      "phandle": {
+        "dtb_offset": "0x1a88",
+        "hex": "00000004"
+      }
+    },
+    "/ssx0@1E000000/mdio@0/ethernet-phy@4": {
+      "reg": {
+        "dtb_offset": "0x1ab0",
+        "hex": "00000004"
+      },
+      "compatible": {
+        "dtb_offset": "0x1ac0",
+        "hex": "6c616e7469712c7068793131670065746865726e65742d7068792d696565653830322e332d63323200"
+      },
+      "linux,phandle": {
+        "dtb_offset": "0x1af8",
+        "hex": "00000005"
+      },
+      "phandle": {
+        "dtb_offset": "0x1b08",
+        "hex": "00000005"
+      }
+    },
+    "/ssx0@1E000000/mdio@0/ethernet-phy@5": {
+      "reg": {
+        "dtb_offset": "0x1b30",
+        "hex": "00000005"
+      },
+      "compatible": {
+        "dtb_offset": "0x1b40",
+        "hex": "6c616e7469712c7068793131670065746865726e65742d7068792d696565653830322e332d63323200"
+      },
+      "linux,phandle": {
+        "dtb_offset": "0x1b78",
+        "hex": "00000006"
+      },
+      "phandle": {
+        "dtb_offset": "0x1b88",
+        "hex": "00000006"
+      }
+    },
+    "/ssx0@1E000000/mdio@1": {
+      "#address-cells": {
+        "dtb_offset": "0x1bac",
+        "hex": "00000001"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x1bbc",
+        "hex": "00000000"
+      },
+      "compatible": {
+        "dtb_offset": "0x1bcc",
+        "hex": "6c616e7469712c7872783530302d6d64696f2d70616500"
+      }
+    },
+    "/ssx0@1E000000/mdio@1/ethernet-phy@1": {
+      "reg": {
+        "dtb_offset": "0x1c04",
+        "hex": "00000001"
+      },
+      "compatible": {
+        "dtb_offset": "0x1c14",
+        "hex": "6c616e7469712c7068793131670065746865726e65742d7068792d696565653830322e332d63323200"
+      },
+      "linux,phandle": {
+        "dtb_offset": "0x1c4c",
+        "hex": "00000007"
+      },
+      "phandle": {
+        "dtb_offset": "0x1c5c",
+        "hex": "00000007"
+      }
+    },
+    "/ssx1@1c000000": {
+      "#address-cells": {
+        "dtb_offset": "0x1cdc",
+        "hex": "00000001"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x1cec",
+        "hex": "00000001"
+      },
+      "compatible": {
+        "dtb_offset": "0x1cfc",
+        "hex": "6c616e7469712c7373780073696d706c652d62757300"
+      },
+      "reg": {
+        "dtb_offset": "0x1d20",
+        "hex": "1c00000002000000"
+      },
+      "ranges": {
+        "dtb_offset": "0x1d34",
+        "hex": "000000001c00000002000000"
+      }
+    },
+    "/ssx1@1c000000/gswitch@000000": {
+      "compatible": {
+        "dtb_offset": "0x1d60",
+        "hex": "6c616e7469712c7872783530302d677377617069006c616e7469712c787761792d67737761706900"
+      },
+      "reg": {
+        "dtb_offset": "0x1d94",
+        "hex": "0000000000003000"
+      },
+      "lantiq,gsw-devid": {
+        "dtb_offset": "0x1da8",
+        "hex": "00000000"
+      }
+    },
+    "/ssx2@1a000000": {
+      "#address-cells": {
+        "dtb_offset": "0x2014",
+        "hex": "00000001"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x2024",
+        "hex": "00000001"
+      },
+      "compatible": {
+        "dtb_offset": "0x2034",
+        "hex": "6c616e7469712c7373780073696d706c652d62757300"
+      },
+      "reg": {
+        "dtb_offset": "0x2058",
+        "hex": "1a00000002000000"
+      },
+      "ranges": {
+        "dtb_offset": "0x206c",
+        "hex": "000000001a00000002000000"
+      }
+    },
+    "/ssx2@1a000000/gswitch@000000": {
+      "compatible": {
+        "dtb_offset": "0x2098",
+        "hex": "6c616e7469712c7872783530302d677377617069006c616e7469712c787761792d67737761706900"
+      },
+      "reg": {
+        "dtb_offset": "0x20cc",
+        "hex": "0000000000003000"
+      },
+      "lantiq,gsw-devid": {
+        "dtb_offset": "0x20e0",
+        "hex": "00000001"
+      }
+    },
+    "/ssx3@18000000": {
+      "#address-cells": {
+        "dtb_offset": "0x2654",
+        "hex": "00000001"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x2664",
+        "hex": "00000001"
+      },
+      "compatible": {
+        "dtb_offset": "0x2674",
+        "hex": "6c616e7469712c7373780073696d706c652d62757300"
+      },
+      "reg": {
+        "dtb_offset": "0x2698",
+        "hex": "18000000a8000000"
+      },
+      "ranges": {
+        "dtb_offset": "0x26ac",
+        "hex": "0000000018000000a8000000"
+      }
+    },
+    "/ssx3@18000000/pcie@400000": {
+      "status": {
+        "dtb_offset": "0x29b0",
+        "hex": "6f6b00"
+      },
+      "compatible": {
+        "dtb_offset": "0x29c0",
+        "hex": "6c616e7469712c706369652d78727835303000"
+      },
+      "device_type": {
+        "dtb_offset": "0x29e0",
+        "hex": "70636900"
+      },
+      "#address-cells": {
+        "dtb_offset": "0x29f0",
+        "hex": "00000003"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x2a00",
+        "hex": "00000002"
+      },
+      "reg": {
+        "dtb_offset": "0x2a10",
+        "hex": "00400000001000009f000000008000000030000000100000000000000010000000100000001000000020000000100000"
+      },
+      "reg-names": {
+        "dtb_offset": "0x2a4c",
+        "hex": "637372006366670061707000706879006d73690070696300"
+      },
+      "interrupt-parent": {
+        "dtb_offset": "0x2a70",
+        "hex": "00000001"
+      },
+      "interrupts": {
+        "dtb_offset": "0x2a80",
+        "hex": "0000002d0000002e0000002f000000300000003100000032000000330000003400000039"
+      },
+      "interrupt-names": {
+        "dtb_offset": "0x2ab0",
+        "hex": "6d736930006d736931006d736932006d736933006d736934006d736935006d736936006d73693700697200"
+      },
+      "#interrupt-cells": {
+        "dtb_offset": "0x2ae8",
+        "hex": "00000001"
+      },
+      "interrupt-map-mask": {
+        "dtb_offset": "0x2af8",
+        "hex": "00000000000000000000000000000007"
+      },
+      "interrupt-map": {
+        "dtb_offset": "0x2b14",
+        "hex": "000000000000000000000000000000010000000100000011000000000000000000000000000000020000000100000012000000000000000000000000000000030000000100000013000000000000000000000000000000040000000100000014"
+      },
+      "ranges": {
+        "dtb_offset": "0x2b80",
+        "hex": "02000000000000009c0000009c000000000000000300000001000000000000009f8000009f8000000000000000100000"
+      },
+      "resets": {
+        "dtb_offset": "0x2bbc",
+        "hex": "0000000b0000000d"
+      },
+      "reset-names": {
+        "dtb_offset": "0x2bd0",
+        "hex": "70687900"
+      },
+      "lantiq,inbound-shift": {
+        "dtb_offset": "0x2be0",
+        "hex": "00000009"
+      },
+      "lantiq,outbound-shift": {
+        "dtb_offset": "0x2bf0",
+        "hex": "00000008"
+      },
+      "lantiq,clkout": {
+        "dtb_offset": "0x2c00",
+        "hex": "00000017"
+      },
+      "lantiq,rst-high-active": {
+        "dtb_offset": "0x2c10",
+        "hex": "00000000"
+      },
+      "lantiq,rst-interval": {
+        "dtb_offset": "0x2c20",
+        "hex": "000000c8"
+      },
+      "lantiq,inbound-swap": {
+        "dtb_offset": "0x2c30",
+        "hex": "00000001"
+      },
+      "lantiq,outbound-swap": {
+        "dtb_offset": "0x2c40",
+        "hex": "00000000"
+      },
+      "lantiq,phy-mode": {
+        "dtb_offset": "0x2c50",
+        "hex": "00000005"
+      },
+      "reset-gpio": {
+        "dtb_offset": "0x2c60",
+        "hex": "0000000c0000001d00000000"
+      }
+    },
+    "/ssx3@18000000/pcie@900000": {
+      "status": {
+        "dtb_offset": "0x26d4",
+        "hex": "6f6b00"
+      },
+      "compatible": {
+        "dtb_offset": "0x26e4",
+        "hex": "6c616e7469712c706369652d78727835303000"
+      },
+      "device_type": {
+        "dtb_offset": "0x2704",
+        "hex": "70636900"
+      },
+      "#address-cells": {
+        "dtb_offset": "0x2714",
+        "hex": "00000003"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x2724",
+        "hex": "00000002"
+      },
+      "reg": {
+        "dtb_offset": "0x2734",
+        "hex": "0090000000100000a3000000008000000080000000100000005000000010000000600000001000000070000000100000"
+      },
+      "reg-names": {
+        "dtb_offset": "0x2770",
+        "hex": "637372006366670061707000706879006d73690070696300"
+      },
+      "interrupt-parent": {
+        "dtb_offset": "0x2794",
+        "hex": "00000001"
+      },
+      "interrupts": {
+        "dtb_offset": "0x27a4",
+        "hex": "00000088000000890000008a0000008b0000008c0000008d0000008e0000008f000000a0"
+      },
+      "interrupt-names": {
+        "dtb_offset": "0x27d4",
+        "hex": "6d736930006d736931006d736932006d736933006d736934006d736935006d736936006d73693700697200"
+      },
+      "#interrupt-cells": {
+        "dtb_offset": "0x280c",
+        "hex": "00000001"
+      },
+      "interrupt-map-mask": {
+        "dtb_offset": "0x281c",
+        "hex": "00000000000000000000000000000007"
+      },
+      "interrupt-map": {
+        "dtb_offset": "0x2838",
+        "hex": "000000000000000000000000000000010000000100000090000000000000000000000000000000020000000100000091000000000000000000000000000000030000000100000092000000000000000000000000000000040000000100000093"
+      },
+      "ranges": {
+        "dtb_offset": "0x28a4",
+        "hex": "0200000000000000a0000000a000000000000000030000000100000000000000a3800000a38000000000000000100000"
+      },
+      "resets": {
+        "dtb_offset": "0x28e0",
+        "hex": "0000000b0000000c"
+      },
+      "reset-names": {
+        "dtb_offset": "0x28f4",
+        "hex": "70687900"
+      },
+      "lantiq,inbound-shift": {
+        "dtb_offset": "0x2904",
+        "hex": "00000005"
+      },
+      "lantiq,outbound-shift": {
+        "dtb_offset": "0x2914",
+        "hex": "00000004"
+      },
+      "lantiq,clkout": {
+        "dtb_offset": "0x2924",
+        "hex": "00000016"
+      },
+      "lantiq,rst-high-active": {
+        "dtb_offset": "0x2934",
+        "hex": "00000000"
+      },
+      "lantiq,rst-interval": {
+        "dtb_offset": "0x2944",
+        "hex": "000000c8"
+      },
+      "lantiq,inbound-swap": {
+        "dtb_offset": "0x2954",
+        "hex": "00000001"
+      },
+      "lantiq,outbound-swap": {
+        "dtb_offset": "0x2964",
+        "hex": "00000000"
+      },
+      "lantiq,phy-mode": {
+        "dtb_offset": "0x2974",
+        "hex": "00000005"
+      },
+      "reset-gpio": {
+        "dtb_offset": "0x2984",
+        "hex": "0000000c0000000b00000000"
+      }
+    },
+    "/ssx3@18000000/pcie@E00000": {
+      "status": {
+        "dtb_offset": "0x2c8c",
+        "hex": "6f6b00"
+      },
+      "compatible": {
+        "dtb_offset": "0x2c9c",
+        "hex": "6c616e7469712c706369652d78727835303000"
+      },
+      "#address-cells": {
+        "dtb_offset": "0x2cbc",
+        "hex": "00000003"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x2ccc",
+        "hex": "00000002"
+      },
+      "device_type": {
+        "dtb_offset": "0x2cdc",
+        "hex": "70636900"
+      },
+      "reg": {
+        "dtb_offset": "0x2cec",
+        "hex": "00e0000000100000a70000000080000000d000000010000000a000000010000000b000000010000000c0000000100000"
+      },
+      "reg-names": {
+        "dtb_offset": "0x2d28",
+        "hex": "637372006366670061707000706879006d73690070696300"
+      },
+      "interrupt-parent": {
+        "dtb_offset": "0x2d4c",
+        "hex": "00000001"
+      },
+      "interrupts": {
+        "dtb_offset": "0x2d5c",
+        "hex": "00000020000000210000002200000023000000240000002500000026000000270000003f"
+      },
+      "interrupt-names": {
+        "dtb_offset": "0x2d8c",
+        "hex": "6d736930006d736931006d736932006d736933006d736934006d736935006d736936006d73693700697200"
+      },
+      "#interrupt-cells": {
+        "dtb_offset": "0x2dc4",
+        "hex": "00000001"
+      },
+      "interrupt-map-mask": {
+        "dtb_offset": "0x2dd4",
+        "hex": "00000000000000000000000000000007"
+      },
+      "interrupt-map": {
+        "dtb_offset": "0x2df0",
+        "hex": "0000000000000000000000000000000100000001000000a30000000000000000000000000000000200000001000000a40000000000000000000000000000000300000001000000a50000000000000000000000000000000400000001000000a6"
+      },
+      "ranges": {
+        "dtb_offset": "0x2e5c",
+        "hex": "0200000000000000a4000000a400000000000000030000000100000000000000a7800000a78000000000000000100000"
+      },
+      "resets": {
+        "dtb_offset": "0x2e98",
+        "hex": "0000000b0000000a"
+      },
+      "reset-names": {
+        "dtb_offset": "0x2eac",
+        "hex": "70687900"
+      },
+      "lantiq,inbound-shift": {
+        "dtb_offset": "0x2ebc",
+        "hex": "0000000d"
+      },
+      "lantiq,outbound-shift": {
+        "dtb_offset": "0x2ecc",
+        "hex": "0000000c"
+      },
+      "lantiq,clkout": {
+        "dtb_offset": "0x2edc",
+        "hex": "00000018"
+      },
+      "lantiq,rst-high-active": {
+        "dtb_offset": "0x2eec",
+        "hex": "00000001"
+      },
+      "lantiq,rst-interval": {
+        "dtb_offset": "0x2efc",
+        "hex": "000000c8"
+      },
+      "lantiq,inbound-swap": {
+        "dtb_offset": "0x2f0c",
+        "hex": "00000001"
+      },
+      "lantiq,outbound-swap": {
+        "dtb_offset": "0x2f1c",
+        "hex": "00000000"
+      },
+      "lantiq,phy-mode": {
+        "dtb_offset": "0x2f2c",
+        "hex": "00000005"
+      },
+      "reset-gpio": {
+        "dtb_offset": "0x2f3c",
+        "hex": "000000090000000e00000000"
+      }
+    },
+    "/ssx4@16000000": {
+      "#address-cells": {
+        "dtb_offset": "0x2f70",
+        "hex": "00000001"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x2f80",
+        "hex": "00000001"
+      },
+      "compatible": {
+        "dtb_offset": "0x2f90",
+        "hex": "6c616e7469712c7373780073696d706c652d62757300"
+      },
+      "reg": {
+        "dtb_offset": "0x2fb4",
+        "hex": "1600000002000000"
+      },
+      "ranges": {
+        "dtb_offset": "0x2fc8",
+        "hex": "000000001600000002000000"
+      }
+    },
+    "/ssx4@16000000/gpio@c00000": {
+      "compatible": {
+        "dtb_offset": "0x4450",
+        "hex": "6c616e7469712c6770696f2d78727835303000"
+      },
+      "gpio-controller": {
+        "dtb_offset": "0x4470",
+        "hex": ""
+      },
+      "#gpio-cells": {
+        "dtb_offset": "0x447c",
+        "hex": "00000002"
+      },
+      "reg": {
+        "dtb_offset": "0x448c",
+        "hex": "00c0000000000080"
+      },
+      "interrupt-controller": {
+        "dtb_offset": "0x44a0",
+        "hex": ""
+      },
+      "#interrupt-cells": {
+        "dtb_offset": "0x44ac",
+        "hex": "00000002"
+      },
+      "interrupt-parent": {
+        "dtb_offset": "0x44bc",
+        "hex": "00000001"
+      },
+      "interrupts": {
+        "dtb_offset": "0x44cc",
+        "hex": "000000b4"
+      },
+      "lantiq,bank": {
+        "dtb_offset": "0x44dc",
+        "hex": "00000000"
+      },
+      "linux,phandle": {
+        "dtb_offset": "0x44ec",
+        "hex": "00000009"
+      },
+      "phandle": {
+        "dtb_offset": "0x44fc",
+        "hex": "00000009"
+      }
+    },
+    "/ssx4@16000000/gpio@c00100": {
+      "compatible": {
+        "dtb_offset": "0x45e0",
+        "hex": "6c616e7469712c6770696f2d78727835303000"
+      },
+      "gpio-controller": {
+        "dtb_offset": "0x4600",
+        "hex": ""
+      },
+      "#gpio-cells": {
+        "dtb_offset": "0x460c",
+        "hex": "00000002"
+      },
+      "reg": {
+        "dtb_offset": "0x461c",
+        "hex": "00c0010000000080"
+      },
+      "interrupt-controller": {
+        "dtb_offset": "0x4630",
+        "hex": ""
+      },
+      "#interrupt-cells": {
+        "dtb_offset": "0x463c",
+        "hex": "00000002"
+      },
+      "interrupt-parent": {
+        "dtb_offset": "0x464c",
+        "hex": "00000001"
+      },
+      "interrupts": {
+        "dtb_offset": "0x465c",
+        "hex": "000000b5"
+      },
+      "lantiq,bank": {
+        "dtb_offset": "0x466c",
+        "hex": "00000001"
+      },
+      "linux,phandle": {
+        "dtb_offset": "0x467c",
+        "hex": "0000000c"
+      },
+      "phandle": {
+        "dtb_offset": "0x468c",
+        "hex": "0000000c"
+      }
+    },
+    "/ssx4@16000000/reset-controller@0000000": {
+      "compatible": {
+        "dtb_offset": "0x3300",
+        "hex": "6c616e7469712c7263752d677278353030006c616e7469712c7263752d78727835303000"
+      },
+      "reg": {
+        "dtb_offset": "0x3330",
+        "hex": "0000000000080000"
+      },
+      "#reset-cells": {
+        "dtb_offset": "0x3344",
+        "hex": "00000001"
+      },
+      "linux,phandle": {
+        "dtb_offset": "0x3354",
+        "hex": "0000000b"
+      },
+      "phandle": {
+        "dtb_offset": "0x3364",
+        "hex": "0000000b"
+      }
+    },
+    "/ssx6@12000000": {
+      "#address-cells": {
+        "dtb_offset": "0x4720",
+        "hex": "00000001"
+      },
+      "#size-cells": {
+        "dtb_offset": "0x4730",
+        "hex": "00000001"
+      },
+      "compatible": {
+        "dtb_offset": "0x4740",
+        "hex": "6c616e7469712c7373780073696d706c652d62757300"
+      },
+      "reg": {
+        "dtb_offset": "0x4764",
+        "hex": "1200000002000000"
+      },
+      "ranges": {
+        "dtb_offset": "0x4778",
+        "hex": "000000001200000002000000"
+      }
+    },
+    "/ssx6@12000000/gic@320000": {
+      "#interrupt-cells": {
+        "dtb_offset": "0x4830",
+        "hex": "00000001"
+      },
+      "interrupt-controller": {
+        "dtb_offset": "0x4840",
+        "hex": ""
+      },
+      "compatible": {
+        "dtb_offset": "0x484c",
+        "hex": "6c616e7469712c6769632d67727835303000"
+      },
+      "reg": {
+        "dtb_offset": "0x486c",
+        "hex": "0032000000020000"
+      },
+      "linux,phandle": {
+        "dtb_offset": "0x4880",
+        "hex": "00000001"
+      },
+      "phandle": {
+        "dtb_offset": "0x4890",
+        "hex": "00000001"
+      }
+    }
+  },
+  "memory": [
+    {
+      "index": 0,
+      "name": null,
+      "bus_address": "0x20000000",
+      "size": "0x1e000000",
+      "cpu_physical_address": "0x20000000"
+    }
+  ],
+  "stock_script_ports": {
+    "lan_interfaces_in_label_order": [
+      "eth0_4",
+      "eth0_3",
+      "eth0_2",
+      "eth0_1"
+    ],
+    "lan_switch_ports_in_label_order": [
+      5,
+      4,
+      3,
+      2
+    ],
+    "wan_interface": [
+      "eth1"
+    ],
+    "wan_switch_ports": [
+      15
+    ]
+  },
+  "product_memory_config": [
+    {
+      "line": 1232,
+      "text": "CONFIG_UBOOT_CONFIG_DDR_256M=y"
+    },
+    {
+      "line": 1334,
+      "text": "CONFIG_UBOOT_CONFIG_MEM=\"224M\""
+    },
+    {
+      "line": 1335,
+      "text": "CONFIG_UBOOT_CONFIG_PHYM=\"224M\""
+    },
+    {
+      "line": 1345,
+      "text": "CONFIG_UBOOT_CONFIG_ADDMISC=\"setenv bootargs $(bootargs) console=$(console),$(baudrate) ethaddr=$(ethaddr) panic=1 $(mtdparts) init=/etc/preinit active_bank=$(active_bank) update_chk=$(update_chk) maxcpus=4 pci=pcie_bus_perf ethwan=$(ethwan) ubootver=$(ver) mem=256M@512M Production=$(Production)\""
+    }
+  ],
+  "openwrt_comparison": {
+    "dtb": {
+      "file": "image-grx350-tplink-archer-ax3000-v1.dtb",
+      "bytes": 1689,
+      "sha256": "f8a950be8ed09f4b72dfe2863cb55ec2fd4e43030daf27dc46c953d625b8ea44"
+    },
+    "compatible_nodes": {
+      "cbm": [],
+      "ethernet": [],
+      "pcie": [],
+      "gpio": [],
+      "gphy_loader": []
+    },
+    "memory": {
+      "/memory@20000000": [
+        {
+          "index": 0,
+          "name": null,
+          "bus_address": "0x20000000",
+          "size": "0xe000000",
+          "cpu_physical_address": "0x20000000"
+        }
+      ]
+    },
+    "scope": "Exact compatible-name inventory, not exhaustive driver binding or functionality validation."
+  }
+}

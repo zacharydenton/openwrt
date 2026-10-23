@@ -1,0 +1,168 @@
+--- a/wireless/driver/shared/mtlk_df.h
++++ b/wireless/driver/shared/mtlk_df.h
+@@ -119,6 +119,18 @@
+ void __MTLK_IFUNC
+ mtlk_df_ui_req_complete(mtlk_user_request_t *req, int result);
+ 
++/* Keep a serializable command in its queue position while a waitable
++ * request executes a netdev operation on the RTNL-owning caller thread. */
++typedef int __MTLK_IFUNC (*mtlk_df_ui_caller_func_t)(mtlk_handle_t object,
++                                                     const void *data,
++                                                     uint32 data_size);
++int __MTLK_IFUNC
++mtlk_df_ui_req_execute_on_caller(mtlk_user_request_t *req,
++                                 mtlk_df_ui_caller_func_t func,
++                                 mtlk_handle_t object,
++                                 const void *data,
++                                 uint32 data_size);
++
+ void __MTLK_IFUNC
+ mtlk_df_ui_set_mac_addr(mtlk_df_t *df, const uint8* mac_addr);
+ 
+--- a/wireless/driver/linux/mtlk_df_linux.c
++++ b/wireless/driver/linux/mtlk_df_linux.c
+@@ -21,6 +21,7 @@
+ 
+ #include "mtlk_fast_mem.h"
+ #include "mtlklist.h"
++#include "mtlk_df.h"
+ #include "mtlk_df_user_priv.h"
+ #include "mtlk_coreui.h"
+ 
+@@ -222,6 +223,13 @@
+ {
+   int result;
+   BOOL is_waitable;
++  BOOL caller_pending;
++  int caller_result;
++  mtlk_df_ui_caller_func_t caller_func;
++  mtlk_handle_t caller_object;
++  const void *caller_data;
++  uint32 caller_data_size;
++  mtlk_osal_event_t caller_done_event;
+ 
+   union
+   {
+@@ -263,15 +271,49 @@
+   }
+ }
+ 
++int __MTLK_IFUNC
++mtlk_df_ui_req_execute_on_caller(mtlk_user_request_t *req,
++                                 mtlk_df_ui_caller_func_t func,
++                                 mtlk_handle_t object,
++                                 const void *data,
++                                 uint32 data_size)
++{
++  int res;
++
++  if (!req || !req->is_waitable || !func)
++    return MTLK_ERR_PARAMS;
++
++  req->caller_func = func;
++  req->caller_object = object;
++  req->caller_data = data;
++  req->caller_data_size = data_size;
++  mtlk_osal_event_reset(&req->caller_done_event);
++  WRITE_ONCE(req->caller_pending, TRUE);
++  mtlk_osal_event_set(&req->u.completion_event);
++
++  res = mtlk_osal_event_wait(&req->caller_done_event,
++                             MTLK_OSAL_EVENT_INFINITE);
++  return res == MTLK_ERR_OK ? req->caller_result : res;
++}
++
+ static __INLINE int
+ _mtlk_df_ui_waitable_req_init(mtlk_user_request_t *req)
+ {
++  int res;
++
+   MTLK_ASSERT(NULL != req);
+ 
+   req->result = MTLK_ERR_OK;
+   req->is_waitable = TRUE;
+-
+-  return mtlk_osal_event_init(&req->u.completion_event);
++  req->caller_pending = FALSE;
++
++  res = mtlk_osal_event_init(&req->u.completion_event);
++  if (res != MTLK_ERR_OK)
++    return res;
++  res = mtlk_osal_event_init(&req->caller_done_event);
++  if (res != MTLK_ERR_OK)
++    mtlk_osal_event_cleanup(&req->u.completion_event);
++  return res;
+ }
+ 
+ static __INLINE int
+@@ -284,6 +326,7 @@
+ 
+   req->result = MTLK_ERR_OK;
+   req->is_waitable = FALSE;
++  req->caller_pending = FALSE;
+ 
+   req->u.notification_clb.clb = clb;
+   req->u.notification_clb.ctx = clb_ctx;
+@@ -298,6 +341,7 @@
+ 
+   if(req->is_waitable)
+   {
++    mtlk_osal_event_cleanup(&req->caller_done_event);
+     mtlk_osal_event_cleanup(&req->u.completion_event);
+   }
+ }
+@@ -313,11 +357,28 @@
+ static __INLINE int
+ _mtlk_df_ui_req_wait_completion(mtlk_user_request_t *req)
+ {
++  int res;
++
+   MTLK_ASSERT(NULL != req);
+   MTLK_ASSERT(req->is_waitable);
+ 
+-  return mtlk_osal_event_wait(&req->u.completion_event,
++  for (;;) {
++    res = mtlk_osal_event_wait(&req->u.completion_event,
+                                MTLK_OSAL_EVENT_INFINITE);
++    if (res != MTLK_ERR_OK)
++      return res;
++    if (!READ_ONCE(req->caller_pending))
++      return MTLK_ERR_OK;
++
++    WRITE_ONCE(req->caller_pending, FALSE);
++    req->caller_result = req->caller_func(req->caller_object,
++                                           req->caller_data,
++                                           req->caller_data_size);
++    /* Reset before releasing the serializer worker; otherwise its completion
++     * could be cleared after it is signalled. */
++    mtlk_osal_event_reset(&req->u.completion_event);
++    mtlk_osal_event_set(&req->caller_done_event);
++  }
+ }
+ 
+ static void _core_async_invoke_clb(mtlk_handle_t hctx)
+--- a/wireless/driver/linux/core.c
++++ b/wireless/driver/linux/core.c
+@@ -419,7 +419,21 @@
+   else if (_mtlk_abmgr_is_ability_enabled(mtlk_vap_get_abmgr(ctx->vap_handle),
+                                           ctx->ability_id))
+   {
+-    res = ctx->func(ctx->receiver, &ctx[1], ctx->data_size);
++    switch (ctx->ability_id) {
++    case WAVE_RADIO_REQ_MBSS_ADD_VAP_IDX:
++    case WAVE_RADIO_REQ_MBSS_ADD_VAP_NAME:
++    case WAVE_RADIO_REQ_MBSS_DEL_VAP_IDX:
++    case WAVE_RADIO_REQ_MBSS_DEL_VAP_NAME:
++      /* nl80211 and WEXT hold RTNL in the requesting thread. Keep the
++       * serializer occupied, but run netdev registration there. */
++      res = mtlk_df_ui_req_execute_on_caller(ctx->user_req, ctx->func,
++                                              ctx->receiver, &ctx[1],
++                                              ctx->data_size);
++      break;
++    default:
++      res = ctx->func(ctx->receiver, &ctx[1], ctx->data_size);
++      break;
++    }
+   }
+   else
+   {

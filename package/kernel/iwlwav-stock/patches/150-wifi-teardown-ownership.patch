@@ -1,0 +1,214 @@
+--- a/wireless/driver/linux/mtlk_mmb_drv.c
++++ b/wireless/driver/linux/mtlk_mmb_drv.c
+@@ -146,6 +146,8 @@
+   mtlk_irq_handler_data irq_handler_data[IRQS_TO_HANDLE];
+   struct tasklet_struct irq_tasklets_global[1];
+   mtlk_irq_handler_data *ihd_pending;
++  unsigned long         requested_irqs;
++  bool                  tasklets_initialized;
+   BOOL                  g6_pci_aux;  /* Gen6 specific: auxilary PCIe  */
+   BOOL                  g6_dual_pci; /* Gen6 specific: dual PCIe mode */
+ 
+@@ -1106,6 +1108,8 @@
+ #define _mmb_drv_is_irqno_required(hw, irq_no) (TRUE)
+ #endif
+ 
++static void _mmb_drv_irq_stop(mtlk_mmb_drv_t *obj);
++
+ static int 
+ _mmb_drv_irq_start(mtlk_mmb_drv_t *obj)
+ {
+@@ -1153,8 +1157,10 @@
+                 request_irq(obj->irq_out[i], _on_interrupt_legacy, IRQF_SHARED, DRV_NAME, &obj->irq_handler_data[i]);
+         if (err < 0) {
+           ELOG_DD("Failed to allocate interrupt %d, error code: %d", obj->irq_out[i], err);
++          _mmb_drv_irq_stop(obj);
+           return MTLK_ERR_UNKNOWN;
+         }
++        obj->requested_irqs |= BIT(i);
+       }
+     }
+   }
+@@ -1175,8 +1181,9 @@
+   MTLK_ASSERT(obj->hw_api->hw);
+ 
+   for (i = 0; i < obj->nof_irqs; i++) {
+-   if (_mmb_drv_is_irqno_required(obj->hw_api->hw, obj->irq_handler_data[i].irq_no)) {
++   if (obj->requested_irqs & BIT(i)) {
+      free_irq(obj->irq_out[i], &obj->irq_handler_data[i]);
++     obj->requested_irqs &= ~BIT(i);
+    }
+   }
+ }
+@@ -1257,6 +1264,9 @@
+   MTLK_ASSERT(obj->hw_api);
+   MTLK_ASSERT(obj->hw_api->hw);
+ 
++  if (!obj->tasklets_initialized)
++    return;
++
+   for (i = 0; i < obj->nof_irqs; i++) {
+     if (_mmb_drv_is_irqno_required(obj->hw_api->hw, obj->irq_handler_data[i].irq_no)) {
+       tasklet_kill(&obj->irq_tasklet[i]);
+@@ -1264,6 +1274,28 @@
+   }
+ 
+   if (obj->ihd_pending) tasklet_kill(&obj->irq_tasklets_global[0]);
++  obj->tasklets_initialized = false;
++}
++
++/* Keep the startup-step bookkeeping in its original reverse order, but
++ * drain callback producers before any of their resource owners are freed.
++ * The later IRQ/tasklet cleanup steps are idempotent.
++ */
++static void
++_mmb_drv_quiesce_irqs(mtlk_mmb_drv_t *obj)
++{
++  if (!obj->tasklets_initialized)
++    return;
++
++  mtlk_hw_mmb_dis_interrupts(obj->hw_api->hw);
++#ifndef MTCFG_USE_INTERRUPT_POLLING
++  _mmb_drv_irq_stop(obj);
++#endif
++  kill_all_tasklets(obj);
++  /* A tasklet already running at the first mask can re-enable its IRQ. */
++  mtlk_hw_mmb_dis_interrupts(obj->hw_api->hw);
++  mtlk_hw_mmb_reset_mac(obj->hw_api->hw);
++  mtlk_hw_mmb_release_bss_tx(obj->hw_api->hw);
+ }
+ 
+ static void
+@@ -1326,6 +1358,7 @@
+                       wave_radio_deinit_finalize, (radio_descr));
+     MTLK_CLEANUP_STEP(mmb_drv, MMB_CARD_START_FINALIZE, MTLK_OBJ_PTR(obj),
+                       mtlk_hw_mmb_stop_card_finalize, (obj->hw_api->hw));
++    _mmb_drv_quiesce_irqs(obj);
+     MTLK_CLEANUP_STEP(mmb_drv, MMB_TXDM_INIT, MTLK_OBJ_PTR(obj),
+                       mtlk_txmm_cleanup, (mtlk_hw_mmb_get_txdm_base(obj->hw_api->hw)));
+     MTLK_CLEANUP_STEP(mmb_drv, MMB_TXMM_INIT, MTLK_OBJ_PTR(obj),
+@@ -1400,6 +1433,7 @@
+     }
+   }
+ 
++  obj->tasklets_initialized = true;
+   return MTLK_ERR_OK;
+ }
+ 
+@@ -1829,4 +1863,3 @@
+ /* Register entry and termination pints for MMB driver */
+ module_init(_init_module);
+ module_exit(_exit_module);
+-
+--- a/wireless/driver/linux/wave_radio.c
++++ b/wireless/driver/linux/wave_radio.c
+@@ -561,8 +561,9 @@
+      *   and unregister netdevices from the networking subsystem */
+     if (NULL != radio->mac80211) {
+         wv_ieee80211_unregister(radio->mac80211);
+-        /*frees everything that was allocated for mac80211, including the private data for the driver.*/
+-        wv_ieee80211_free(radio->mac80211);
++        /* IRQ/tasklet and pending-TX cleanup still need this owner. Memory
++         * is released by _wave_radio_deinit after those producers stop.
++         */
+     }
+ }
+ 
+@@ -648,6 +649,13 @@
+ 
+ static void _wave_radio_deinit(wave_radio_t *radio)
+ {
++  /* Normal removal and partial mac80211 registration failure both arrive
++   * here after unregister and driver callback quiescence.
++   */
++  if (radio->mac80211) {
++    wv_ieee80211_free(radio->mac80211);
++    radio->mac80211 = NULL;
++  }
+   MTLK_STOP_BEGIN(wave_radio, MTLK_OBJ_PTR(radio))
+     MTLK_STOP_STEP(wave_radio, WAVE_RADIO_RADAR_CONTEXT_INIT, MTLK_OBJ_PTR(radio),
+                    _wave_radio_radar_ctx_cleanup, (radio));
+@@ -4327,7 +4335,7 @@
+ {
+   MTLK_ASSERT(NULL != radio);
+ 
+-  return wv_ieee80211_hw_get(radio->mac80211);
++  return radio->mac80211 ? wv_ieee80211_hw_get(radio->mac80211) : NULL;
+ }
+ 
+ wv_cfg80211_t * __MTLK_IFUNC
+@@ -5506,4 +5514,3 @@
+     *size = sizeof(mtlk_wssa_info_hdr_t);
+   }
+ }
+-
+--- a/wireless/driver/shared/hw_mmb.c
++++ b/wireless/driver/shared/hw_mmb.c
+@@ -10017,8 +10017,7 @@
+   /* The old firmware has been reset. Drop its streaming mappings before
+    * restarting it or returning the management descriptors to their pools.
+    */
+-  _mtlk_mmb_unmap_bss_tx_buffers(hw, &hw->bss_mgmt.tx_bdr);
+-  _mtlk_mmb_unmap_bss_tx_buffers(hw, &hw->bss_mgmt.tx_res_bdr);
++  mtlk_hw_mmb_release_bss_tx(hw);
+   _mtlk_mmb_cleanup_dbg_ind_bdr(hw);
+   _mtlk_mmb_cleanup_dbg_req_bdr(hw);
+   _mtlk_mmb_cleanup_man_ind_bdr(hw);
+@@ -10423,6 +10422,45 @@
+     mtlk_osal_mem_free(bss_req->virt_addr);
+     bss_req->virt_addr = NULL;
+   }
++}
++
++static void
++wave_bss_tx_release_packets(mtlk_hw_t *hw, mtlk_mmb_advanced_bdr_t *control)
++{
++  int i;
++
++  for (i = 0; i < control->basic.nof_bds; i++) {
++    struct mtlk_hw_bss_req_mirror *req =
++      _mtlk_basic_bdr_get_mirror_bd(&control->basic, i, struct mtlk_hw_bss_req_mirror);
++    struct sk_buff *skb = req->skb;
++
++    req->skb = NULL;
++    req->cookie = 0;
++    if (skb) {
++      wave_radio_t *radio = __mtlk_hw_wave_radio_get(hw, req->radio_id);
++      struct ieee80211_hw *mac_hw = radio ? wave_radio_ieee80211_hw_get(radio) : NULL;
++
++      /* Accepted skbs originate from mac80211. Report a dropped TX while
++       * that owner is alive, including frames still in the reserve queue.
++       */
++      if (mac_hw)
++        ieee80211_free_txskb(mac_hw, skb);
++      else
++        dev_kfree_skb_any(skb);
++    }
++  }
++}
++
++void __MTLK_IFUNC
++mtlk_hw_mmb_release_bss_tx(mtlk_hw_t *hw)
++{
++  if (!(hw->flags & HW_FLAGS_PREPARED_BSS_REQ_BDR))
++    return;
++
++  _mtlk_mmb_unmap_bss_tx_buffers(hw, &hw->bss_mgmt.tx_bdr);
++  _mtlk_mmb_unmap_bss_tx_buffers(hw, &hw->bss_mgmt.tx_res_bdr);
++  wave_bss_tx_release_packets(hw, &hw->bss_mgmt.tx_bdr);
++  wave_bss_tx_release_packets(hw, &hw->bss_mgmt.tx_res_bdr);
+ }
+ 
+ static int
+--- a/wireless/driver/shared/hw_mmb.h
++++ b/wireless/driver/shared/hw_mmb.h
+@@ -142,6 +142,9 @@
+ 
+ void __MTLK_IFUNC
+ mtlk_hw_mmb_dis_interrupts(mtlk_hw_t *hw);
++
++/* Submission/completion paths must be quiesced and the MAC reset first. */
++void __MTLK_IFUNC mtlk_hw_mmb_release_bss_tx(mtlk_hw_t *hw);
+ 
+ /**************************************************************
+  * Init/cleanup functions - must be called on driver's

@@ -1,0 +1,96 @@
+{
+  "schema": 1,
+  "status": "Recovery IRQ/tasklet draining and event ordering corrected; target weak-memory ordering restored to match stock; complete lifecycle/hardware support remains unverified",
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "new_factory_container": false,
+  "changes": [
+    "Disable registered Linux IRQs and drain initialized tasklets before old ring cleanup; repeat-safe disable ownership and balanced removal",
+    "Resume IRQ delivery in firmware-initialization mode; defer normal events until rings and message engines are rebuilt",
+    "Close events and drain IRQs on every checked restore failure, supporting subsequent retry",
+    "Publish/load ISR modes through release/acquire APIs",
+    "Select CONFIG_WEAK_ORDERING for the platform, matching independently extracted stock config; clean full kernel rebuild emits MSI acquire sync fence"
+  ],
+  "tests": {
+    "irq_lifecycle_cases_per_variant": 164,
+    "restore_failure_retry_cases_per_variant": 168,
+    "registration_order_variants": [
+      0,
+      1
+    ],
+    "native_asan_ubsan": "pass for both variants",
+    "mips_userspace": "pass for both variants",
+    "teardown_regression_cases": 556,
+    "teardown_native_asan_ubsan": "pass",
+    "before_restore": "fails: resets firmware while events are open and IRQs undrained",
+    "scope": "Actual IRQ lifecycle/event helpers and entire restore control flow, with modeled synchronization and firmware/resource leaves. No concurrent Linux IRQ/tasklet engine, producer threads, firmware or hardware execution."
+  },
+  "build": {
+    "clean_wireless_package": "pass",
+    "initial_integrated_build": "pass; before weak-ordering correction, not retained as current images",
+    "kernel_clean_after_ordering_fix": "pass",
+    "final_integrated_build": "pass; existing vendor warnings remain",
+    "prepared_source_exact_before_plus_patch": true,
+    "weak_ordering_config_and_compiled_msi_fence": "pass"
+  },
+  "inputs": {
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/patches/170-recovery-irq-drain.patch": "92d4405dc3bcd6f7dad762c3fc4399ceb3727d71a73ed287f039883593868473",
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/tests/recovery-irq.py": "08b985e0d19718a54e71480abeb3f054938d69001e7e02d1427b144ec7e963d5",
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/tests/teardown-order.py": "7dfb3e1cfc74dd5d6ab52e0ee0122ade9683b89e62bbb075791873825b12899d",
+    "/home/zach/code/openwrt/target/linux/grx500/patches-6.18/100-mips-grx500-platform.patch": "73be6024e3246113a7820652c64495d4752ef4ee7f3448017dbe1ffa246ae079",
+    "/home/zach/code/openwrt/target/linux/grx500/config-6.18": "33bee3671e1391b210ca5fe16ccf1df166de030864cd7b33cfeb47c3cc7a963d",
+    "/home/zach/code/openwrt/target/linux/grx500/experimental/firmware-audit/verify-recovery-ordering.py": "8775ce56c4b6eee99456e113f92d1ae8dc9413dcaab625b86e83cc724256a51d",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/mtlk_mmb_drv.c": "6ce983c83b3c38b79940d13068b002b4c7454442e98072e5782ad037e010f66c",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/mtlk_mmb_drv.h": "e649b684d9a80a8ea228f94688527858f5bc1fc32cbb95fd620ac69e538c4d7c",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/shared/hw_mmb.c": "3142cf1934966e9954ba9a4598964e86029e547daa0757c2494875b26648ada2",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/recovery-irq-before/wireless/driver/linux/mtlk_mmb_drv.c": "0d66f9ef274278767e0635108936e040cb4e5b055863c79b2d67a42b969580e3",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/recovery-irq-before/wireless/driver/linux/mtlk_mmb_drv.h": "7c8f3dc91301e3aaadefb9afc371b61718ce0911bcc0543c25f61aa8e74efad4",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/recovery-irq-before/wireless/driver/shared/hw_mmb.c": "6dfeba7285938ea2d0901a5f8b31ebb901647bb40353479ef75811bb39e7a1bd",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/shared/fw_recovery.c": "a89d7a7567777f46c9086c1e9ff80b1aa074b46551ef5ab9c8fd9e0b9b7e2856",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/mtlk_df_user.c": "15ba62d6603d9d230c54e6fd5072cd8467099094c7c8481d387ef94f25073901",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/.config": "8a7db47d826ce756da5d343508358b60013bfe223fd8bb6f2f3589b0fce34be2",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/kernel/irq/manage.c": "c0f7e769065fc7c988353e33aadc30441f78ced9e60579c620d57061015d7992",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/kernel/softirq.c": "2977db7e908b0cdfc382034b7a104a7a8e961a4f1c509411cf4770fe1d876692",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/arch/mips/include/asm/barrier.h": "ddcffb0bcb9e1bfd6f7988e069a7509c1c991fecc53e5985ec8c12c0f09e955d",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/stock-config-evidence/stock-kernel.config": "fe638a76e0757468a9201dbdd9840a96b73a3563f5027ef834f0f404fd62f540",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/recovery-irq-before-ordering/kernel.config": "749b414d75e2005776f9583b792e386798cc6b08ed55b6fe3c0e727a3c531587"
+  },
+  "logs": {
+    "recovery-irq-after.log": "b1619698479fb5d166cb527b8df81bcaed4788c675aca7ee239d63f043b0e451",
+    "recovery-irq-before.log": "2f29d93fb00d303d5bcabafbc80971ba439c714b3a05f4e883092f7389ac1ca1",
+    "recovery-irq-integrated-build.log": "ad99da54cf36bcd9d1721eed1e9d4c8f27fe46b1d6551c6c97b67bdcb10fd6b7",
+    "recovery-irq-kernel-clean.log": "1bf9dc75ed5a631aa8c2007aaf8afd0cdee99305dbcf5a22246f65092788b505",
+    "recovery-irq-mips.log": "463c9b3f09a6cbfe18eae1096ab4ec7a99da58dc6d2eccda2f4d69f610014fe7",
+    "recovery-irq-ordering-integrated-build.log": "c312012499930be2f620b557cd98b4e0be7983545e230be2a3124077cd0246db",
+    "recovery-irq-ordering.log": "1e8833b63e370540818146cc154a8f369e70ff1b8b6617591f68db266bad715b",
+    "recovery-irq-package-build.log": "8db0175e745cd4ad203302fd9593e403f80b040f2fee17ff98e2c29e31fa6988",
+    "recovery-irq-package-clean.log": "626dbeddbecc59f4fa77707e32eb6c89f5657f93cc4e1c58460f0dacfef215ff",
+    "recovery-irq-teardown.log": "a018d661942e2d1812116af280378c27c6f7acde2617168c8b2830f734f7b80d"
+  },
+  "image_checks": {
+    "integrated-safety-content.json": "fc9175198dedc0bace3ceab17ff779e50bf35bf9a9eec75987294c09c2b5c25d",
+    "integrated-safety-initramfs.json": "ae4dbeb519d35baa2c507ba59f82abed7422602aa699e01bef2c31e7e8fb918a",
+    "integrated-safety-sysupgrade.json": "a8cd184006d0b891b8a3e00a7869cfcd2bb5af9cccee4b22a5073764b72d06d9"
+  },
+  "ordering_check": {
+    "path": "/home/zach/code/archer-ax3000-bringup/one-shot-audit/recovery-irq-ordering.json",
+    "sha256": "be9dcc0064c6c828d0d7b0def9f161484fe6aeeb18a3a054b77d6d59e41bccae"
+  },
+  "compiled_evidence": {
+    "_mmb_drv_irq_stop.disassembly": "a0c08c87abc2e148d3834fe2bca83486e338c1e0bf7eaa18ae87b979b2ad5520",
+    "mtlk_hw_mmb_interrupt_handler_legacy.disassembly": "cc1dbe7fc1cdcc1c182eaec8243124f63ea4c20be406ac08d2b19e6ebf99ccda",
+    "mtlk_hw_mmb_interrupt_handler_msi.disassembly": "4541e59c8aed2f2131fde0c076be7863379da02db67bdb7a0c17c6624c80b8e8",
+    "mtlk_hw_mmb_isolate.disassembly": "2209f709429f75172ad60a58ed8c10e6b1e1ffdeb9552053d453fd2d7f536c9e",
+    "mtlk_hw_mmb_restore.disassembly": "4edc70924f22e529d92f333d42aeb3b366a5af659c7d7ebcf4714c621cab4d78",
+    "mtlk_mmb_drv_recovery_irq_quiesce.disassembly": "c4ad8ecbf04b1f4c55362cae598a4c13b4ee3949aebff926e8aca9d8b95d0c7a",
+    "mtlk_mmb_drv_recovery_irq_resume.disassembly": "f8b1ce151215bef2194b168e4f1abdd7d1476e27c0dd004d511761a35ac15538"
+  },
+  "artifact_path": "/home/zach/code/archer-ax3000-bringup/artifacts/development-recovery-irq",
+  "remaining": [
+    "Transmit producers and asynchronous core/scan workers still need exclusion/draining before ring cleanup",
+    "Complete recovery/removal serialization is not established; IRQ-disable ownership assumes serialized lifecycle calls",
+    "mac80211 frame/status callback exclusion before unregister and AP cfg80211/VAP notification lifetimes remain incomplete",
+    "Physical SMP/coherency, boot, Ethernet, both radios, peripherals/persistence and throughput",
+    "NAND writes, power-loss behavior and reliable serial-free early-hang reset/fallback"
+  ]
+}

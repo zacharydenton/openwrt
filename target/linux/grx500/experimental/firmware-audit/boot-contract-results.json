@@ -1,0 +1,74 @@
+{
+  "passed": true,
+  "stock_bootloader_sha256": "87fae41adc20ac4855d0716917cf4aaebec3c5688102360849fd43475a693f13",
+  "contract_sha256": "0c59b8805ad5a3c5f10883ee1958e78801305203484f90d98c35b0f8eafceac9",
+  "hardware_tested": false,
+  "checks": [
+    {
+      "variable": "bootcmd",
+      "actual_default": "bootcmd=run flash_flash",
+      "matches_after_optional_trailing_space": true
+    },
+    {
+      "variable": "flash_flash",
+      "actual_default": "flash_flash=run run_bootcore;ubi read $(loadaddr) $(kernel_vol);run flashargs addmisc;bootm $(loadaddr);reset",
+      "matches_after_optional_trailing_space": true
+    },
+    {
+      "variable": "ubi_init",
+      "actual_default": "ubi_init=setenv kernelA_id 0;setenv rootfsA_id 1;setenv firmwareA_id 2;setenv kernelB_id 3;setenv rootfsB_id 4;setenv firmwareB_id 5;setenv bootcoreA_id 6; setenv bootcoreB_id 7;setenv setbank check_image$(update_chk);run $(setbank);ubi part system_sw",
+      "matches_after_optional_trailing_space": true
+    },
+    {
+      "variable": "run_bootcore",
+      "actual_default": "run_bootcore=run ubi_init; ubi read 0xA0400000 $(bootcore_vol) ; secboot load_os 0x88000000 0xA0400000 0x200000",
+      "matches_after_optional_trailing_space": true
+    },
+    {
+      "variable": "switchbankA",
+      "actual_default": "switchbankA=setenv active_bank A;setenv kernel_id $(kernelA_id);setenv rootfs_id $(rootfsA_id);setenv f_kernel_size f_kernel_sizeA;setenv kernel_vol kernelA;setenv rootfs_vol rootfsA;setenv firmware_vol firmwareA;setenv rootfsname rootfsA;setenv bootcore_vol bootcoreA",
+      "matches_after_optional_trailing_space": true
+    },
+    {
+      "variable": "switchbankB",
+      "actual_default": "switchbankB=setenv active_bank B;setenv kernel_id $(kernelB_id);setenv rootfs_id $(rootfsB_id);setenv f_kernel_size f_kernel_sizeB;setenv kernel_vol kernelB;setenv rootfs_vol rootfsB;setenv firmware_vol firmwareB;setenv rootfsname rootfsB;setenv bootcore_vol bootcoreB",
+      "matches_after_optional_trailing_space": true
+    },
+    {
+      "variable": "check_image0",
+      "actual_default": "check_image0=run switchbankA",
+      "matches_after_optional_trailing_space": true
+    },
+    {
+      "variable": "check_image1",
+      "actual_default": "check_image1=run switchbankB;setenv update_chk 0;save",
+      "matches_after_optional_trailing_space": true
+    },
+    {
+      "variable": "check_image2",
+      "actual_default": "check_image2=run switchbankB",
+      "matches_after_optional_trailing_space": true
+    },
+    {
+      "variable": "check_image3",
+      "actual_default": "check_image3=run switchbankA;setenv update_chk 2;save",
+      "matches_after_optional_trailing_space": true
+    },
+    {
+      "variable": "addmisc",
+      "actual_default": "addmisc=setenv bootargs $(bootargs) console=$(console),$(baudrate) ethaddr=$(ethaddr) panic=1 $(mtdparts) init=/etc/preinit active_bank=$(active_bank) update_chk=$(update_chk) maxcpus=4 pci=pcie_bus_perf ethwan=$(ethwan) ubootver=$(ver) mem=256M@512M Production=$(Production) ",
+      "matches_after_optional_trailing_space": true
+    },
+    {
+      "variable": "flashargs",
+      "actual_default": "flashargs=setenv bootargs ubi.mtd=system_sw rootfsname=$(rootfsname) ro rootfstype=squashfs do_overlay",
+      "matches_after_optional_trailing_space": true
+    },
+    {
+      "variable": "loadaddr",
+      "actual_default": "loadaddr=0x80800000",
+      "matches_after_optional_trailing_space": true
+    }
+  ],
+  "limitation": "Binary defaults, not a readout of persistent device environment"
+}

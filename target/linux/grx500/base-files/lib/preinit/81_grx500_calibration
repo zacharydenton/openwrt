@@ -1,0 +1,68 @@
+#!/bin/sh
+# Factory EEPROM comes from two nested gzip tar archives in the calibration MTD.
+
+grx500_calibration_member() {
+	local archive="$1" member="$2" listing="$3"
+	local selected
+
+	# Accept one regular file, including the optional ./ tar prefix. Never
+	# extract archive paths to disk: tar writes the selected payload to stdout.
+	# The decompressor may report trailing NAND padding after a valid stream;
+	# tar determines archive success. The nested gzip is checked independently.
+	gzip -dc "$archive" 2>/dev/null | tar -tvf - > "$listing" 2>/dev/null || return 1
+	selected="$(awk -v name="$member" '
+		$NF == name || $NF == "./" name {
+			if (substr($1, 1, 1) != "-") bad = 1
+			n++; selected = $NF
+		}
+		END { if (n == 1 && !bad) print selected }
+	' "$listing")"
+	[ -n "$selected" ] || return 1
+	gzip -dc "$archive" 2>/dev/null | tar -xOf - "$selected" 2>/dev/null
+}
+
+grx500_calibration_unpack() {
+	local dump="$1" work="$2" radio size
+
+	# NAND padding after the outer gzip stream is expected. Stock vol_mgmt
+	# similarly feeds nanddump into tar, which stops at the archive terminator.
+	grx500_calibration_member "$dump" wlanconfig.gz "$work/outer.list" \
+		> "$work/wlanconfig.gz" || return 1
+	gzip -t "$work/wlanconfig.gz" 2>/dev/null || return 1
+	for radio in 0 2; do
+		grx500_calibration_member "$work/wlanconfig.gz" "cal_wlan$radio.bin" \
+			"$work/inner.list" > "$work/cal_wlan$radio.bin" || return 1
+		size="$(wc -c < "$work/cal_wlan$radio.bin")"
+		# iwlwav's EEPROM reader allocates MTLK_MAX_EEPROM_SIZE = 2048.
+		[ "$size" -ge 256 ] && [ "$size" -le 2048 ] || return 1
+	done
+}
+
+grx500_calibration_extract() {
+	local index work
+
+	[ "$(board_name)" = "tplink,archer-ax3000-v1" ] || return 0
+	index="$(find_mtd_index calibration)"
+	case "$index" in
+		''|*[!0-9]*)
+			echo "grx500: factory calibration MTD is unavailable" > /dev/kmsg
+			return 0
+			;;
+	esac
+	work="$(mktemp -d /tmp/grx500-calibration.XXXXXX)" || return 0
+	# Explicitly reproduce stock nanddump defaults. ECC stays enabled. Complete
+	# the read before parsing, so a late NAND error cannot pass unnoticed.
+	if nanddump --quiet --bb=skipbad --omitoob \
+		--file "$work/calibration.bin" "/dev/mtd$index" && \
+		grx500_calibration_unpack "$work/calibration.bin" "$work" && \
+		mkdir -p /lib/firmware && \
+		cp "$work/cal_wlan0.bin" "$work/cal_wlan2.bin" /lib/firmware/; then
+		echo "grx500: loaded factory calibration for both radios" > /dev/kmsg
+	else
+		rm -f /lib/firmware/cal_wlan0.bin /lib/firmware/cal_wlan2.bin
+		echo "grx500: factory calibration read failed; radio EEPROM unavailable" > /dev/kmsg
+	fi
+	rm -rf "$work"
+}
+
+boot_hook_add preinit_main grx500_calibration_extract

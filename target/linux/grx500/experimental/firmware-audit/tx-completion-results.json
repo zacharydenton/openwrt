@@ -1,0 +1,47 @@
+{
+  "schema": 1,
+  "status": "Reproduced TX completion leak fixed; development builds and scoped checks pass",
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "new_factory_container": false,
+  "before_fix": {
+    "result": "expected failure",
+    "observation": "Descriptor returned with one live packet and one live DMA mapping",
+    "log_sha256": "f1ac6c3081a94092e6e66bede57c20136911190096380d9771d940683e920689"
+  },
+  "after_fix": {
+    "result": "pass",
+    "cases": 24,
+    "sanitizers": [
+      "address",
+      "undefined"
+    ],
+    "scope": "Actual C handler with DMA/VAP/core/pool stubs; fixture descriptor macros; no firmware or concurrency execution",
+    "log_sha256": "f0c5b7d3dfc54cd304e52975d0f2cb8ef16c6c85025b94271aaade9b9e530786"
+  },
+  "builds": {
+    "wireless_package": "pass",
+    "integrated_images": "pass",
+    "warnings": "Existing vendor compiler warnings remain",
+    "module_log_sha256": "e63d215f95d6e55a492341bd421629610ce227a7da02b02d37bbfd1f3ec5127f",
+    "integrated_log_sha256": "843da92041c5c07d834bfcadad203b84e2da62538ebc186335075a011e4e2961"
+  },
+  "image_checks": {
+    "integrated-safety-content.json": "db63aeef1bfde2f3a9d326d3ff18c64001d0e9d5de9c92a6dc491363f8b3b59b",
+    "integrated-safety-initramfs.json": "df6bf638d468fb211da6f568bbb72842a04bab7fd33ce3aef5d0f30e11748333",
+    "integrated-safety-sysupgrade.json": "5ffd1286373c8b64fca65b8a40a64b8bfff5e6c588029b08c25e4e16ffb6cabd"
+  },
+  "artifacts": "/home/zach/code/archer-ax3000-bringup/artifacts/development-tx-completion",
+  "inputs": {
+    "package/kernel/iwlwav-stock/patches/130-tx-completion-ownership.patch": "88c19715c07c496bcfdf5cf4a0f26077a3af84312d1402465977e1e48bec2b14",
+    "package/kernel/iwlwav-stock/tests/tx-completion.py": "9841e2b505f0a901c34916a3b201a352d73bbddfa7a7f2cdb9ff3a60640a387b",
+    "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/shared/hw_mmb.c": "1b56d432afadb6a98ea255809fcafe37fa8484e7b3fbf69b62f6ba4996ffc561",
+    "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/core.c": "aac2dcf6c4607774091885d1aca63bd3fdbe7d4d433c2416e21272ae486006be",
+    "build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/mtlkinc.h": "d9915049f10c375b1b40c569cf3b41c22980f5f1fae180700f8e45ee5a90f7ea"
+  },
+  "remaining": [
+    "Physical Ethernet and both Wi-Fi radios including requested capabilities",
+    "Hardware boot, NAND writes, persistence and peripherals",
+    "Automatic acceptance and reliable serial-free reset/fallback"
+  ]
+}

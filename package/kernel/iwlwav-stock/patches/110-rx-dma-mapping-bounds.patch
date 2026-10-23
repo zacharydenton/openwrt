@@ -1,0 +1,19 @@
+--- a/wireless/driver/shared/hw_mmb.c
++++ b/wireless/driver/shared/hw_mmb.c
+@@ -2093,9 +2093,13 @@
+                                data_ind->size,
+                                MTLK_DATA_FROM_DEVICE);
+ 
+-  if (__UNLIKELY(total_size > mtlk_df_nbuf_get_tail_room_size(data_ind->nbuf))) {
+-    ELOG_DDDD("CID-%02x: (offset + data_size) > nbuf size --> (%d + %d) > %d", hw->card_idx,
+-              offset, data_size, mtlk_df_nbuf_get_tail_room_size(data_ind->nbuf));
++  /* skb allocation can have more tailroom than the DMA mapping. Bytes beyond
++   * data_ind->size were not handed to the device and must not be delivered.
++   */
++  if (__UNLIKELY(total_size > data_ind->size ||
++                 total_size > mtlk_df_nbuf_get_tail_room_size(data_ind->nbuf))) {
++    ELOG_DDDD("CID-%02x: RX size %d exceeds mapped %d or allocated %d", hw->card_idx,
++              total_size, data_ind->size, mtlk_df_nbuf_get_tail_room_size(data_ind->nbuf));
+     goto buf_return;
+   }
+ 

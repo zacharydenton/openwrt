@@ -1,0 +1,65 @@
+{
+  "schema": 1,
+  "base_commit": "bf46a5077ea14291164b145f62efcaf7d67a8f8a",
+  "date": "2026-10-23",
+  "status": "GRX500 ethtool autonegotiation restart now delegates to the Linux PHY helper and propagates its result; hardware execution remains outstanding.",
+  "hardware_tested": false,
+  "release_gate": {
+    "source_and_build_gate_passed": true,
+    "physical_ethernet_gate_passed": false,
+    "upload_recommended": false
+  },
+  "source": {
+    "path": "target/linux/grx500/files/drivers/net/ethernet/lantiq/ltq_eth_drv_xrx500.c",
+    "sha256": "0427a09891f83c77cd669c4074c13b8c8fa8e6662ff34964eaa30efb177ac080",
+    "before": "nway_reset returned zero without touching the PHY",
+    "after": "nway_reset returns phy_ethtool_nway_reset(dev)"
+  },
+  "test": {
+    "path": "target/linux/grx500/tests/test-ethtool-nway.py",
+    "sha256": "20fbcd57c7a7cab9774342babe5e566788b3f89bc81cbe2823018f197b842a57",
+    "compiler": "native GCC with ASan/UBSan and -Wall -Wextra -Werror",
+    "exit_code": 0,
+    "cases": 5,
+    "results": [
+      "success",
+      "missing PHY",
+      "missing PHY driver",
+      "invalid request",
+      "unsupported operation"
+    ]
+  },
+  "kernel_build": {
+    "command": "make target/linux/compile V=s -j4",
+    "exit_code": 0,
+    "kernel": "6.18.55",
+    "architecture": "mips_24kc",
+    "object": "build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/drivers/net/ethernet/lantiq/ltq_eth_drv_xrx500.o",
+    "object_bytes": 159468,
+    "object_sha256": "29061c101fa67c677a2d6082674a38e9ac193463332b81ea664461b33f597f78",
+    "binding": "MIPS disassembly contains an R_MIPS_26 relocation from nway_reset to phy_ethtool_nway_reset"
+  },
+  "development_image_build": {
+    "command": "make -j4",
+    "exit_code": 0,
+    "initramfs": {
+      "bytes": 8628210,
+      "sha256": "2f36b8c1d64af1e33a45dd34ebfecb21e85ee7ce3eec664700451f7893a84f1d",
+      "audit": "current-image-audit.json",
+      "audit_sha256": "79cef6701899fe1e4c613fe6d85b336725219bf7e6f9db81a11034544c6b3f05",
+      "audit_result": "pass"
+    },
+    "sysupgrade": {
+      "bytes": 9052445,
+      "sha256": "a066360d245facf6a3409a3e319b525e7c07b7154e101371b6e06d079453a19c",
+      "audit": "current-sysupgrade-audit.json",
+      "audit_sha256": "cc712cdd310911e60c6e62035350f6e89ee447306ec18fd6b12b5d76ea04221c",
+      "audit_result": "pass"
+    }
+  },
+  "remaining": [
+    "Run ethtool -r on each physical LAN/WAN port and observe a real link renegotiation",
+    "Verify link modes, pause negotiation, traffic and recovery across every PHY",
+    "Complete physical boot, RF, NAND, flash-write and bank-fallback qualification"
+  ]
+}

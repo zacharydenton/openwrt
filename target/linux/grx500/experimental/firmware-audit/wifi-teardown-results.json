@@ -1,0 +1,77 @@
+{
+  "schema": 1,
+  "status": "Partial IRQ/owner-lifetime and pending management TX fixes; concurrent unregister/recovery remains incomplete",
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "new_factory_container": false,
+  "changes": [
+    "Track successful IRQ registrations and unwind partial request failure",
+    "Drain initialized IRQ/tasklet sources before TXMM/TXDM/radio/ring teardown while preserving startup cleanup bookkeeping",
+    "Retain mac80211 memory until the later radio deinit stage and clear its pointer after free",
+    "Unmap and consume pending management skbs on both queues; clear skb/cookie for repeat-safe release"
+  ],
+  "tests": {
+    "lifecycle_cases_per_execution": 556,
+    "pending_and_dma_cases_per_execution": 37,
+    "native_asan_ubsan": "pass",
+    "mips_userspace": "pass",
+    "before_failures": [
+      "mac80211 owner freed while IRQ/tasklets and pending packets remain",
+      "second IRQ request failure leaves first handler registered",
+      "recovery unmaps but leaves two pending management packets"
+    ],
+    "scope": "Actual selected C functions/blocks with modeled kernel, DMA and resource leaves. No concurrent kernel, complete worker system, full recovery flow or target execution."
+  },
+  "build": {
+    "clean_wireless_package": "pass",
+    "full_integrated_build": "pass; existing vendor warnings remain",
+    "prepared_source_exact_before_plus_patch": true
+  },
+  "inputs": {
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/patches/150-wifi-teardown-ownership.patch": "d2c53a1bfd21efd2303784ca75cee2b3bdf018534dc07bc7362237b4caba89b0",
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/tests/teardown-order.py": "8753cb144060c7890b7a023bb1b3cf1d34821275de6101b40fc877cba97d054a",
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/tests/bss-tx-ownership.py": "a8128edfa2b6e11069a759e500102dca8e721370c3126a846bdd45f398456aed",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/mtlk_mmb_drv.c": "0d66f9ef274278767e0635108936e040cb4e5b055863c79b2d67a42b969580e3",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/wave_radio.c": "7c6fdc4efaa34d4e32464ffdf3a781eabb405ead812b3605272727ba3d67f03b",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/shared/hw_mmb.c": "980042af08a21d80540ba237b8ae914bdad4e65c7adb227138e31ad7ed1c6954",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/shared/hw_mmb.h": "940ab1baf97ef6485cf0fc66dbc8b8596e3a3042c47de5928c686c3a31d8b451",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/wifi-teardown-before/wireless/driver/linux/mtlk_mmb_drv.c": "4a0c15c2a8f710327e35bd53d0b7345fc8361d65cb5a8cbc5f8afd5d28abbebc",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/wifi-teardown-before/wireless/driver/linux/wave_radio.c": "d6ed2af2beb210ea2e96986564ead85ace66691b382e1ad30d831e3354a3f7f0",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/wifi-teardown-before/wireless/driver/shared/hw_mmb.c": "84dc0d402865ec4d9bba9f388551606667ddef382321454ac5c5844e3ec4ba3f",
+    "/home/zach/code/archer-ax3000-bringup/one-shot-audit/wifi-teardown-before/wireless/driver/shared/hw_mmb.h": "0e7e6447f4affef6fccc62edc44999baa6aa7657fb38b4c922bdc3026ee85503",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/net/mac80211/main.c": "38047a679e48375f6d8cae18b6b2746d89dac38cde4ee62602ed3e56ca957e74",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/include/net/mac80211.h": "43b4be700a0aa3d5b4e5ac3483db02d2506ba637e2686343b053a1d05949067f"
+  },
+  "logs": {
+    "wifi-teardown-after.log": "a018d661942e2d1812116af280378c27c6f7acde2617168c8b2830f734f7b80d",
+    "wifi-teardown-before-irq.log": "f0339efea956c69be010a7f0b302e9e43e9633da79bbdb7ec51130eafb348fc7",
+    "wifi-teardown-before-order.log": "52face7a047399b9bb95f4bceefbaf9c8d934c6dc4150670d492d29fce8cf899",
+    "wifi-teardown-before-pending.log": "d839d2cb4f26beb1b2e2fc7a973233251310a644f995c337ca2cbf86777aa32f",
+    "wifi-teardown-integrated-build.log": "7adc125ce8066a0020fbccef91fe614344eecdd290744077e5fcf71e5fcabbe2",
+    "wifi-teardown-mips.log": "83ffb00adfc108250b9c217de530e81122f0d7c0055d28f1ca98ba945bad7be0",
+    "wifi-teardown-package-build.log": "59e0d89b66ab7469967abd9eaf87662e67f7f8365bbc3730a6f81bf7747078d7",
+    "wifi-teardown-package-clean.log": "e52548686086af34022df388ec0039236515178c8f3de0e8ac3f20768c0186d8",
+    "wifi-teardown-pending-after.log": "63af1ceb12a21d9c6df2feb3a209d42747bbca4406563a98df8e7b8da7dba8fc",
+    "wifi-teardown-pending-mips.log": "e227fc5a6974c23fa6c6133db5ff82cbe35236ddf6c701fbf3f0689ffeee1bd4"
+  },
+  "image_checks": {
+    "integrated-safety-content.json": "634660f5897244131df495f196e61da1fc65c2804346c5d725a33aafd4a3167c",
+    "integrated-safety-initramfs.json": "c406b271e5bdbc06a5ba2e4a37d256568c7b94cda5d31d261c097823a47d265b",
+    "integrated-safety-sysupgrade.json": "a036b20f7cec21e167296a7d5518003b09bf14c183e3c8cf348af0f933f6e91d"
+  },
+  "compiled_evidence": {
+    "_mmb_drv_cleanup.disassembly": "9932ef49a1f5e01b5c2ea5822e1e972e9b210f76e1df5102d3e7263a21b38274",
+    "_mmb_drv_irq_stop.disassembly": "2b0e3a06d20f9feb5bd55f7db01ffdafa42efeb0cb2efa6661fb12223a1fd1e3",
+    "_wave_radio_deinit.disassembly": "3a8f683b483e41cdcb5705c8b7509b809faef4d78913851b4a1b15f752bd9c41",
+    "mtlk_hw_mmb_release_bss_tx.disassembly": "975bc9e6cf7733499e192add4ef17874e08b4a11f69897a75a78fb519962c344",
+    "mtlk_hw_mmb_restore.disassembly": "2d2bd28526c30397187117f9a6de15136d650d40f9effcea33c93f5e16677a42"
+  },
+  "artifact_path": "/home/zach/code/archer-ax3000-bringup/artifacts/development-wifi-teardown",
+  "remaining": [
+    "mac80211 unregister still needs complete exclusion of asynchronous frame/status callbacks before unregister begins",
+    "Recovery flags do not synchronize already-running callbacks/transmit producers; restore reopens them before ring rebuild",
+    "Data TX descriptor validation errors after DMA mapping still omit unmap",
+    "Physical boot, Ethernet, both radios and full peripheral/persistence behavior are untested",
+    "Serial-free installation, NAND power-loss behavior and reliable early-hang reset/fallback are unverified"
+  ]
+}

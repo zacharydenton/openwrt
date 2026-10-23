@@ -1,0 +1,74 @@
+{
+  "passed": true,
+  "hardware_tested": false,
+  "cases": [
+    {
+      "case": "a-newer",
+      "passed": true,
+      "original_copy_preserved": true,
+      "new_flag": 6,
+      "vendor_selector": 1
+    },
+    {
+      "case": "b-newer",
+      "passed": true,
+      "original_copy_preserved": true,
+      "new_flag": 6,
+      "vendor_selector": 0
+    },
+    {
+      "case": "equal",
+      "passed": true,
+      "original_copy_preserved": true,
+      "new_flag": 6,
+      "vendor_selector": 1
+    },
+    {
+      "case": "wrap-to-a",
+      "passed": true,
+      "original_copy_preserved": true,
+      "new_flag": 1,
+      "vendor_selector": 1
+    },
+    {
+      "case": "wrap-to-b",
+      "passed": true,
+      "original_copy_preserved": true,
+      "new_flag": 1,
+      "vendor_selector": 0
+    },
+    {
+      "case": "commit-wrap",
+      "passed": true,
+      "original_copy_preserved": true,
+      "new_flag": 0,
+      "vendor_selector": 1
+    },
+    {
+      "case": "bad-a",
+      "passed": true,
+      "original_copy_preserved": true,
+      "new_flag": 6,
+      "vendor_selector": 0
+    },
+    {
+      "case": "bad-b",
+      "passed": true,
+      "original_copy_preserved": true,
+      "new_flag": 6,
+      "vendor_selector": 1
+    },
+    {
+      "case": "both-invalid",
+      "passed": true,
+      "writes_attempted": false
+    }
+  ],
+  "fw_env_sha256": "adc3409c652198cb6d98693083059f75d4d411fb8edef5ed285900199d048f34",
+  "harness_sha256": "3a9aab7d0d1f3970fa36b4d04a2d9f257d6d9f4f2e50f3a67501fa5a994e686d",
+  "limitations": [
+    "Disposable regular files, not MTD devices.",
+    "No NAND bad-block, ECC or power-loss verification.",
+    "Vendor selector is a source-derived model, not stock bootloader execution."
+  ]
+}

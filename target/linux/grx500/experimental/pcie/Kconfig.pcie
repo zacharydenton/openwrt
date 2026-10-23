@@ -1,0 +1,20 @@
+
+config PCIE_GRX500
+	bool "Intel GRX500 PCIe host"
+	depends on INTEL_MIPS && PCI
+	default y
+	select GPIOLIB
+	select GENERIC_PHY
+	select RESET_CONTROLLER
+
+config GPIO_GRX500
+	bool
+	default y if PCIE_GRX500
+
+config RESET_GRX500
+	bool
+	default y if PCIE_GRX500
+
+config PHY_GRX500_PCIE
+	bool
+	default y if PCIE_GRX500

@@ -1,0 +1,39 @@
+{
+  "passed": true,
+  "hardware_tested": false,
+  "flash_operations_performed": false,
+  "upstream_commit": "bf46a5077ea14291164b145f62efcaf7d67a8f8a",
+  "native_upgrade_test_groups_passed": 9,
+  "native_upgrade_test_log_sha256": "d59866b113becc6e241dda5306b3b39bd962029617ebcd08d6f2e0e264c3da68",
+  "images": {
+    "development": {
+      "image_sha256": "a066360d245facf6a3409a3e319b525e7c07b7154e101371b6e06d079453a19c",
+      "image_audit_sha256": "cc712cdd310911e60c6e62035350f6e89ee447306ec18fd6b12b5d76ea04221c",
+      "payload_checksums_sha256": "1890167d3edbb90a9bd07cdba9591606a1a743aa8e0bba6b45ea43f655ecb314",
+      "mips_test_report_sha256": "c8054c29f9327154ba5b25b5ffdc3c2cb6a82ef49608095204cb6aee4ab68a97",
+      "mips_cases_passed": 3
+    },
+    "factory": {
+      "image_sha256": "102e2f0c8d0532831a7baa8d36ec4648aed0717b7519883f10d60084df87399e",
+      "image_audit_sha256": "2c29e39d3daf8b40fc0455d9ba9f58d2127d65af6d9206290d2e6de9621f313c",
+      "payload_checksums_sha256": "beb25e4f1085ce70f4b8379d51a426a0438c9ba8b25959eae2cdd4f328b731f6",
+      "mips_test_report_sha256": "5fe88f2d86ac7443020c1eacc29a518aad42fe49bd408b3dafa7ca26685eeba1",
+      "mips_cases_passed": 3
+    }
+  },
+  "source_sha256": {
+    "target/linux/grx500/image/Makefile": "c271cf3d64392c552b2746d66c1de53a47f25d2803caea7065ecd35f3c735590",
+    "target/linux/grx500/image/append-sysupgrade-checksums.py": "729334363157988f17f9b151c82136fe17e74c06d864a3c1a929be6e524186af",
+    "target/linux/grx500/base-files/lib/upgrade/platform.sh": "4dad5e73290373bbcadda4d41e32b069012e85e3db774287875596f2220dfa60",
+    "target/linux/grx500/experimental/firmware-audit/verify-sysupgrade.py": "8474e105d87d47701456b39a47f1520a0210bdc93b0e1bccf77732450c194fcd",
+    "target/linux/grx500/experimental/firmware-audit/verify-factory-prerequisites.py": "215e8270b08b14909cccdfd584efb685a6feed39670002f576b91b95ec220178",
+    "target/linux/grx500/tests/test-upgrade.py": "c1594d1099cd1f7879fbee7f431289e95c93b4fd2d1b61001f3a744e3a520339",
+    "target/linux/grx500/tests/test-upgrade-checksums-mips.py": "9af4da87ac0f1658666ccedd5adc1dc5aa6949b4e808ad691fa78788ec689efe"
+  },
+  "scope": "Both rebuilt archives contain and verify per-payload SHA-256; real packaged MIPS BusyBox accepts each intact archive and rejects single-byte kernel/rootfs corruption. Native and MIPS upgrade tests also reject unexpected boot-environment geometry before environment or UBI access.",
+  "limitations": [
+    "Checksums detect accidental payload changes but are not authenticated signatures.",
+    "The MIPS test invokes the checksum predicate, not real UBI writes.",
+    "Physical NAND, boot, Ethernet, Wi-Fi and fallback remain untested."
+  ]
+}

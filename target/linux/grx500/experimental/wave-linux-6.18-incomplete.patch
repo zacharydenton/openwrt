@@ -1,0 +1,112 @@
+diff --git a/backport-include/asm/unaligned.h b/backport-include/asm/unaligned.h
+index 4e2a6a4..2790183 100644
+--- a/backport-include/asm/unaligned.h
++++ b/backport-include/asm/unaligned.h
+@@ -1,6 +1,10 @@
+ #ifndef __BACKPORT_ASM_GENERIC_UNALIGNED_H
+ #define __BACKPORT_ASM_GENERIC_UNALIGNED_H
++#if LINUX_VERSION_IS_GEQ(6,12,0)
++#include <linux/unaligned.h>
++#else
+ #include_next <asm/unaligned.h>
++#endif
+ 
+ #if LINUX_VERSION_IS_LESS(5,7,0)
+ static inline u32 __get_unaligned_be24(const u8 *p)
+diff --git a/backport-include/linux/net.h b/backport-include/linux/net.h
+index 0495328..9f909b6 100644
+--- a/backport-include/linux/net.h
++++ b/backport-include/linux/net.h
+@@ -4,10 +4,10 @@
+ #include <linux/static_key.h>
+ 
+ 
+-#ifndef SOCKWQ_ASYNC_NOSPACE
++#if LINUX_VERSION_IS_LESS(4,4,0)
+ #define SOCKWQ_ASYNC_NOSPACE   SOCK_ASYNC_NOSPACE
+ #endif
+-#ifndef SOCKWQ_ASYNC_WAITDATA
++#if LINUX_VERSION_IS_LESS(4,4,0)
+ #define SOCKWQ_ASYNC_WAITDATA   SOCK_ASYNC_WAITDATA
+ #endif
+ 
+diff --git a/backport-include/linux/timer.h b/backport-include/linux/timer.h
+index 69590bb..6968908 100644
+--- a/backport-include/linux/timer.h
++++ b/backport-include/linux/timer.h
+@@ -35,7 +35,7 @@ static inline void setup_deferrable_timer_key(struct timer_list *timer,
+ #define TIMER_DEFERRABLE	1
+ #endif
+ 
+-#ifndef from_timer
++#if LINUX_VERSION_IS_LESS(4,15,0)
+ #define TIMER_DATA_TYPE          unsigned long
+ #define TIMER_FUNC_TYPE          void (*)(TIMER_DATA_TYPE)
+ 
+@@ -67,4 +67,14 @@ static inline void timer_setup(struct timer_list *timer,
+ 		__TIMER_INITIALIZER(_function, 0, 0, 0)
+ #endif
+ 
++#ifndef from_timer
++#define from_timer(var, callback_timer, timer_fieldname) \
++	container_of(callback_timer, typeof(*var), timer_fieldname)
++#endif
++
++#if LINUX_VERSION_IS_GEQ(6,15,0)
++#define del_timer timer_delete
++#define del_timer_sync timer_delete_sync
++#endif
++
+ #endif /* _BACKPORT_TIMER_H */
+diff --git a/net/wireless/core.c b/net/wireless/core.c
+index a3a63ff..2cffd1e 100644
+--- a/net/wireless/core.c
++++ b/net/wireless/core.c
+@@ -150,9 +150,7 @@ int cfg80211_dev_rename(struct cfg80211_registered_device *rdev,
+ 		return result;
+ 
+ 	if (!IS_ERR_OR_NULL(rdev->wiphy.debugfsdir))
+-		debugfs_rename(rdev->wiphy.debugfsdir->d_parent,
+-			       rdev->wiphy.debugfsdir,
+-			       rdev->wiphy.debugfsdir->d_parent, newname);
++		debugfs_change_name(rdev->wiphy.debugfsdir, "%s", newname);
+ 
+ 	nl80211_notify_wiphy(rdev, NL80211_CMD_NEW_WIPHY);
+ 
+@@ -171,11 +169,11 @@ int cfg80211_switch_netns(struct cfg80211_registered_device *rdev,
+ 	list_for_each_entry(wdev, &rdev->wiphy.wdev_list, list) {
+ 		if (!wdev->netdev)
+ 			continue;
+-		wdev->netdev->features &= ~NETIF_F_NETNS_LOCAL;
++		wdev->netdev->netns_immutable = false;
+ 		err = dev_change_net_namespace(wdev->netdev, net, "wlan%d");
+ 		if (err)
+ 			break;
+-		wdev->netdev->features |= NETIF_F_NETNS_LOCAL;
++		wdev->netdev->netns_immutable = true;
+ 	}
+ 
+ 	if (err) {
+@@ -187,11 +185,11 @@ int cfg80211_switch_netns(struct cfg80211_registered_device *rdev,
+ 						     list) {
+ 			if (!wdev->netdev)
+ 				continue;
+-			wdev->netdev->features &= ~NETIF_F_NETNS_LOCAL;
++			wdev->netdev->netns_immutable = false;
+ 			err = dev_change_net_namespace(wdev->netdev, net,
+ 							"wlan%d");
+ 			WARN_ON(err);
+-			wdev->netdev->features |= NETIF_F_NETNS_LOCAL;
++			wdev->netdev->netns_immutable = true;
+ 		}
+ 
+ 		return err;
+@@ -1553,7 +1551,7 @@ static int cfg80211_netdev_notifier_call(struct notifier_block *nb,
+ 		SET_NETDEV_DEVTYPE(dev, &wiphy_type);
+ 		wdev->netdev = dev;
+ 		/* can only change netns with wiphy */
+-		dev->features |= NETIF_F_NETNS_LOCAL;
++		dev->netns_immutable = true;
+ 
+ 		cfg80211_init_wdev(wdev);
+ 		break;

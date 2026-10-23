@@ -1,0 +1,16 @@
+{
+  "schema": 1,
+  "hardware_tested": false,
+  "source_gate_passed": false,
+  "historical_reproduction": true,
+  "scope": "Actual enqueue, worker loop, invocation, enumeration and core completion; pthread locks, real free and a rendezvous model the kernel scheduling interleaving. No target kernel execution.",
+  "source_sha256": {
+    "wireless/driver/shared/mtlk_serializer.c": "9698ef5e84e174d032bc2b135abe72efaed847e555ecbd8455073db271290a77",
+    "wireless/driver/linux/core.c": "3ed4de8c2f95f62b48527b2aa8c838211c835d634b1e5ea8de17a1a591630ae4"
+  },
+  "cases": {
+    "completed_commands": 2,
+    "freed_command_observations": 2
+  },
+  "runner": "native ASan/UBSan"
+}

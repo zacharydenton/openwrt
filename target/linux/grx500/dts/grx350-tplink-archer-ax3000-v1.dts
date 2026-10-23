@@ -1,0 +1,38 @@
+// SPDX-License-Identifier: GPL-2.0-only
+/dts-v1/;
+
+#include "grx500.dtsi"
+#include "grx500-ethernet.dtsi"
+#include "grx500-pcie.dtsi"
+#include "grx500-usb.dtsi"
+#include "grx500-calibration.dtsi"
+#include "grx500-ax3000-leds-keys.dtsi"
+
+/ {
+	model = "TP-Link Archer AX3000 v1 (US)";
+	compatible = "tplink,archer-ax3000-v1", "intel,grx350", "intel,grx500", "lantiq,xrx500";
+
+	aliases {
+		serial0 = &asc0;
+	};
+
+	chosen {
+		bootargs = "console=ttyLTQ0,115200 earlycon=lantiq,0x16600000 clk_ignore_unused cma=32M";
+		stdout-path = "serial0:115200n8";
+	};
+
+	/*
+	 * Vendor AX3000 U-Boot configuration: 256 MiB DDR, mem=224M.
+	 * Stock SPL FMT1=0xfe002e00 maps bootcore to the upper 32 MiB
+	 * at physical 0x2e000000; Linux must not allocate that region.
+	 * The reference DTB's 480 MiB memory range does not describe this board.
+	 */
+	memory@20000000 {
+		device_type = "memory";
+		reg = <0x20000000 0x0e000000>;
+	};
+};
+
+&asc0 {
+	status = "okay";
+};

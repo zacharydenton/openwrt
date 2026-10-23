@@ -1,0 +1,68 @@
+--- a/wireless/driver/linux/mac80211.c
++++ b/wireless/driver/linux/mac80211.c
+@@ -1090,7 +1090,8 @@
+       WAVE_CORE_REQ_ACTIVATE_OPEN, &clpb, &aps, sizeof(aps));
+   res = _mtlk_df_user_process_core_retval(res, clpb,
+       WAVE_CORE_REQ_ACTIVATE_OPEN, TRUE);
+-  return _mtlk_df_mtlk_to_linux_error_code(res);
++  /* add_interface translates the WAVE result once at its return. */
++  return res;
+ }
+ 
+ /* Saves the mac addr from vif into pdb
+@@ -1227,19 +1228,50 @@
+     wv_iface_inf->mac80211_netdev_ops = netdev_p->netdev_ops;
+     netdev_p->netdev_ops = ops;
+ 
+-    /* set device MAC address */
+-    wv_set_mac_addr_pdb(wv_iface_inf->df_user, vif->addr);
+-
+     ASSERT(mac80211->vif_array != NULL);
+     wv_iface_inf->vif = vif;
+     mac80211->vif_array[wv_iface_inf->vap_index] = vif;
+ 
+-    /* Activate vif in FW */
+-    res = wv_activate_vif(wv_iface_inf->df_user);
++    /* A failed MAC write must not be treated as a usable station VAP. */
++    res = wv_set_mac_addr_pdb(wv_iface_inf->df_user, vif->addr);
++    if (MTLK_ERR_OK == res)
++      res = wv_activate_vif(wv_iface_inf->df_user);
+   MTLK_CLPB_FINALLY(res)
+     mtlk_clpb_delete(clpb);
+   MTLK_CLPB_END;
+ end:
++  if (MTLK_ERR_OK != res && wv_iface_inf->df_user) {
++    int rollback_res;
++    int retry_counter = 0;
++    mtlk_clpb_t *rollback_clpb = NULL;
++
++    /* mac80211 does not call remove_interface when add_interface fails.
++     * Only report the error after the new VAP is actually gone. */
++    mbss_cfg.vap_handle = mtlk_df_get_vap_handle(
++        mtlk_df_user_get_df(wv_iface_inf->df_user));
++    do {
++      rollback_res = _mtlk_df_user_invoke_core(master_df,
++          WAVE_RADIO_REQ_MBSS_DEL_VAP_NAME, &rollback_clpb,
++          &mbss_cfg, sizeof(mbss_cfg));
++      rollback_res = _mtlk_df_user_process_core_retval(rollback_res,
++          rollback_clpb, WAVE_RADIO_REQ_MBSS_DEL_VAP_NAME, TRUE);
++      if (MTLK_ERR_RETRY != rollback_res)
++        break;
++      mtlk_osal_msleep(50);
++    } while (++retry_counter < MAX_VAP_WAIT_RETRIES);
++
++    if (MTLK_ERR_OK == rollback_res) {
++      netdev_p->netdev_ops = wv_iface_inf->mac80211_netdev_ops;
++      mac80211->vif_array[wv_iface_inf->vap_index] = NULL;
++      wv_iface_inf->vif = NULL;
++      wv_iface_inf->df_user = NULL;
++    } else {
++      /* A live VAP still needs its mac80211 VIF and netdev. Retain driver
++       * ownership so a later remove_interface can retry its teardown. */
++      ELOG_D("Station VAP add rollback failed, error %d", rollback_res);
++      res = MTLK_ERR_OK;
++    }
++  }
+   /* Decrement ref-counted netdev */
+   dev_put(netdev_p);
+   return _mtlk_df_mtlk_to_linux_error_code(res);

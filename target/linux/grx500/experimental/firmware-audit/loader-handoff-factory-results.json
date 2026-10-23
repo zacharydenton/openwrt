@@ -1,0 +1,26 @@
+{
+  "passed": true,
+  "hardware_tested": false,
+  "startup_assembly_executed": false,
+  "kernel_booted": false,
+  "image_report_sha256": "0be42c78c0530915b5754ff757a80ef24bd97b670e610ea5a0139d6cb6b5b237",
+  "loader_elf_sha256": "f9e6bf192d97e20f321b8ac2dfe6b2d8771ce47bbacd98a743648fca15148373",
+  "loader_binary_sha256": "98dc386d767ce096d8618dd693cb22ea3fcad79684b5b5477e28b49d202bdb18",
+  "entry": "0xa4000000",
+  "linux_entry": "0xa0020000",
+  "linux_output_end_limit": "0xa3000000",
+  "loader_stack": "0xa3ff0000",
+  "payload_start": "0xa4000ca0",
+  "payload_end": "0xa43c1f35",
+  "loader_end_including_bss": "0xa43c8db0",
+  "startup_instructions_checked": 11,
+  "handoff_at": "0xa40001b4",
+  "negative_controls_rejected": [
+    "startup",
+    "handoff"
+  ],
+  "limitations": [
+    "Instruction/ABI inspection does not execute MIPS startup or prove cache state.",
+    "No physical boot, Ethernet, Wi-Fi, NAND or recovery is established."
+  ]
+}

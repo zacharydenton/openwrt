@@ -1,0 +1,15 @@
+--- a/wireless/driver/linux/cfg80211.c
++++ b/wireless/driver/linux/cfg80211.c
+@@ -1955,8 +1955,10 @@ wv_cfg80211_init_band (mtlk_handle_t hw_handle,
+   set_ampdu_density       (hw_handle, *cfg80211_band, band_str);
+   set_rx_stbc             (hw_handle, *cfg80211_band, band_str);
+   set_vht_support         (hw_handle, *cfg80211_band, band_str);
+-  set_vht_cap_160mhz      (hw_handle, *cfg80211_band, band_str);
+-  set_vht_160mhz_short_gi (hw_handle, *cfg80211_band, band_str);
++  if (cfg80211_band_template == &_cfg80211_band_5ghz) {
++    set_vht_cap_160mhz      (hw_handle, *cfg80211_band, band_str);
++    set_vht_160mhz_short_gi (hw_handle, *cfg80211_band, band_str);
++  }
+   set_he_support          (hw_handle, *cfg80211_band, cfg80211_band_template == &_cfg80211_band_5ghz, num_sts);
+ 
+   /* Initialize the list of supported channels */

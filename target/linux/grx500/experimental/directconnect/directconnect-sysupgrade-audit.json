@@ -1,0 +1,260 @@
+{
+  "image_sha256": "395f032038a75f5b61f8eabd6ff71c2e69362b082ee429dd57f590211fcf8781",
+  "kernel_sha256": "09054837145eabcf9642337dbd03af9f77f21ab6d4eab3cd3ed73b9f8f871ecc",
+  "rootfs_sha256": "01e9c219478eb87e76a6bd51c948226ca06d0e6c0157f1950ec58b33d623f57c",
+  "dtb_sha256": "bd2ef56582fc7ec1f3a98cd9ef75fc84202c1bcb5f716515be457db2b36ebac3",
+  "kernel_transport": {
+    "kind": "experimental-relocated-lzma",
+    "loader_elf_sha256": "2d12735960dad9d690ef170cc5bc80db23779d67ec7561f4fd73a29d1a989cb9",
+    "loader_sha256": "444bf6f91c8aa41c13da3e561826e70c15606ec1881cc6c8c48ba1903a353c59",
+    "inner_sha256": "3097b2128560a8d4f9206e44a8014e7e480a1bc0098dcf70883e23480abd6cfb",
+    "outer_destination": "0xa4000000",
+    "inner_destination": "0xa0020000",
+    "hardware_tested": false,
+    "limitation": "ELF binding and bounds do not execute startup or prove hardware boot"
+  },
+  "elf_sha256": "7d5e67df357240ac5c34cde05d57e264594e896d6c53e9fdd203718f5c9937f5",
+  "metadata": {
+    "metadata_version": "1.1",
+    "compat_version": "1.0",
+    "supported_devices": [
+      "tplink,archer-ax3000-v1"
+    ],
+    "version": {
+      "dist": "OpenWrt",
+      "version": "SNAPSHOT",
+      "revision": "r37576-63f702f1c0",
+      "target": "grx500/generic",
+      "board": "tplink_archer-ax3000-v1"
+    }
+  },
+  "rootfs_files": {
+    "lib/upgrade/platform.sh": "90960a2ab0af9640113989865b69f401e371099ffddd80a2205b46479738c6fb",
+    "etc/board.d/02_network": "2021c3d9fbd06a98d48e8b75d02e2c66f3df4e424eb36a4fc9a8341854aabbc8",
+    "lib/preinit/81_grx500_calibration": "b9162ff43c1c16f3627a6828878f6b5effd2e1421c44809ed1f95b6dcd81e3b1",
+    "lib/preinit/82_grx500_factory_mac": "9bfa9112b4f3a0044ce5ad835ef8a884883f3a4ed6f603fc0bd26fe3c13b070b",
+    "usr/sbin/grx500-check-ubi": "aa86275c2832b15ea86ddcf9f06a2b922bdc7e4fc93d985127e5eb6ef1f8cba4",
+    "usr/sbin/wpad": "aea390281185d27b479c2e25d942c7d5806abba30acdf47770e64cac33bfbfd9",
+    "lib/firmware/ap_ram_gen6_wrx_600_real_phy.bin": "1e4054dc053101048f85dc8d285f7bddb9ec4a847f6195ec319ed9521c215b7c",
+    "lib/modules/6.18.55/directconnect_datapath.ko": "f914db066c0679e33f534cb88795416f6633d17b2b56b828108d30fa82674ed2",
+    "lib/modules/6.18.55/dc_mode-hw.ko": "d2181a03e225e39f1dd75cc936a772d96c115124ff41a4fa7c56826326aef4b0",
+    "etc/modules.d/50-directconnect-grx500": "b319728c2720644d7362440f77537db62f2d38dccd2bb769c5d37f15457cc7a3",
+    "etc/modules.d/60-iwlwav-stock": "3a691e0172c47bdcba05606c3c3bc2742e9eafb9a40aab23eae1694b5975f2a4"
+  },
+  "clock_provider": {
+    "status": "pass",
+    "dtb_sha256": "bd2ef56582fc7ec1f3a98cd9ef75fc84202c1bcb5f716515be457db2b36ebac3",
+    "provider_sha256": "f6557f1c6ad1a0a87843e96565b01deb107cb22d5d05b19000d36e395cc42888",
+    "registered_ids": [
+      1,
+      2,
+      3,
+      4,
+      11,
+      12,
+      13,
+      14,
+      21,
+      22,
+      23,
+      24,
+      33,
+      107,
+      108,
+      111,
+      112,
+      114,
+      115,
+      116,
+      117,
+      123,
+      124,
+      125,
+      126,
+      127,
+      128,
+      150,
+      151,
+      152,
+      153
+    ],
+    "required_gates": {
+      "GCLK_CBM": {
+        "id": 111,
+        "status": 288,
+        "enable": 292,
+        "disable": 296,
+        "bit": 9
+      },
+      "GCLK_EBU": {
+        "id": 112,
+        "status": 288,
+        "enable": 292,
+        "disable": 296,
+        "bit": 10
+      },
+      "GCLK_PAE": {
+        "id": 123,
+        "status": 288,
+        "enable": 292,
+        "disable": 296,
+        "bit": 26
+      },
+      "GCLK_USB1": {
+        "id": 124,
+        "status": 288,
+        "enable": 292,
+        "disable": 296,
+        "bit": 27
+      },
+      "GCLK_GSWIP": {
+        "id": 125,
+        "status": 288,
+        "enable": 292,
+        "disable": 296,
+        "bit": 28
+      }
+    },
+    "references": [
+      {
+        "consumer": "/cpus/cpu@0",
+        "provider": "/clock-controller@16200000",
+        "id": 150,
+        "name": "CLK_CPU"
+      },
+      {
+        "consumer": "/cpus/cpu@1",
+        "provider": "/clock-controller@16200000",
+        "id": 150,
+        "name": "CLK_CPU"
+      },
+      {
+        "consumer": "/cpus/cpu@2",
+        "provider": "/clock-controller@16200000",
+        "id": 150,
+        "name": "CLK_CPU"
+      },
+      {
+        "consumer": "/cpus/cpu@3",
+        "provider": "/clock-controller@16200000",
+        "id": 150,
+        "name": "CLK_CPU"
+      },
+      {
+        "consumer": "/serial@16600000",
+        "provider": "/clock-controller@16200000",
+        "id": 13,
+        "name": "CLK_SSX4"
+      },
+      {
+        "consumer": "/serial@16600000",
+        "provider": "/clock-controller@16200000",
+        "id": 117,
+        "name": "GCLK_UART"
+      },
+      {
+        "consumer": "/cbm@1e700000",
+        "provider": "/clock-controller@16200000",
+        "id": 11,
+        "name": "CLK_CBM"
+      },
+      {
+        "consumer": "/cbm@1e700000",
+        "provider": "/clock-controller@16200000",
+        "id": 111,
+        "name": "GCLK_CBM"
+      },
+      {
+        "consumer": "/switch@1c000000/gsw_core@0",
+        "provider": "/clock-controller@16200000",
+        "id": 22,
+        "name": "CLK_GSWIP"
+      },
+      {
+        "consumer": "/switch@1c000000/gsw_core@0",
+        "provider": "/clock-controller@16200000",
+        "id": 125,
+        "name": "GCLK_GSWIP"
+      },
+      {
+        "consumer": "/switch@1a000000/gsw_core@0",
+        "provider": "/clock-controller@16200000",
+        "id": 21,
+        "name": "CLK_PAE"
+      },
+      {
+        "consumer": "/switch@1a000000/gsw_core@0",
+        "provider": "/clock-controller@16200000",
+        "id": 123,
+        "name": "GCLK_PAE"
+      },
+      {
+        "consumer": "/pcie@18900000",
+        "provider": "/clock-controller@16200000",
+        "id": 126,
+        "name": "GCLK_PCIE0"
+      },
+      {
+        "consumer": "/pcie@18400000",
+        "provider": "/clock-controller@16200000",
+        "id": 127,
+        "name": "GCLK_PCIE1"
+      },
+      {
+        "consumer": "/pcie@18e00000",
+        "provider": "/clock-controller@16200000",
+        "id": 128,
+        "name": "GCLK_PCIE2"
+      },
+      {
+        "consumer": "/usb@1a500000",
+        "provider": "/clock-controller@16200000",
+        "id": 124,
+        "name": "GCLK_USB1"
+      },
+      {
+        "consumer": "/nand@16f00000",
+        "provider": "/clock-controller@16200000",
+        "id": 112,
+        "name": "GCLK_EBU"
+      }
+    ],
+    "compiled_branch_table": {
+      "address": "0x60c986f8",
+      "bytes": 2268,
+      "sha256": "79c3a159704108e44917d9c031d820a9cbc4059fa89ad6dbc035ab097b1efc03",
+      "registered_ids": [
+        11,
+        12,
+        13,
+        14,
+        21,
+        22,
+        23,
+        24,
+        33,
+        107,
+        108,
+        111,
+        112,
+        114,
+        115,
+        116,
+        117,
+        123,
+        124,
+        125,
+        126,
+        127,
+        128,
+        150,
+        151,
+        152,
+        153
+      ],
+      "status": "pass"
+    }
+  },
+  "hardware_tested": false,
+  "limitation": "Integrity and ingredient checks do not establish boot or flash compatibility."
+}

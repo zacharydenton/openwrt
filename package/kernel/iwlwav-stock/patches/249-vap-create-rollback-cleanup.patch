@@ -1,0 +1,20 @@
+--- a/wireless/driver/linux/mtlk_vap_manager.c
++++ b/wireless/driver/linux/mtlk_vap_manager.c
+@@ -35,6 +35,7 @@
+     BOOL is_master,
+     struct net_device *ndev);
+ 
++static void _mtlk_vap_cleanup (mtlk_vap_handle_t vap_handle);
+ #define MAX_BSS_COUNT        5
+ 
+ typedef enum {
+@@ -278,6 +278,9 @@
+   res_value = _wave_vap_manager_txmm_txdm_set(vap_handle);
+   if (MTLK_ERR_OK != res_value) {
+     ELOG_V("Failed to set txmm-txdm for VAP");
++    /* _mtlk_vap_init already created the DF and may have registered its
++     * netdev. Roll those resources back before freeing their VAP handle. */
++    _mtlk_vap_cleanup(vap_handle);
+     mtlk_osal_mem_free(vap_handle);
+     return res_value;
+   }

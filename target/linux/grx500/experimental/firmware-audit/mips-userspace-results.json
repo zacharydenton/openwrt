@@ -1,0 +1,773 @@
+{
+  "hardware_tested": false,
+  "kernel_executed": false,
+  "emulator_sha256": "8d02f418b92f4ddf984ed8352954b0067d1a5cd810d38247aaf5f0fddc31c42e",
+  "images": {
+    "software": {
+      "image_sha256": "8188afe90c104bc8b1ffd88a216c33f9f701dc7fbe040f6c3e604305d545466e",
+      "rootfs_sha256": "02f0e590a32a55befdbdaecb7559bf573d554a2db95c7de5ce44a3f26141b6a5",
+      "busybox_sha256": "d57eafed62b524c529c1fc52b967a18acaa4071e145fd915ce0034fd9bfe30d3",
+      "factory_helper_sha256": "3f0051031de6ce629329565aa3c2a83e5fd8b031724cf9515f2a5fc0ed8f4210"
+    },
+    "directconnect": {
+      "image_sha256": "6e8279a7a7c6ed03a12235eb3085c816dfcb9f2e72c0262423ea0c8046d61c1c",
+      "rootfs_sha256": "01e9c219478eb87e76a6bd51c948226ca06d0e6c0157f1950ec58b33d623f57c",
+      "busybox_sha256": "d57eafed62b524c529c1fc52b967a18acaa4071e145fd915ce0034fd9bfe30d3",
+      "factory_helper_sha256": "3f0051031de6ce629329565aa3c2a83e5fd8b031724cf9515f2a5fc0ed8f4210"
+    }
+  },
+  "cases": [
+    {
+      "variant": "software",
+      "case": "hostapd-loader",
+      "argv": [
+        "/usr/sbin/hostapd",
+        "-v"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "890ffa708f386c961bac8b5b2e521433989dfbc3313ea785dc74d034c40ec783"
+    },
+    {
+      "variant": "software",
+      "case": "iw-loader",
+      "argv": [
+        "/usr/sbin/iw",
+        "--version"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "95391775d2729aa2b71abb5cf90cc392ac14d2229bb8a8b80a38e597ce663945",
+      "strace_sha256": "dc72cc903f8c827b57d71c199f04bd058c158ad95194a2f5b76ef3427c394a94"
+    },
+    {
+      "variant": "software",
+      "case": "jshn-loader",
+      "argv": [
+        "/usr/bin/jshn",
+        "-r",
+        "{\"band\":\"5g\",\"up\":true}"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "46d9434e69efd9d1da17c79c9d2b623befa33adbd4e05237756265045a4b62e2",
+      "strace_sha256": "213f59d4c11f0301cf137d78fdc7d4a3a169dfcc400e3eed08d1dc3af91180a3"
+    },
+    {
+      "variant": "software",
+      "case": "fw-printenv-loader",
+      "argv": [
+        "/usr/sbin/fw_printenv",
+        "--help"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "315d501fdf7494eb9ae6067849b29ed0019f7d095d2f96a3596d693f403b0a22"
+    },
+    {
+      "variant": "software",
+      "case": "he-wire",
+      "argv": [
+        "/work/he-test"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "180af65706477420f6cde0cda6679cec4618fd5d419cc00518caa8aedbbf0b8d",
+      "strace_sha256": "173cc6846ff17904323caa14897af99b21d0f1affb875ff1bb10b2dd65965aa2"
+    },
+    {
+      "variant": "software",
+      "case": "mac-raw",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "5bfd4448d8c8e306faeed170596bbe29448a284e55d94411810847b99c047a82",
+      "strace_sha256": "285e8c5890514b954d2f9a9ab0a5cdbc08bac56accb326e14886a958da26c774"
+    },
+    {
+      "variant": "software",
+      "case": "mac-text-dash",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "5bfd4448d8c8e306faeed170596bbe29448a284e55d94411810847b99c047a82",
+      "strace_sha256": "22aad64787c2805411b21e510235a34658b7d24f8107631baf554c2c62789f13"
+    },
+    {
+      "variant": "software",
+      "case": "mac-text-colon",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "5bfd4448d8c8e306faeed170596bbe29448a284e55d94411810847b99c047a82",
+      "strace_sha256": "8ca1782576ebfe6d82245dbfa3775884bfafcb803888e75ffc3091e2d632bbaa"
+    },
+    {
+      "variant": "software",
+      "case": "mac-zero",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "4a6321d32387b02c57b93be32fdbad7ff1ba4d24b4b12f694c4d402aff8f2849"
+    },
+    {
+      "variant": "software",
+      "case": "mac-multicast",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "73dbb9340a1fb30b9e5ba08082c9ed012540ea19aaad20f7b6688f4113247ba6"
+    },
+    {
+      "variant": "software",
+      "case": "mac-broadcast",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "fbe1ee7ab0748925ec8b96f653c3d7d117b3e0571578e90866b0444cf80ad717"
+    },
+    {
+      "variant": "software",
+      "case": "mac-shared-fallback",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "688f7e6570548c1b240e8a229572d509242b4cd7562a66444080cd929fdf1433"
+    },
+    {
+      "variant": "software",
+      "case": "mac-missing-prefix",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "29eee2a46f91dfb82b6ff663123b328e99582eeba3ef4c5921f0ac79c908fb33"
+    },
+    {
+      "variant": "software",
+      "case": "mac-trailing-junk",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "1456d04661462ae2f9040dcd0957d0aa567ce0aa76f5c012977b3d9262400dec"
+    },
+    {
+      "variant": "software",
+      "case": "mac-invalid-hex",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "ea7fb46186f577b8ce5ed680a03390281d2757386dffc0a8b4a203098c47bc67"
+    },
+    {
+      "variant": "software",
+      "case": "mac-mixed-separator",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "57c05d043d0d293c31384c4dea976f0760296db19b55cf49be6ec6db0e885056"
+    },
+    {
+      "variant": "software",
+      "case": "mac-oversized",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "b47a8801145601ec85bc4dbe3098a7ba9d0428435f3b8775c5797ed071306d01"
+    },
+    {
+      "variant": "software",
+      "case": "wan-increment",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_wan_mac 10:aa:bb:cc:dd:fe"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "378c8b626fff5ac7250452c6b39c22ab9cb43d0ffd8a8fd2770e9cb4b441f5b4",
+      "strace_sha256": "4f6f551718bfddd15dd324211244cd728c1932367f3833531d1f57d784691df1"
+    },
+    {
+      "variant": "software",
+      "case": "wan-carry",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_wan_mac 10:aa:bb:cc:dd:ff"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "d42b77132e3b35478f1fec8046fa6734437da0181e93fb46d20a82006d8361da",
+      "strace_sha256": "4f6f551718bfddd15dd324211244cd728c1932367f3833531d1f57d784691df1"
+    },
+    {
+      "variant": "software",
+      "case": "wan-oui-wrap",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_wan_mac 10:aa:bb:ff:ff:ff"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "e55e054da490b8196ca76f6118a8f14da88f8fdec762dc250d40ff81704ed63e",
+      "strace_sha256": "4f6f551718bfddd15dd324211244cd728c1932367f3833531d1f57d784691df1"
+    },
+    {
+      "variant": "software",
+      "case": "ubi-fixture-valid",
+      "argv": [
+        "/work/ubi-test",
+        "/work/input.bin"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "91c7f829f9f26747b44df599444a9df5dede843519b86863edc87caf90f5d980"
+    },
+    {
+      "variant": "software",
+      "case": "ubi-fixture-blank",
+      "argv": [
+        "/work/ubi-test",
+        "/work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "edb208b65b5a8500403cb3133d39feb617f08d7f6ebe6a87c13059cccfe71ba6"
+    },
+    {
+      "variant": "software",
+      "case": "ubi-fixture-bad-crc",
+      "argv": [
+        "/work/ubi-test",
+        "/work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "edb208b65b5a8500403cb3133d39feb617f08d7f6ebe6a87c13059cccfe71ba6"
+    },
+    {
+      "variant": "software",
+      "case": "ubi-fixture-no-data",
+      "argv": [
+        "/work/ubi-test",
+        "/work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "50e894c494f9c8e5ca48796f313e15e1918e43ec5da79f4b790f6b1efe7e9448"
+    },
+    {
+      "variant": "software",
+      "case": "ubi-fixture-no-bank",
+      "argv": [
+        "/work/ubi-test",
+        "/work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "50e894c494f9c8e5ca48796f313e15e1918e43ec5da79f4b790f6b1efe7e9448"
+    },
+    {
+      "variant": "software",
+      "case": "installed-ubi-refuses-regular-file",
+      "argv": [
+        "/usr/sbin/grx500-check-ubi",
+        "/work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "823e6cffaaf7cc692d62aa59e3497cfb9eaceb2f447d2a90570ff0684fc39aac"
+    },
+    {
+      "variant": "directconnect",
+      "case": "hostapd-loader",
+      "argv": [
+        "/usr/sbin/hostapd",
+        "-v"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "890ffa708f386c961bac8b5b2e521433989dfbc3313ea785dc74d034c40ec783"
+    },
+    {
+      "variant": "directconnect",
+      "case": "iw-loader",
+      "argv": [
+        "/usr/sbin/iw",
+        "--version"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "95391775d2729aa2b71abb5cf90cc392ac14d2229bb8a8b80a38e597ce663945",
+      "strace_sha256": "dc72cc903f8c827b57d71c199f04bd058c158ad95194a2f5b76ef3427c394a94"
+    },
+    {
+      "variant": "directconnect",
+      "case": "jshn-loader",
+      "argv": [
+        "/usr/bin/jshn",
+        "-r",
+        "{\"band\":\"5g\",\"up\":true}"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "46d9434e69efd9d1da17c79c9d2b623befa33adbd4e05237756265045a4b62e2",
+      "strace_sha256": "213f59d4c11f0301cf137d78fdc7d4a3a169dfcc400e3eed08d1dc3af91180a3"
+    },
+    {
+      "variant": "directconnect",
+      "case": "fw-printenv-loader",
+      "argv": [
+        "/usr/sbin/fw_printenv",
+        "--help"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "315d501fdf7494eb9ae6067849b29ed0019f7d095d2f96a3596d693f403b0a22"
+    },
+    {
+      "variant": "directconnect",
+      "case": "he-wire",
+      "argv": [
+        "/work/he-test"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "180af65706477420f6cde0cda6679cec4618fd5d419cc00518caa8aedbbf0b8d",
+      "strace_sha256": "173cc6846ff17904323caa14897af99b21d0f1affb875ff1bb10b2dd65965aa2"
+    },
+    {
+      "variant": "directconnect",
+      "case": "mac-raw",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "5bfd4448d8c8e306faeed170596bbe29448a284e55d94411810847b99c047a82",
+      "strace_sha256": "77bd0741351f3559b718c5fc7a5d4ad5ad35f14df873bc077c4b5a0bdac60469"
+    },
+    {
+      "variant": "directconnect",
+      "case": "mac-text-dash",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "5bfd4448d8c8e306faeed170596bbe29448a284e55d94411810847b99c047a82",
+      "strace_sha256": "bec2e0a2afbcc593f472acb75042c10d788f7bf679c9725d0854e723b463bdda"
+    },
+    {
+      "variant": "directconnect",
+      "case": "mac-text-colon",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "5bfd4448d8c8e306faeed170596bbe29448a284e55d94411810847b99c047a82",
+      "strace_sha256": "b79ebd560d0717d1a3551a3f6fc39270e20d74580229a2ae76e483de65933400"
+    },
+    {
+      "variant": "directconnect",
+      "case": "mac-zero",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "2f3eb61667bbd73c04efaf4c229afdd7223cc15ea2f78a4965022138f98c50a2"
+    },
+    {
+      "variant": "directconnect",
+      "case": "mac-multicast",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "616137797731412cff786431b7152837b5de0974468b4c066fd186f6d2b0f024"
+    },
+    {
+      "variant": "directconnect",
+      "case": "mac-broadcast",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "c6f5a3d7bf885f462fc343341b96253a935fd34f90ca5721b0566a3817ce62ba"
+    },
+    {
+      "variant": "directconnect",
+      "case": "mac-shared-fallback",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "642b3bbda2f6981263463420e752054e58ba4bb477ec2924e55c8b3bd5f2f846"
+    },
+    {
+      "variant": "directconnect",
+      "case": "mac-missing-prefix",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "2e9604328d93036965ef30a91f6aba4ca04259d4f2957f02a5b32f3cc82be762"
+    },
+    {
+      "variant": "directconnect",
+      "case": "mac-trailing-junk",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "ff78fb8e92fedb5313baf5755bf26124382c6a9a11c63a210863cfc4b06ad7c0"
+    },
+    {
+      "variant": "directconnect",
+      "case": "mac-invalid-hex",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "55c4392710dbfb72cc39cff642404aefe5a4e04a58d4fea2fcb8821efce4325c"
+    },
+    {
+      "variant": "directconnect",
+      "case": "mac-mixed-separator",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "d436e06ad7c44da237f811bf41196c789337f86ac3d5c12df3da6dec94752f95"
+    },
+    {
+      "variant": "directconnect",
+      "case": "mac-oversized",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_parse_mac /work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "784515f8dc194da289bc3b0559873eb81ccbfacf919812195acef765d9979fa3"
+    },
+    {
+      "variant": "directconnect",
+      "case": "wan-increment",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_wan_mac 10:aa:bb:cc:dd:fe"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "378c8b626fff5ac7250452c6b39c22ab9cb43d0ffd8a8fd2770e9cb4b441f5b4",
+      "strace_sha256": "4f6f551718bfddd15dd324211244cd728c1932367f3833531d1f57d784691df1"
+    },
+    {
+      "variant": "directconnect",
+      "case": "wan-carry",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_wan_mac 10:aa:bb:cc:dd:ff"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "d42b77132e3b35478f1fec8046fa6734437da0181e93fb46d20a82006d8361da",
+      "strace_sha256": "4f6f551718bfddd15dd324211244cd728c1932367f3833531d1f57d784691df1"
+    },
+    {
+      "variant": "directconnect",
+      "case": "wan-oui-wrap",
+      "argv": [
+        "/bin/busybox",
+        "sh",
+        "-c",
+        "wc() { /qemu /bin/busybox wc \"$@\"; }; hexdump() { /qemu /bin/busybox hexdump \"$@\"; }; awk() { /qemu /bin/busybox awk \"$@\"; }; . /lib/functions/grx500-factory.sh; grx500_factory_wan_mac 10:aa:bb:ff:ff:ff"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "e55e054da490b8196ca76f6118a8f14da88f8fdec762dc250d40ff81704ed63e",
+      "strace_sha256": "4f6f551718bfddd15dd324211244cd728c1932367f3833531d1f57d784691df1"
+    },
+    {
+      "variant": "directconnect",
+      "case": "ubi-fixture-valid",
+      "argv": [
+        "/work/ubi-test",
+        "/work/input.bin"
+      ],
+      "exit_code": 0,
+      "expected_exit_code": 0,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "91c7f829f9f26747b44df599444a9df5dede843519b86863edc87caf90f5d980"
+    },
+    {
+      "variant": "directconnect",
+      "case": "ubi-fixture-blank",
+      "argv": [
+        "/work/ubi-test",
+        "/work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "edb208b65b5a8500403cb3133d39feb617f08d7f6ebe6a87c13059cccfe71ba6"
+    },
+    {
+      "variant": "directconnect",
+      "case": "ubi-fixture-bad-crc",
+      "argv": [
+        "/work/ubi-test",
+        "/work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "edb208b65b5a8500403cb3133d39feb617f08d7f6ebe6a87c13059cccfe71ba6"
+    },
+    {
+      "variant": "directconnect",
+      "case": "ubi-fixture-no-data",
+      "argv": [
+        "/work/ubi-test",
+        "/work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "50e894c494f9c8e5ca48796f313e15e1918e43ec5da79f4b790f6b1efe7e9448"
+    },
+    {
+      "variant": "directconnect",
+      "case": "ubi-fixture-no-bank",
+      "argv": [
+        "/work/ubi-test",
+        "/work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "50e894c494f9c8e5ca48796f313e15e1918e43ec5da79f4b790f6b1efe7e9448"
+    },
+    {
+      "variant": "directconnect",
+      "case": "installed-ubi-refuses-regular-file",
+      "argv": [
+        "/usr/sbin/grx500-check-ubi",
+        "/work/input.bin"
+      ],
+      "exit_code": 1,
+      "expected_exit_code": 1,
+      "passed": true,
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "strace_sha256": "823e6cffaaf7cc692d62aa59e3497cfb9eaceb2f447d2a90570ff0684fc39aac"
+    }
+  ],
+  "fixture_source_sha256": {
+    "/home/zach/code/openwrt/package/kernel/iwlwav-stock/tests/he-wire.c": "8a8ba5f8742de9de668ba7cf7095e02d6d5d925cd7ea65c83617d34c61675d43",
+    "/home/zach/code/openwrt/build_dir/target-mips_24kc_musl/linux-grx500_generic/iwlwav-stock-6.0.8.0.87.0.7/wireless/driver/linux/wave_he_compat.h": "680eb8b64c6a343c77a71f8068f8245e6ec0a12a889fa799e192c073080c22f2",
+    "/home/zach/code/openwrt/package/utils/grx500-factory/src/grx500-check-ubi.c": "0032caf02e7ccdef5305413de1f9b9d930ca01362ce7f74f0f22e758165c390d"
+  },
+  "fixture_elf_sha256": {
+    "he-test": "b31e3e1f334fd346ed372275cdbaa7703c394cd0b8e183d0d05198a7c33d8f73",
+    "ubi-test": "a1940bf2b120ec9d3d72ef44b29c52852e1752a37741ed26b14f9d2b3d32d01c"
+  },
+  "harness_sha256": "aca93d7edcdd5c9e974408408015bbc1035efa415145082cb497f57391fb41c1",
+  "passed": true,
+  "limitations": [
+    "Userspace ABI/serialization checks only; no GRX500 hardware model.",
+    "UBI fixture executables replace MTD ioctls with synthetic file geometry.",
+    "hostapd/iw version probes do not start radios or exercise nl80211."
+  ]
+}

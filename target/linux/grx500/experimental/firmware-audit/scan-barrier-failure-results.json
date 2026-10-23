@@ -1,0 +1,57 @@
+{
+  "schema": 1,
+  "hardware_tested": false,
+  "release_gate_passed": false,
+  "known_failure_reproduced": true,
+  "scope": "Actual invocation and radio quiesce functions; modeled allocations, dispatch and pending work. No kernel or firmware execution.",
+  "source_sha256": {
+    "mtlk_df_linux.c": "362264ad00517635f97dd5ec67697e110d0f2b5a89976cda98b4619b14e5b9e2",
+    "wave_radio.c": "eda83591e14fd90705dc6182d78e7bf64c22a72dcdc2248f3d236f89a4dc7cc3",
+    "core.c": "7b7ff30a47a7a36dffd012472ac3a7edd0fcabe07d7e27f20839c209d9ccccae"
+  },
+  "cases": [
+    {
+      "case": "ordinary",
+      "queued_channel_at_return": false,
+      "active_scan_at_return": false,
+      "barrier_submitted": true,
+      "unsafe_return": false
+    },
+    {
+      "case": "clipboard-allocation",
+      "queued_channel_at_return": true,
+      "active_scan_at_return": true,
+      "barrier_submitted": false,
+      "unsafe_return": true
+    },
+    {
+      "case": "clipboard-copy-allocation",
+      "queued_channel_at_return": true,
+      "active_scan_at_return": true,
+      "barrier_submitted": false,
+      "unsafe_return": true
+    },
+    {
+      "case": "command-context-allocation",
+      "queued_channel_at_return": true,
+      "active_scan_at_return": true,
+      "barrier_submitted": false,
+      "unsafe_return": true
+    },
+    {
+      "case": "recovery-readiness",
+      "queued_channel_at_return": true,
+      "active_scan_at_return": true,
+      "barrier_submitted": false,
+      "unsafe_return": true
+    },
+    {
+      "case": "disabled-ability",
+      "queued_channel_at_return": false,
+      "active_scan_at_return": true,
+      "barrier_submitted": true,
+      "unsafe_return": true
+    }
+  ],
+  "reversed_patch_sha256": "4f3daad1d5776ab48e9a0ed5ab239b46eff21f6432438eef0d0bcc7264d22e7e"
+}

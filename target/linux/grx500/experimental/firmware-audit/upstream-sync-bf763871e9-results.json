@@ -1,0 +1,52 @@
+{
+  "schema": 1,
+  "upstream_commit": "bf763871e981e88a9d3f717d2473f6b9478984fb",
+  "upstream_change": "generic Linux 6.18 config: disable RAVE_SP_CORE",
+  "builds": {
+    "development": {
+      "base_commit": "bf763871e981e88a9d3f717d2473f6b9478984fb",
+      "full_build_exit_code": 0,
+      "initramfs_static_prerequisites_met": true,
+      "sysupgrade_checks_passed": true,
+      "sysupgrade_sha256": "3f2cf00ed3b91c472a5cfb2738aff25f8229ab42f975d990cf360e3572036375",
+      "hardware_tested": false
+    },
+    "factory": {
+      "base_commit": "bf763871e981e88a9d3f717d2473f6b9478984fb",
+      "full_build_exit_code": 0,
+      "initramfs_static_prerequisites_met": true,
+      "sysupgrade_checks_passed": true,
+      "sysupgrade_sha256": "1df83237cfecf766a9ef6e69580487e45b77595247b773ed53e082750d9a7de6",
+      "hardware_tested": false
+    },
+    "directconnect": {
+      "base_commit": "bf763871e981e88a9d3f717d2473f6b9478984fb",
+      "full_build_exit_code": 0,
+      "initramfs_static_prerequisites_met": true,
+      "sysupgrade_checks_passed": true,
+      "sysupgrade_sha256": "2cdcf80e76426cab36a0d2661fc95fd8c1b22d95f212f2f9e6c7169d49f556a9",
+      "hardware_tested": false
+    }
+  },
+  "factory_candidate": {
+    "path": "/home/zach/code/archer-ax3000-bringup/bf763871e9-UNAPPROVED-factory.bin",
+    "sha256": "66c5bdd34ff114871af60a401e0402e8595d49f0f5984cf8046d652945c9dde1",
+    "bytes": 9040259,
+    "factory_prerequisites_passed": true,
+    "stock_checker_writer_cases_passed": 16,
+    "stock_web_route_passed": true,
+    "source_parity_matching_inputs": 356,
+    "hardware_tested": false,
+    "upload_recommended": false
+  },
+  "audit_fixes": [
+    "verify-sysupgrade.py now marks successful reports with checks_passed=true for the source-parity gate",
+    "verify-stock-web-route.py now binds the real writer report cases and candidate digest"
+  ],
+  "remaining_limits": [
+    "Stock emulator uses pinned US 1.0.6 firmware, not a version read from the user router.",
+    "No physical boot, Ethernet packet flow, Wi-Fi association, flash write, fallback or recovery test.",
+    "No hardware watchdog is enabled in the factory kernel, so early boot hang may not trigger fallback.",
+    "Recovery initiation can snapshot VAP pointers while interface deletion is in progress; synchronization remains under audit."
+  ]
+}

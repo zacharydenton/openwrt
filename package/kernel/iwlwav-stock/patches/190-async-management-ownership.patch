@@ -1,0 +1,204 @@
+--- a/wireless/driver/linux/core.c
++++ b/wireless/driver/linux/core.c
+@@ -4168,6 +4168,11 @@
+                                  mtp->no_cck, mtp->dont_wait_for_ack, FALSE, /* unicast */
+                                mtp->cookie, mtp->extra_processing, mtp->skb,
+                                FALSE, NTS_TID_USE_DEFAULT);
++
++    /* A successful low-level submission has consumed the packet even when
++     * no TX-status cookie was requested. The async completion owns failures. */
++    if (res == MTLK_ERR_OK && mtp->async_skb_owner)
++      *mtp->async_skb_owner = NULL;
+ 
+     if (res != MTLK_ERR_OK) {
+       ILOG1_DSDDS("CID-%04x: Send %s frame error: type=%d, res=%d (%s)",
+--- a/wireless/driver/linux/mac80211.c
++++ b/wireless/driver/linux/mac80211.c
+@@ -455,6 +455,28 @@
+   return FALSE;
+ }
+ 
++/* The serializer copies mgmt_tx_params, not objects referenced by it. Keep
++ * both the cookie and packet ownership alive until request completion. */
++struct wave_sta_tx_request {
++  struct ieee80211_hw *hw;
++  struct sk_buff *skb;
++  uint64 cookie;
++};
++
++static void __MTLK_IFUNC
++wave_sta_tx_request_done(mtlk_handle_t handle, int result, mtlk_clpb_t *clpb)
++{
++  struct wave_sta_tx_request *request = HANDLE_T_PTR(struct wave_sta_tx_request, handle);
++
++  MTLK_UNREFERENCED_PARAM(result);
++  MTLK_UNREFERENCED_PARAM(clpb);
++  /* Core clears the owner only after the submission accepts/consumes it.
++   * This also covers allocation failure, cancellation and early filtering. */
++  if (request->skb)
++    ieee80211_free_txskb(request->hw, request->skb);
++  kfree(request);
++}
++
+ static void _wv_ieee80211_op_tx (struct ieee80211_hw *hw,
+   struct ieee80211_tx_control *control, struct sk_buff *skb)
+ {
+@@ -467,7 +489,7 @@
+   struct wv_vif_priv *wv_iface_inf;
+   mtlk_df_user_t *df_user;
+   struct mgmt_tx_params mtp;
+-  u64 cookie;
++  struct wave_sta_tx_request *request;
+   int in_chan;
+ 
+   if (!netif_running(skb->dev)) {
+@@ -502,16 +524,24 @@
+   else
+     mtp.extra_processing = PROCESS_MANAGEMENT;
+ 
++  request = kzalloc(sizeof(*request), GFP_ATOMIC);
++  if (!request)
++    goto drop;
++  request->hw = hw;
++  request->skb = skb;
++
+   mtp.buf = skb->data;
+   mtp.len = skb->len;
+   mtp.channum = in_chan;
+-  mtp.cookie = &cookie;
++  mtp.cookie = &request->cookie;
++  mtp.async_skb_owner = &request->skb;
+   mtp.no_cck = info->flags & IEEE80211_TX_CTL_NO_CCK_RATE;
+   mtp.dont_wait_for_ack = info->flags & IEEE80211_TX_CTL_NO_ACK;
+   mtp.skb = skb;
+ 
+   _mtlk_df_user_invoke_core_async(mtlk_df_user_get_df(df_user),
+-       WAVE_CORE_REQ_MGMT_TX, &mtp, sizeof(mtp), NULL, 0);
++       WAVE_CORE_REQ_MGMT_TX, &mtp, sizeof(mtp),
++       wave_sta_tx_request_done, HANDLE_T(request));
+   return;
+ 
+ drop:
+--- a/wireless/driver/linux/mtlk_df_linux.c
++++ b/wireless/driver/linux/mtlk_df_linux.c
+@@ -392,7 +392,7 @@
+ err_clpb_create:
+   mtlk_osal_mem_free(invocation_context);
+ err_ctx_alloc:
+-  if(MTLK_ERR_OK != res)
++  if (MTLK_ERR_OK != res && clb)
+   {
+     clb(ctx, res, NULL);
+   }
+--- a/wireless/driver/shared/hw_mmb.c
++++ b/wireless/driver/shared/hw_mmb.c
+@@ -11705,26 +11705,9 @@
+   return MTLK_ERR_OK;
+ 
+ frame_drop:
+-  ILOG0_V("Frame dropped");
+-  if (!dont_wait_for_ack)
+-  {
+-    if (mtlk_vap_is_ap(vap_handle))
+-    {
+-      mtlk_df_t *df = mtlk_vap_get_df(vap_handle);
+-      mtlk_df_user_t *df_user = mtlk_df_get_user(df);
+-      struct wireless_dev *wdev = mtlk_df_user_get_wdev(df_user);
+-      MTLK_ASSERT(NULL != wdev);
+-      cfg80211_mgmt_tx_status(wdev,local_cookie,buf,len,TRUE,GFP_ATOMIC);
+-    }
+-    else
+-    {
+-      struct ieee80211_hw *mac80211_hw = wave_radio_ieee80211_hw_get(radio);
+-      MTLK_ASSERT(NULL != mac80211_hw);
+-      MTLK_ASSERT(NULL != skb);
+-      wv_ieee80211_tx_status(mac80211_hw, skb, FALSE);
+-    }
+-  }
+-  return MTLK_ERR_OK;
++  /* No descriptor or cookie was allocated. Report rejection and leave the
++   * packet with the caller instead of acknowledging an unsent frame. */
++  return MTLK_ERR_NOT_HANDLED;
+ }
+ 
+ int
+@@ -11850,46 +11833,30 @@
+ 
+   wave_bss_tx_unmap(hw, bss_req);
+ 
+-  if (PROCESS_MANAGEMENT == bss_req->extra_processing)
+-  {
+-    if (bss_req->cookie)
+-    {
+-      if (mtlk_vap_is_ap(vap_handle))
+-      { /* if the userspace app is waiting for the TX status to be reported */
+-        wdev = mtlk_df_user_get_wdev(df_user); /* this checks df_user */
+-        MTLK_ASSERT(NULL != wdev);
+-        cfg80211_mgmt_tx_status(wdev, bss_req->cookie, bss_req->virt_addr, bss_req->size,
+-                                (BOOL)status, GFP_ATOMIC);
+-      }
+-      else
+-      {
+-        struct ieee80211_hw *mac80211_hw = wave_radio_ieee80211_hw_get(radio);
+-        ILOG2_D("handle bss mgmt cfm status = %u", status);
+-        MTLK_ASSERT(NULL != mac80211_hw);
+-        wv_ieee80211_tx_status(mac80211_hw, bss_req->skb, status);
+-        bss_req->skb = NULL;
+-      }
+-    }
+-  }
+-
+-  if (PROCESS_NULL_DATA_PACKET == bss_req->extra_processing)
+-  {
+-    if (mtlk_vap_is_ap(vap_handle))
+-    {
++  if (mtlk_vap_is_ap(vap_handle)) {
++    if (PROCESS_MANAGEMENT == bss_req->extra_processing && bss_req->cookie) {
++      wdev = mtlk_df_user_get_wdev(df_user);
++      MTLK_ASSERT(NULL != wdev);
++      cfg80211_mgmt_tx_status(wdev, bss_req->cookie, bss_req->virt_addr,
++                              bss_req->size, (BOOL)status, GFP_ATOMIC);
++    }
++    if (PROCESS_NULL_DATA_PACKET == bss_req->extra_processing) {
+       cfg80211_probe_status(ndev, wifi_header->dst_addr.au8Addr, bss_req->cookie,
+                             (BOOL)status, 0, false, GFP_ATOMIC);
+     }
+-    else
+-    {
+-      if (bss_req->cookie && bss_req->skb)
+-      {
+-        struct ieee80211_hw *mac80211_hw = wave_radio_ieee80211_hw_get(radio);
+-        ILOG2_D("handle bss null data packet cfm status = %u", status);
+-        MTLK_ASSERT(NULL != mac80211_hw);
+-        wv_ieee80211_tx_status(mac80211_hw, bss_req->skb, status);
+-        bss_req->skb = NULL;
+-      }
+-    }
++  }
++
++  /* Cookie zero means no requested ACK report, not no packet ownership.
++   * Consume every accepted station skb before the descriptor is reused. */
++  if (bss_req->skb) {
++    if (!mtlk_vap_is_ap(vap_handle)) {
++      struct ieee80211_hw *mac80211_hw = wave_radio_ieee80211_hw_get(radio);
++      MTLK_ASSERT(NULL != mac80211_hw);
++      wv_ieee80211_tx_status(mac80211_hw, bss_req->skb, status);
++    } else {
++      dev_kfree_skb_any(bss_req->skb);
++    }
++    bss_req->skb = NULL;
+   }
+ 
+   /* Note that we don't use the tx_res_bdr.lock but the tx_bdr.lock,
+--- a/wireless/driver/shared/mtlk_coreui.h
++++ b/wireless/driver/shared/mtlk_coreui.h
+@@ -1312,6 +1312,9 @@
+   int dont_wait_for_ack;
+   uint32 extra_processing;
+   mtlk_nbuf_t *skb;
++  /* Optional ownership slot, valid through async request completion.
++   * Set to NULL by core only when the lower layer consumes skb. */
++  mtlk_nbuf_t **async_skb_owner;
+ };
+ 
+ 

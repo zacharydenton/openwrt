@@ -1,0 +1,15 @@
+config USB_DWC3_GRX500
+	bool "Intel GRX500 DWC3 host integration"
+	depends on INTEL_MIPS && USB_DWC3=y
+	select PHY_GRX500_USB
+	select MFD_SYSCON
+	help
+	  GRX500 host clock and AXI endian integration for the DWC3 core.
+
+config PHY_GRX500_USB
+	bool "Intel GRX500 USB PHY"
+	depends on INTEL_MIPS && OF && GPIOLIB && RESET_CONTROLLER
+	select GENERIC_PHY
+	select MFD_SYSCON
+	help
+	  GRX500 USB PHY reset, VBUS power and hardware overcurrent recovery.

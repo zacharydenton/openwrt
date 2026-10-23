@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "status": "Scan cancellation and removal drain built and statically verified; hardware qualification and one-shot stock-web safety incomplete.",
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "new_factory_container": false,
+  "changes": [
+    "Register mac80211 hardware-scan cancellation callback",
+    "Abort and prevent each radio scan before wiphy removal",
+    "Complete aborted scans on removal even during firmware fatal recovery",
+    "Reject failed prestart scans instead of reporting them accepted for recovery",
+    "Skip firmware channel restoration while removing a radio, but release local scan resources"
+  ],
+  "tests": {
+    "scan_native_asan_ubsan": 12,
+    "scan_mips": 12,
+    "teardown_native": 556,
+    "teardown_mips": 556,
+    "bss_native_and_mips": 78,
+    "async_ownership_native_and_mips": 58,
+    "station_request_concurrency_native_and_mips": 18,
+    "scope": "Actual selected C functions with modeled timer, serializer, DMA and kernel leaves; no physical router."
+  },
+  "build": {
+    "clean_wireless_package": "pass",
+    "integrated_openwrt": "pass",
+    "exact_patch_reconstruction": "pass",
+    "initramfs_elf_binding": "pass",
+    "sysupgrade_elf_binding": "pass",
+    "packaged_module_exact_current_build": "pass",
+    "compiled_ro_bootloader_environment_calibration": "pass",
+    "weak_ordering_irq_fence": "pass",
+    "factory_trial_in_current_kernel": false
+  },
+  "sha256": {
+    "patch": "e99d17278d4ee2f9f6ef5371f596a860c8e82bf437b83aedb83b0431b45f00b8",
+    "scan_test": "7e5e25dbadd73f2041b695969388a45d48e9d3fbfd82ca259fa4657f10aef011",
+    "teardown_test": "a9fd2c16bd7481b25f9d78acca1ce9811af8c5aa8bc0a1300b45499f03b7ebd5",
+    "module": "2f064e99a7fb9e18afe80788df4736f5f23813c6eb4697419101b6130912614d",
+    "kernel_config": "8a7db47d826ce756da5d343508358b60013bfe223fd8bb6f2f3589b0fce34be2",
+    "initramfs": "4574ed0ee50be8e70bda412250e47a1a0dbbc7463b03e21c743a5dadfa988503",
+    "sysupgrade": "696c7a58799981c47ee89c3ac10050ad8804e58aebacfe4af3e8401a3c0982f1",
+    "package_build_log": "d3edf6c76138075fbf621a8a11ad5620d0043a88688ffb14307aa39cb52ed755",
+    "integrated_build_log": "a3fe8f236d254e855837db1794631b68d4264247423a59a594012b0b377cfb0c",
+    "initramfs_check": "fbca9ff52cfe9b0f1a58dd19f22c9378340477e42169b3f0aa60c9e5624a28ff",
+    "sysupgrade_check": "48aaa31f0616d21344f63c9e0b40ff2f42c2f917e5a53d11e2076cf4575fc833",
+    "content_check": "699bc2150dfea7e2b9ae4645b1a96733ee3760d5e426c34c48792e9e0ec571a2",
+    "ordering_check": "6c8407c8ac6663913541a34eb8d0b96d3b6b1878f3a8e9a11eaf4b3b526fc0ad"
+  },
+  "remaining": [
+    "Command callbacks and other cross-interface work lifetime audit",
+    "Physical boot, each Ethernet port, both Wi-Fi radios and full stock features",
+    "NAND power-loss and reliable serial-free early-hang fallback",
+    "Stock-web factory container and hardware-validated safe installation"
+  ]
+}

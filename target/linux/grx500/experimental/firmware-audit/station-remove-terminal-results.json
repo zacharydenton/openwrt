@@ -1,0 +1,87 @@
+{
+  "schema": 2,
+  "base_commit": "bf46a5077ea14291164b145f62efcaf7d67a8f8a",
+  "date": "2026-10-23",
+  "status": "Known station remove_interface recovery-timeout, retry-exhaustion, and unavailable-master lifetime paths are source-level corrected; hardware qualification remains outstanding.",
+  "hardware_tested": false,
+  "release_gate": {
+    "station_removal_source_gate_passed": true,
+    "full_device_release_gate_passed": false,
+    "upload_recommended": false
+  },
+  "patch": {
+    "path": "package/kernel/iwlwav-stock/patches/254-station-remove-deferred-lifetime.patch",
+    "sha256": "2bb348be03796c8a460589399671057192cd1bd7fb6dc0f5a08fe8f6782a5278"
+  },
+  "prepared_source": {
+    "mac80211_c_sha256": "2d59801033b69e5257e699c4fb47da2f951fb7b1fd6891571947988e3ed44ca0",
+    "mtlk_df_user_c_sha256": "da1c90587df1fe1c8a48a57e09478fb8e699abf79eb26696050e07ee9a1f91dc"
+  },
+  "station_remove_test": {
+    "path": "package/kernel/iwlwav-stock/tests/station-remove-lifetime.py",
+    "sha256": "bf855c00e0664f3765438d69676cd0a9c025fdfebe3d2b656197f690cd5aa486",
+    "compiler": "native cc with ASan and UBSan",
+    "exit_code": 0,
+    "cases": {
+      "recovery_timeout": "PASS: VIF unpublished, VAP deferred, independent netdev reference retained and later released",
+      "delete_retry_exhausted": "PASS: 600 retries, VIF unpublished, VAP deferred and later deleted",
+      "master_unavailable": "PASS: no early published-VIF return; deletion deferred until master is available",
+      "ordinary_delete": "PASS: immediate VAP and netdev-reference release",
+      "worker_shutdown": "PASS: worker cancelled; final VAP ownership remains with manager teardown"
+    }
+  },
+  "full_host_suite": {
+    "python_test_scripts": 26,
+    "exit_code": 0,
+    "sanitizers": "ASan/UBSan where provided by each harness",
+    "scope": "Extracted production functions plus modeled kernel, serializer, DMA, workqueue, firmware and callback leaves; not a running target kernel."
+  },
+  "package_build": {
+    "command": "make package/kernel/iwlwav-stock/compile V=s -j4",
+    "exit_code": 0,
+    "kernel": "6.18.55",
+    "architecture": "mips_24kc",
+    "mtlk_ko_sha256": "e2ec8df04a1d7d0ef404ca73db543091a55915a61bb1f97fa45220f4c240a6e6",
+    "mtlkroot_ko_sha256": "a08ee89dd58208b0e114348a3859446a2cfb6da66af4832ccb79019242087cef",
+    "package_sha256": "7d9dc4a487388d0bfa28cbc74c8ff572d8ac00f372cd4ce054dca762e96990da"
+  },
+  "development_image_build": {
+    "command": "make -j4",
+    "exit_code": 0,
+    "initramfs": {
+      "path": "bin/targets/grx500/generic/openwrt-grx500-generic-tplink_archer-ax3000-v1-initramfs-kernel.bin",
+      "bytes": 8628210,
+      "sha256": "2f36b8c1d64af1e33a45dd34ebfecb21e85ee7ce3eec664700451f7893a84f1d",
+      "audit": "current-image-audit.json",
+      "audit_sha256": "79cef6701899fe1e4c613fe6d85b336725219bf7e6f9db81a11034544c6b3f05",
+      "audit_result": "pass"
+    },
+    "sysupgrade": {
+      "path": "bin/targets/grx500/generic/openwrt-grx500-generic-tplink_archer-ax3000-v1-squashfs-sysupgrade.bin",
+      "bytes": 9052445,
+      "sha256": "a066360d245facf6a3409a3e319b525e7c07b7154e101371b6e06d079453a19c",
+      "audit": "current-sysupgrade-audit.json",
+      "audit_sha256": "cc712cdd310911e60c6e62035350f6e89ee447306ec18fd6b12b5d76ea04221c",
+      "audit_result": "pass"
+    },
+    "scope": "Static image integrity, kernel/loader ELF binding, metadata and rootfs content; no hardware execution."
+  },
+  "supersedes": {
+    "previous_expected_failure": "recovery timeout and delete retry exhaustion returned with live VAP lifetime tied to discarded VIF/netdev state",
+    "patch_253_limit": "unused tasklet VIF reader was removed, but remaining VIF readers and terminal VAP ownership were not yet closed"
+  },
+  "factory_candidate": {
+    "rebuilt_with_patch_254": false,
+    "development_images_rebuilt_with_patch_254": true,
+    "hardware_tested": false,
+    "upload_recommended": false
+  },
+  "remaining_release_gates": [
+    "Physical boot and module load/unload on Archer AX3000(US) v1.6",
+    "Station add/remove during real firmware recovery and scan contention",
+    "Ethernet forwarding and simultaneous 2.4/5 GHz Wi-Fi association and traffic",
+    "Flash-write, trial acceptance, reset and stock-bank fallback",
+    "Hardware watchdog or another demonstrated early-boot recovery mechanism",
+    "Verification of the user's installed stock firmware against the pinned US image"
+  ]
+}

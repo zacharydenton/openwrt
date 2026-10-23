@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "base_commit": "bf763871e981e88a9d3f717d2473f6b9478984fb",
+  "patch251_sha256": "91a99615ffb55d9f9113eb253dfba8de9aaec4b0fe9de168d328cbc53e255989",
+  "fault_test_sha256": "34a4132cc61b66b212dd166846b46237df349851ecb0669e4e9b69dc7ef8820b",
+  "prepared_mac80211_c_sha256": "74a156f579186f54bc9995fc4963feedb3480f99467e96986933cdfafc2e189b",
+  "prepared_core_c_sha256": "c92689b3f814d18945f6ef7f9ddd3240e7bd68961915da0078567c2accda9531",
+  "fault_test": {
+    "compiler": "native cc with ASan and UBSan",
+    "static_mips_qemu": "six cases passed",
+    "patched_cases_passed": 6,
+    "unpatched_vendor_failure_cases": 3,
+    "unpatched_vendor_control_cases_passed": 3
+  },
+  "builds": {
+    "development": {
+      "full_build_exit_code": 0,
+      "module_sha256": "e269029ddef689f5609f4d66e1d1da3687427f0e0413aafc7205177dc740ae83",
+      "image_audit_sha256": "853bd3cd6bdfe5f948957da62a0e1802986302012bb80932d0eac29d16e6dac5",
+      "sysupgrade_sha256": "49afd2d8c569be6647e0245251229d6c24f12c369367d892c2f63c7d4b9eccff"
+    },
+    "factory": {
+      "full_build_exit_code": 0,
+      "module_sha256": "92987c17dd241e05c3839a2b926463dc979264fcd7a838c7b9d9a34564d0399f",
+      "image_audit_sha256": "b83ae04c92f955c058b54e2b44c19f3dbeb425c34c89612c0ccd55723cbe3c9a",
+      "sysupgrade_sha256": "2dd74b756d67451e0f728872578e0e133486e6df63d1dd30bfa691a24011e802",
+      "first_boot_prerequisites_sha256": "6a637c37418326081ec03afa936c63cf1045866a5ae2d2096302b8b0bf2e176f"
+    },
+    "directconnect": {
+      "full_build_exit_code": 0,
+      "module_sha256": "debadab5a063267b01b72cf4034554429d845eded6106642d27291b77c80d489",
+      "image_audit_sha256": "fdc7f8dd779be7dcecc201a2721b0601d713413b5347e129414afa43a446a9df",
+      "sysupgrade_sha256": "be07a0cc77c42c2d66af6b5c34960e5f68a73d419e7f561e5c0d99d5a6551425"
+    }
+  },
+  "factory_source_parity": {
+    "matching_build_inputs": 358,
+    "report_sha256": "64e93b8012f1e1a3dbc9b4ce824beaffe39df884b6aee051466d81e624ebc48f"
+  },
+  "factory_candidate": {
+    "path": "/home/zach/code/archer-ax3000-bringup/bf763871e9-lock251b-UNAPPROVED-factory.bin",
+    "sha256": "e3ad575bda26966d966f0ccb87feb5e91c44778f1a8bd2caf47e7b5ad17daafb",
+    "bytes": 9041283,
+    "stock_checker_writer_cases_passed": 16,
+    "stock_checker_writer_report_sha256": "c7e508130869f0ab2a281cb26daeca786f44c490464ee20b2e1c8595ee9acf4b",
+    "stock_web_route": "passed",
+    "stock_web_route_report_sha256": "68d0e30064a2bca0bf044146bced5c2a845f02679fbf83b113c65a7b44bb11f7",
+    "hardware_tested": false,
+    "upload_recommended": false
+  },
+  "superseded_in_current_source_by": "Patch 254; this report and its image artifacts predate deferred station VAP/netdev ownership.",
+  "unresolved": [
+    "These historical patch-251 image artifacts still contain the old station remove_interface lifetime paths.",
+    "No physical boot, Ethernet, Wi-Fi, flash-write, bank fallback or recovery test.",
+    "Factory kernel has no enabled hardware watchdog for an early boot hang.",
+    "The user's exact installed stock firmware version remains unverified."
+  ]
+}

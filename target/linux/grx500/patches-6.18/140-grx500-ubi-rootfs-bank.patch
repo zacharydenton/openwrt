@@ -1,0 +1,42 @@
+--- a/drivers/mtd/ubi/block.c
++++ b/drivers/mtd/ubi/block.c
+@@ -46,6 +46,21 @@
+ #include "ubi-media.h"
+ #include "ubi.h"
+ 
++/* AX3000 stock U-Boot selects the active A/B volume by name, not ID.
++ * Other targets retain OpenWrt's normal rootfs volume convention.
++ */
++static char grx500_rootfs_name[8] = "rootfs";
++
++static int __init grx500_rootfs_setup(char *name)
++{
++	if (!IS_ENABLED(CONFIG_INTEL_MIPS))
++		return 0;
++	if (!strcmp(name, "rootfsA") || !strcmp(name, "rootfsB"))
++		strscpy(grx500_rootfs_name, name, sizeof(grx500_rootfs_name));
++	return 1;
++}
++__setup("rootfsname=", grx500_rootfs_setup);
++
+ /* Maximum number of supported devices */
+ #define UBIBLOCK_MAX_DEVICES 32
+ 
+@@ -433,7 +448,7 @@
+ 		 dev->ubi_num, dev->vol_id, vi->name);
+ 	mutex_unlock(&devices_mutex);
+ 
+-	if (!strcmp(vi->name, "rootfs") &&
++	if (!strcmp(vi->name, grx500_rootfs_name) &&
+ 	    IS_ENABLED(CONFIG_MTD_ROOTFS_ROOT_DEV) &&
+ 	    ROOT_DEV == 0) {
+ 		pr_notice("ubiblock: device ubiblock%d_%d (%s) set to be root filesystem\n",
+@@ -602,7 +617,7 @@
+ 	int ret, is_ubifs;
+ 	struct ubi_volume_desc *desc;
+ 
+-	if (strcmp(vi->name, "rootfs") &&
++	if (strcmp(vi->name, grx500_rootfs_name) &&
+ 	    strcmp(vi->name, "fit"))
+ 		return;
+ 

@@ -1,0 +1,22 @@
+#!/bin/sh
+
+. /lib/functions/uci-defaults.sh
+
+board_config_update
+
+case "$(board_name)" in
+tplink,archer-ax3000-v1)
+	ucidef_set_interfaces_lan_wan "lan1 lan2 lan3 lan4" "wan"
+	ucidef_set_country US
+	. /lib/functions/grx500-factory.sh
+	if mac="$(grx500_factory_parse_mac /tmp/grx500-factory-mac)"; then
+		ucidef_set_interface_macaddr "lan" "$mac"
+		ucidef_set_interface_macaddr "wan" "$(grx500_factory_wan_mac "$mac")"
+		ucidef_set_label_macaddr "$mac"
+	fi
+	;;
+esac
+
+board_config_flush
+
+exit 0

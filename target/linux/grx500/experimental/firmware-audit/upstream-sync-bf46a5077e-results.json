@@ -1,0 +1,58 @@
+{
+  "schema": 1,
+  "upstream_commit": "bf46a5077ea14291164b145f62efcaf7d67a8f8a",
+  "previous_commit": "bf763871e981e88a9d3f717d2473f6b9478984fb",
+  "driver_patch": "253-drop-unused-ndp-vif-reader.patch",
+  "upstream_change_scope": [
+    "package/kernel/linux/modules/sound.mk",
+    "target/linux/airoha/an7581/config-6.18",
+    "target/linux/airoha/an7581/target.mk",
+    "target/linux/airoha/image/an7581.mk"
+  ],
+  "development": {
+    "full_build_exit_code": 0,
+    "initramfs_static_prerequisites_met": true,
+    "initramfs_sha256": "7a065288d89fba93f8087e3f0c64a6cb51179df87042f84a676d660ecac4958d",
+    "sysupgrade_checks_passed": true,
+    "sysupgrade_sha256": "60dd1c99099768132880b1d4434da1a22f80c8b0412f73767720dedaf203b7dd"
+  },
+  "factory": {
+    "full_build_exit_code": 0,
+    "initramfs_static_prerequisites_met": true,
+    "initramfs_sha256": "501cfeaa77878ed43b06ac1306b5e30c3320b6671f300c828f021bc7624d36b8",
+    "sysupgrade_checks_passed": true,
+    "sysupgrade_sha256": "399a6c6df5e17a0eb5151271082f802334913babca54a37ef7d27b560299b4dd",
+    "first_boot_prerequisites_passed": true,
+    "matching_development_build_inputs": 360
+  },
+  "directconnect": {
+    "full_build_exit_code": 0,
+    "initramfs_static_prerequisites_met": true,
+    "initramfs_sha256": "5ceee223720c3cf0504667d7ae6d55c102b24f58faf85637323ab28717825c49",
+    "sysupgrade_checks_passed": true,
+    "sysupgrade_sha256": "d7b902d4989e8f21b9544ebb276bf54cdf3fb8d3f8c2518b7bf627f6df712139"
+  },
+  "factory_candidate": {
+    "path": "/home/zach/code/archer-ax3000-bringup/artifacts/upstream-sync-bf46a5077e-p253/bf46a5077e-p253-UNAPPROVED-factory.bin",
+    "sha256": "45b842d733bd333de56a3126c3cfe3c780f1b58983603962334931468a921eaf",
+    "bytes": 9040235,
+    "pinned_stock_firmware": "AX3000(US) 1.0.6 230831",
+    "stock_checker_writer_cases_passed": 16,
+    "exact_stock_lua_route_passed": true,
+    "exact_stock_uhttpd_ingress_passed": true,
+    "hardware_tested": false,
+    "upload_recommended": false
+  },
+  "rea_bootloader_recheck": {
+    "rea_commit": "630e6becdf3114ca57818c17b36700355ad9696e",
+    "node_version": "24.22.1",
+    "four_stock_uboot_outputs_match_previous_evidence": true,
+    "bound_loader_and_bootargs_checks_passed": true,
+    "negative_controls_passed": true,
+    "report_sha256": "70ba2ee6b0c62b5c69d93c98cea1c95f9b3fdabc53a27c5e98366ab9802e7909"
+  },
+  "detailed_reports": "/home/zach/code/archer-ax3000-bringup/artifacts/upstream-sync-bf46a5077e-p253",
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "blocking_issue": "station removal can leave a live VAP with stale netdev ownership or a published VIF after recovery timeout or deletion retry exhaustion"
+}

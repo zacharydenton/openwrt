@@ -1,0 +1,62 @@
+{
+  "schema": 1,
+  "base_commit": "bf763871e981e88a9d3f717d2473f6b9478984fb",
+  "patch250_sha256": "25d103bcacef0c7f4d166e18e9b6303b2b925b1fae915d741f33c2fe0858f204",
+  "test_sha256": "e22e6eddb8930981bf1cd4be9a90c28923744fba471fe08a20b9eb846e81ddfd",
+  "recovery_vap_change_gate": {
+    "all_four_mbss_requests_guarded": true,
+    "recovery_snapshot_and_queue_guarded": true,
+    "native_asan_ubsan": "passed",
+    "mips_qemu": "passed",
+    "physical_recovery_tested": false
+  },
+  "builds": {
+    "development": {
+      "base_commit": "bf763871e981e88a9d3f717d2473f6b9478984fb",
+      "full_build_exit_code": 0,
+      "image_static_prerequisites_met": true,
+      "sysupgrade_checks_passed": true,
+      "sysupgrade_sha256": "ace7c0b3eb8e019f3af7d926bfbb0928e2c952e17653296ca06b33833b3f0c1e",
+      "mtlk_module_sha256": "efade3792b49305a3a4c8e8d58443ff1ce6a70e7a47ae6df3851a2ff3f5f4434",
+      "race_harness_native": "passed",
+      "hardware_tested": false
+    },
+    "factory": {
+      "base_commit": "bf763871e981e88a9d3f717d2473f6b9478984fb",
+      "full_build_exit_code": 0,
+      "image_static_prerequisites_met": true,
+      "sysupgrade_checks_passed": true,
+      "sysupgrade_sha256": "e7b1dc2c516587ca676190c7c12232aef72e2d7a922642bafcb9ce0705b92024",
+      "mtlk_module_sha256": "54dce1c5321f90b1a9a78ab6026120138826b4a46b29c00edf7a194f64464e84",
+      "race_harness_native": "passed",
+      "hardware_tested": false
+    },
+    "directconnect": {
+      "base_commit": "bf763871e981e88a9d3f717d2473f6b9478984fb",
+      "full_build_exit_code": 0,
+      "image_static_prerequisites_met": true,
+      "sysupgrade_checks_passed": true,
+      "sysupgrade_sha256": "af02cd39ee275795ff130a2ac0344c42e8d1e53dd45d47e299c6508933ff6ac9",
+      "mtlk_module_sha256": "6fa986270d9e905bd6fff610f4beea15c17c86f07a73289fc5f4d6c8fed00ee7",
+      "race_harness_native": "passed",
+      "hardware_tested": false
+    }
+  },
+  "factory_candidate": {
+    "path": "/home/zach/code/archer-ax3000-bringup/bf763871e9-lock250-UNAPPROVED-factory.bin",
+    "sha256": "968fa9686bea0f97c9db9987e2ce4263e711179ffc13f89ce7207877ba90d36e",
+    "bytes": 9042307,
+    "static_first_boot_prerequisites": "passed",
+    "stock_checker_writer_cases_passed": 16,
+    "stock_web_route": "passed",
+    "matching_factory_source_inputs": 357,
+    "hardware_tested": false,
+    "upload_recommended": false
+  },
+  "remaining_limits": [
+    "No physical boot, Ethernet forwarding, Wi-Fi association, flash write, bank fallback or recovery evidence.",
+    "Station remove_interface has a void return and can leave a VAP if its recovery wait or MBSS delete exceeds its retry budget; this path remains under audit.",
+    "Factory kernel has no enabled hardware watchdog; an early boot hang may not reset into stock fallback.",
+    "Pinned US 1.0.6 stock firmware may differ from the user router installation."
+  ]
+}

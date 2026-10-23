@@ -1,0 +1,9 @@
+# SPDX-License-Identifier: GPL-2.0-only
+# Board DTBs are appended by the OpenWrt image builder.
+
+source "arch/mips/intel-mips/Kconfig.ethernet"
+source "arch/mips/intel-mips/Kconfig.pcie"
+
+source "arch/mips/intel-mips/Kconfig.nand"
+
+source "arch/mips/intel-mips/Kconfig.usb"

@@ -1,0 +1,144 @@
+{
+  "schema": 1,
+  "base_commit": "bf46a5077ea14291164b145f62efcaf7d67a8f8a",
+  "date": "2026-10-23",
+  "status": "GRX500 RX and TX raw debug dumps are now bounded by the skb linear head and an optional print cap; hardware execution remains outstanding.",
+  "hardware_tested": false,
+  "release_gate": {
+    "source_and_build_gate_passed": true,
+    "physical_datapath_gate_passed": false,
+    "upload_recommended": false
+  },
+  "primary_source": {
+    "repository": "https://gitlab.com/prpl-foundation/intel/linux.git",
+    "ref": "ugw-8.5.2",
+    "archive_sha256": "88308b69462ab4a664e88718f006717125e8ca1aa3b921853c91f651e2611232",
+    "patch": "ugw_linux_patches/0738-DRVLIB-SW-2625-Fix-DP-module-coding-style-with-code-.patch",
+    "patch_sha256": "8d53317cf579a79dc7dfc671d84367898fb788e554f40b50ae1c7b99735a7bfd",
+    "evidence": [
+      "the zero-port RX dump requests the larger of skb length and print length",
+      "the common TX dump passes total skb length with a raw skb data pointer",
+      "the coding-style patch caps only the initial RX dump"
+    ]
+  },
+  "source": {
+    "helper": {
+      "path": "target/linux/grx500/files/drivers/net/datapath/dpm/datapath.h",
+      "sha256": "79b46977eae2213af837548ff69186129ede6d0fe53a89d41e306f537fade229",
+      "function": "dp_skb_dump_len"
+    },
+    "rx": {
+      "path": "target/linux/grx500/files/drivers/net/datapath/dpm/gswip30/datapath_rx.c",
+      "sha256": "a16b32aa79e1f6f009591ab1cbda1282e0f052da46ed2c6f559d2bb59b2ac73d",
+      "sites": 3
+    },
+    "tx": {
+      "path": "target/linux/grx500/files/drivers/net/datapath/dpm/datapath_tx.c",
+      "sha256": "eae89637b90f970755557dcfc69e77591802528a9cd0eb935c5d9cc4786669b9",
+      "sites": 1
+    },
+    "before": [
+      "the zero-port RX error path always selected a length at least as large as both skb->len and dp_print_len",
+      "RX and TX raw-pointer dumps could use nonlinear total skb length"
+    ],
+    "after": [
+      "all raw skb data dumps stop at skb_headlen",
+      "an offset at or beyond the linear head produces a zero-byte dump",
+      "a positive print length caps the remaining linear bytes",
+      "a non-positive print length preserves a full dump of an ordinary linear skb"
+    ]
+  },
+  "test": {
+    "path": "target/linux/grx500/tests/test-datapath-debug-dump.py",
+    "sha256": "97d1ea02a9946e80d801d26199b846a6498c4a5e8c17b6718160dbc3276d9e96",
+    "compiler": "native GCC with ASan/UBSan and -Wall -Wextra -Werror",
+    "production_code_extracted": "dp_skb_dump_len",
+    "exit_code": 0,
+    "cases": 11,
+    "coverage": [
+      "zero and negative limits",
+      "smaller, equal and larger positive limits",
+      "inside, exact-end and beyond-end offsets",
+      "nonlinear logical length larger than the allocated linear head",
+      "three RX and one TX production call-site binding"
+    ]
+  },
+  "full_grx500_native_suite": {
+    "zero_argument_scripts": 15,
+    "exit_code": 0,
+    "enumerated_cases": 252192,
+    "results": {
+      "boot_bank": "pass with ASan/UBSan",
+      "cbm_rx_cases": 18957,
+      "cbm_tx_cases": 165906,
+      "datapath_debug_dump_cases": 11,
+      "datapath_rx_accounting_cases": 7,
+      "ethernet_flow_control_cases": 7,
+      "ethernet_mac_cases": 6,
+      "ethernet_rx_cases": 16,
+      "ethtool_nway_cases": 5,
+      "ethtool_pause_cases": 16,
+      "mtu_cases": 19183,
+      "mtu_switch_cases": 48047,
+      "trial_cases": 14,
+      "trial_worker_cases": 8,
+      "upgrade_cases": 9
+    }
+  },
+  "kernel_build": {
+    "command": "make target/linux/compile V=s -j4",
+    "exit_code": 0,
+    "kernel": "6.18.55",
+    "architecture": "mips_24kc",
+    "copied_sources_match": true,
+    "objects": {
+      "rx": {
+        "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/drivers/net/datapath/dpm/gswip30/datapath_rx.o",
+        "bytes": 47488,
+        "sha256": "c064ff24e5fb75eb1ed188a89bfb914b1363fbffe9e8ef9db83caa7eac7317c9"
+      },
+      "tx": {
+        "path": "build_dir/target-mips_24kc_musl/linux-grx500_generic/linux-6.18.55/drivers/net/datapath/dpm/datapath_tx.o",
+        "bytes": 31268,
+        "sha256": "12f40190b772cb00fb76f9dfb83804c0f1626fac2d9a3a2426664f27a5b20eef"
+      }
+    },
+    "disassembly": [
+      "RX and TX compute skb len minus data_len before raw data dumps",
+      "offset exhaustion selects a zero length",
+      "positive dp_print_len values select the unsigned minimum"
+    ]
+  },
+  "development_image_build": {
+    "command": "make -j4",
+    "exit_code": 0,
+    "initramfs": {
+      "path": "bin/targets/grx500/generic/openwrt-grx500-generic-tplink_archer-ax3000-v1-initramfs-kernel.bin",
+      "bytes": 8628210,
+      "sha256": "2f36b8c1d64af1e33a45dd34ebfecb21e85ee7ce3eec664700451f7893a84f1d",
+      "audit": "current-image-audit.json",
+      "audit_sha256": "79cef6701899fe1e4c613fe6d85b336725219bf7e6f9db81a11034544c6b3f05",
+      "audit_result": "pass"
+    },
+    "sysupgrade": {
+      "path": "bin/targets/grx500/generic/openwrt-grx500-generic-tplink_archer-ax3000-v1-squashfs-sysupgrade.bin",
+      "bytes": 9052445,
+      "sha256": "a066360d245facf6a3409a3e319b525e7c07b7154e101371b6e06d079453a19c",
+      "audit": "current-sysupgrade-audit.json",
+      "audit_sha256": "cc712cdd310911e60c6e62035350f6e89ee447306ec18fd6b12b5d76ea04221c",
+      "audit_result": "pass"
+    }
+  },
+  "packaged_mips_checksum_test": {
+    "report": "development-current-checksums-mips.json",
+    "report_sha256": "c8054c29f9327154ba5b25b5ffdc3c2cb6a82ef49608095204cb6aee4ab68a97",
+    "cases_passed": 3,
+    "flash_operations_performed": false
+  },
+  "remaining": [
+    "Exercise bounded RX and TX debug data dumps with real linear and nonlinear traffic",
+    "Observe or inject a zero-port descriptor error and verify a bounded diagnostic without a fault",
+    "Verify diagnostic rate limiting and console responsiveness under sustained errors",
+    "Complete physical boot, Ethernet, RF, NAND, flash-write and bank-fallback qualification"
+  ]
+}

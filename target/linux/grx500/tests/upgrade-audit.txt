@@ -1,0 +1,50 @@
+AX3000 stock UBI upgrade review
+==============================
+
+Evidence: vendor/Iplatform/build/product_configs/ax3000v1/sdk.config lines
+1329-1330 set redundant 0x4000 environments. Lines 1355-1379 define 124 MiB
+system_sw, stable bank states 0=A and 2=B, and name-based "ubi read" for kernel
+and bootcore. 1/3 are one-shot trial states; the upgrade rejects them.
+
+Stock image/ubinize_bootcore_fw.cfg and ubinize_bootcore_tp.cfg do not specify
+vol_size; volumes are sized from images. Their volume IDs differ, and bank B
+can be created by later stock upgrades. The verified factory payload contains
+3,145,664 bytes of kernel payload and 23,769,088 bytes of rootfs; these do not
+prove a device's current volume reservations, sysconfig size, or bad-block
+count. Never assume a fixed amount of free space from the 124 MiB partition.
+
+platform.sh reads UBI's eraseblock_size and avail_eraseblocks and rounds each
+new kernel/rootfs/8 MiB overlay separately to LEBs. It includes reserved_ebs of
+only the six explicitly owned old staging/backup volumes as reclaimable space.
+The check precedes removal, so insufficient capacity preserves even previous
+backup volumes. UBI's available count already excludes internal/bad-block
+reserves. Creation/update failures still abort before the one atomic rename.
+No stock bank, bootcore, firmware or sysconfig volume is removed to make room.
+
+Modern UBI cdev.c rename_volumes() opens renamed sources in UBI_METAONLY mode
+and accepts simultaneous old-name/new-name cycles. A single rename ioctl
+commits all kernel/rootfs/overlay names together. The target block.c patch
+selects rootfsA/rootfsB by name at boot, and fstools resolves rootfs_data by name;
+new volume IDs are intentionally unconstrained. The old bootloader's normal
+boot reads kernel_vol/bootcore_vol by name, not the legacy *_id variables.
+
+OpenWrt stage2 pivots into RAM, unmounts the old root and overlay, and copies the
+listed utilities. mktemp is explicitly included because bank lookup runs after
+pivot. grx500-check-ubi is also copied into RAM; a detached container must
+pass geometry, EC/VID and volume-table CRC checks before ubiattach. Blank or
+invalid NAND is rejected before attachment. Existing ubiblock devices are removed before the name commit. Backup
+configuration is copied into newly mounted UBIFS and unmounted before commit.
+Generic image metadata validation is required; platform structure/magic checks
+are repeated within the upgrade function even if generic sysupgrade is forced.
+
+The generic do_stage2 script ignores platform_do_upgrade's error return and
+will still print its generic completion message/reboot. The platform emits an
+explicit failure diagnostic, and precommit failures leave bootable old names.
+This generic status-reporting behavior is not a claim of a successful upgrade.
+
+Tests execute the real platform shell and real OpenWrt common.sh/nand.sh
+archive validation against a finite UBI model. Cases cover both banks, dynamic
+IDs, first install without an overlay, capacity boundaries/reclaim, malformed
+archives, wrong board, staged backup, and faults before atomic rename. These
+host tests do not validate NAND ECC, power loss, actual UBIFS mount behavior,
+bootloader runtime, or live device capacity.

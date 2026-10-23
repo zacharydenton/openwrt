@@ -1,0 +1,92 @@
+{
+  "passed": true,
+  "hardware_tested": false,
+  "upload_recommended": false,
+  "openwrt_base_commit": "d014acb494001606ce78720e240892e840302a9d",
+  "patch_sha256": {
+    "244-bss-confirm-removed-vap.patch": "6d17acbac28e1a4fb197ac8820f4021e5be9797ae9804ad68603213957c3f9c8",
+    "245-bss-confirm-original-metadata.patch": "2079a25d805f36ae309f4df2c2a819ce8086354cb55be89f63641d3892362f9e"
+  },
+  "test_script_sha256": "01b26447e2381c69a816e6ebb4166e62887e3c58c335416c75129f32aa2781b3",
+  "prepared_hw_mmb_sha256": {
+    "development": "8f2d4ffd78d6d2c4a4d8b338e56d4849e72d7989ba7137774b5fe88a3aaa4b04",
+    "factory": "8f2d4ffd78d6d2c4a4d8b338e56d4849e72d7989ba7137774b5fe88a3aaa4b04",
+    "directconnect": "8f2d4ffd78d6d2c4a4d8b338e56d4849e72d7989ba7137774b5fe88a3aaa4b04"
+  },
+  "before_244_hw_mmb_sha256": "e481db8b0488c66b500adbd469683ec8e0d5c783a1df6a6909ca5238c305f81e",
+  "before_245_hw_mmb_sha256": "550c1d6d5153a2c89128fd14e1639079cfd824a223e33ebeebb577f25d39a94b",
+  "regression_test_logs_sha256": {
+    "before-244-native.log": "adc8615f8c2cb4bd7c16cc4c56b3b926f4ec3d82ea03f23f84f53be1b23a1019",
+    "before-245-native.log": "1ba9c0077a9b9da99c02c30ea5ff7cd32594e28df2413c6a94818f026b7eb689",
+    "after-native.log": "5f87be77677361e3f5dc45de3663fa374dd770aaf9d61f9c17ce5f31852dbadb",
+    "before-244-mips.log": "adc8615f8c2cb4bd7c16cc4c56b3b926f4ec3d82ea03f23f84f53be1b23a1019",
+    "before-245-mips.log": "1ba9c0077a9b9da99c02c30ea5ff7cd32594e28df2413c6a94818f026b7eb689",
+    "after-mips.log": "5f87be77677361e3f5dc45de3663fa374dd770aaf9d61f9c17ce5f31852dbadb"
+  },
+  "build_logs_sha256": {
+    "development-d014ac-build.log": "1b3a0e3db7b3c6b01062cadae65dda2d29b5bf2b69d2dcbd4311e964c1cc2203",
+    "factory-d014ac-build.log": "2ff72a5d4908b6d76a6c11f83f5c271921be824b5404437c3f06ee5e39576c99",
+    "directconnect-d014ac-build.log": "3d6499975250171fef6aec89959046c45419297165657efa99baa6aa566ffc4e"
+  },
+  "packaged_mtlk_sha256": {
+    "development": "abfa9f295562526c7231730ca3d751df6cd5bb3b987506317eeec0ba6f79a006",
+    "factory": "abfa9f295562526c7231730ca3d751df6cd5bb3b987506317eeec0ba6f79a006",
+    "directconnect": "1b2563bc7eb198b936e0c98855442c63c0a84d7d39291752cef99d62566d2177"
+  },
+  "images_sha256": {
+    "development": {
+      "initramfs_sha256": "eb54b0d69a1f5a7eedc90deda4a211ca83aed6319befa9119e00fda8b9774402",
+      "sysupgrade_sha256": "4fc975494a99f97a7278c2c487157a5b83c269ead37125deb62179fa9486fb13"
+    },
+    "factory": {
+      "initramfs_sha256": "d018773119f55e8fc1079cd141e85dea60affc4a780f0707ad4fedce24edcae5",
+      "sysupgrade_sha256": "806d40e5e1ff876f036fb5545611699b54893e79368c36e74c5174121906ac90"
+    },
+    "directconnect": {
+      "initramfs_sha256": "6a98b3d3cac20b572ce1f20bba9a2ad6dbf604d6a73ec342eaae11f4fee0adcc",
+      "sysupgrade_sha256": "6104a45459d061f2fec9fb22f9924fbcb20733d045e64bf1b84a76828b05759e"
+    }
+  },
+  "factory_candidate_sha256": "e2cb8199461d7555ad9df732d585203d088e46d6d7b23d361b3f3d6a1adb6b32",
+  "factory_candidate_bytes": 9040227,
+  "stock_checker_writer_cases": 24,
+  "factory_source_parity_inputs": 352,
+  "multipart_bytes": 9040607,
+  "rea_negative_controls_rejected": [
+    "dram_size",
+    "board_pointer",
+    "bootm_pointer"
+  ],
+  "reports_sha256": {
+    "development-d014ac-ram-audit.json": "c27584e7731c7061007a5f42c812f6f50dbae3b1a4d817b27882c15c4db01f9f",
+    "development-d014ac-ram-loader.json": "194b90881aeee32f5caefa799539ca54e5e1cb2f96e43c2bda10edaa402c5fb5",
+    "development-d014ac-sysupgrade-audit.json": "347303a30c0754ccb6fcff0aa5611fe1e719690aaa85eba05f8d78b5d12ff90f",
+    "development-d014ac-sysupgrade-loader.json": "a48c3fd8b04755e04858de3670f0f8d80d1d6313e4eb0b5b99a0490d65ebd670",
+    "factory-d014ac-ram-audit.json": "74d81d6fd147868f151af53f847e0c2837de82c45c2d6b0b8fe59fcc235b0925",
+    "factory-d014ac-ram-loader.json": "fc59245f5edc90ac8d108bd1f485255cf8a718d149c13945944558af9c97506f",
+    "factory-d014ac-sysupgrade-audit.json": "3df7da4ff3fbacdc54d2591942d1ea0878e128696be24967019971a767d96cc7",
+    "factory-d014ac-sysupgrade-loader.json": "9f81628181fc2010023d9c434722c0ad7cae239b783313f82781bef2b79ba796",
+    "directconnect-d014ac-ram-audit.json": "2823e88fe9fd431a3cce20a971ba015fd20ccb8eca1801b57527d008db7f4d48",
+    "directconnect-d014ac-ram-loader.json": "978eacb8c990053b5789f42d57d3cd148f37149032049c3952e41e3f8a54f163",
+    "directconnect-d014ac-sysupgrade-audit.json": "e469dd29bad7cf143f9a935805177f95423545f3bb914ff62c6327e227fe6e9b",
+    "directconnect-d014ac-sysupgrade-loader.json": "d1b8a62107ff21cb4619eee89857fc7cdbaa4adbadf75202acc50230fb8a7b1e",
+    "factory-d014ac-prerequisites.json": "bcc82a0c41991632f46f57ce287d4deaf196b00724244914f1ba6bec242178c2",
+    "factory-d014ac-source-parity.json": "7bc9debaab07f45c217c62d9acc72131ba2cf8be1ffdfaa0dc5eec3b7f90f271",
+    "rea-d014ac-bootargs-layout.json": "31e4efbd8e0418c9a18302618a9bc20d25657d0667ff215939fe34d9025e8049",
+    "d014ac-stock-writer/results.json": "33a7a739df07d2551463496268acad38f3a22ef389fabdebaab7922277af69b6",
+    "d014ac-exact-stock-writer-summary.json": "2c3ecdd12f0e4aaf601811f297e8631541ff54bb2003511b05513ce66754581e",
+    "d014ac-stock-web-route.json": "2b7df881f9824006fcae1245af4b4490c10fd52a29ac45682e2cad374589dee3",
+    "d014ac-stock-uhttpd-ingress.json": "2043d4235ed6ac11a7e57bf155ea564b7135af7ea08adb2c66ee3a58d778c22e",
+    "d014ac-UNAPPROVED-factory.bin.json": "9b1737879a2399112e2c0fdd8cf66ccaaa545d83be5b5f0ca00cf1ca1279f50b"
+  },
+  "limitations": [
+    "The handler fixture uses mocked descriptor lists, DMA, cfg80211 and firmware submission; it does not run a concurrent tasklet or radio.",
+    "The removed-VAP branch no longer resets for a confirmed BSS descriptor, but it does not protect a VAP handle already resolved by another in-flight callback.",
+    "AP netdev unregister still precedes target serializer stop; broader VAP/netdev lifetime and RTNL ownership require separate synchronization.",
+    "Dynamic AP add/delete perform netdev register/unregister on a serializer kthread while the WEXT caller holds RTNL; the published VAP slot is also cleared only after core/DF cleanup.",
+    "The stock checker, writer, LuCI route and uhttpd ran only in isolated QEMU with flash commands captured.",
+    "Boot, Ethernet, Wi-Fi, flash writes, power-loss behavior and bank fallback remain unverified on the user router."
+  ],
+  "rea_evidence_checkout_head": "c106cf20cbfcec8e1fcd953ad8e52bdfbf8c3f9c",
+  "rea_checkout_head": "e073f64be0a5a30c32d8b3cec23f9bd411080903"
+}

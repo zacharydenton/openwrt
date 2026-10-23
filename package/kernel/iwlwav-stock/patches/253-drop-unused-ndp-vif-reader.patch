@@ -1,0 +1,95 @@
+--- a/wireless/driver/linux/mac80211.c
++++ b/wireless/driver/linux/mac80211.c
+@@ -168,7 +168,6 @@
+   const struct net_device_ops *mac80211_netdev_ops;
+   u16 beacon_int;
+   unsigned long latest_rx_and_tx_packets;
+-  int ndp_counter;
+ };
+ 
+ struct vendor_csa_received
+@@ -442,22 +441,6 @@
+ wave_vap_ieee80211_hw_get (mtlk_vap_handle_t vap_handle)
+ {
+   return _wave_vap_ieee80211_hw_get (vap_handle);
+-}
+-
+-static struct _wv_mac80211_t *
+-_wave_vap_get_mac80211 (mtlk_vap_handle_t vap_handle)
+-{
+-  struct ieee80211_hw   *mac80211_hw = wave_vap_ieee80211_hw_get(vap_handle);
+-  struct _wv_mac80211_t *wv_mac80211 = __wv_ieee80211_hw_get_mac80211(mac80211_hw);
+-
+-  return wv_mac80211;
+-}
+-
+-static struct wv_vif_priv *
+-_wave_vap_get_vif_priv (mtlk_vap_handle_t vap_handle)
+-{
+-  struct _wv_mac80211_t *wv_mac80211  = _wave_vap_get_mac80211(vap_handle);
+-  return _wv_mac80211_get_vif_priv(wv_mac80211, mtlk_vap_get_id(vap_handle));
+ }
+ 
+ void __MTLK_IFUNC
+@@ -1218,7 +1201,6 @@
+     _info = (mtlk_vap_info_internal_t *)mtlk_df_get_vap_handle(mtlk_df_user_get_df(wv_iface_inf->df_user));
+     wv_iface_inf->vap_index = _info->id;
+     wv_iface_inf->latest_rx_and_tx_packets = 0;
+-    wv_iface_inf->ndp_counter = 0;
+ 
+     /* Replace mac80211 data tx netdev op in order to support DCDP and fastpath */
+     df_user = wv_iface_inf->df_user;
+@@ -1331,7 +1313,6 @@
+ 
+   wv_iface_inf->is_initialized = FALSE;
+   wv_iface_inf->latest_rx_and_tx_packets = 0;
+-  wv_iface_inf->ndp_counter = 0;
+ 
+   /* Remove VAP */
+   mbss_cfg.vap_handle = _vap_to_be_removed;
+@@ -1415,7 +1396,6 @@
+   }
+ 
+   wv_iface_inf->latest_rx_and_tx_packets = 0;
+-  wv_iface_inf->ndp_counter = 0;
+   sta_info.sid = wv_iface_inf->vif_sid;
+   sta_info.listen_interval = hw->max_listen_interval;
+   sta_info.uapsd_queues = sta->uapsd_queues;
+@@ -2683,15 +2663,6 @@
+ 
+   ieee80211_tx_status_irqsafe(hw, skb);
+   wave_sta_tx_put(mac80211);
+-}
+-
+-void __MTLK_IFUNC
+-wave_vap_increment_ndp_counter (mtlk_vap_handle_t vap_handle)
+-{
+-  struct wv_vif_priv    *wv_iface_inf = _wave_vap_get_vif_priv(vap_handle);
+-
+-  if (NULL != wv_iface_inf)
+-    wv_iface_inf->ndp_counter++;
+ }
+ 
+ struct ieee80211_hw * __MTLK_IFUNC
+--- a/wireless/driver/linux/mac80211.h
++++ b/wireless/driver/linux/mac80211.h
+@@ -47,7 +47,6 @@
+ void                  __MTLK_IFUNC wv_mac80211_recover_sta_vifs(wv_mac80211_t *mac80211);
+ 
+ struct ieee80211_hw * __MTLK_IFUNC wave_vap_ieee80211_hw_get (mtlk_vap_handle_t vap_handle);
+-void                  __MTLK_IFUNC wave_vap_increment_ndp_counter(mtlk_vap_handle_t vap_handle);
+ 
+ void                  __MTLK_IFUNC wv_mac80211_iface_set_beacon_interval(wv_mac80211_t *mac80211, u8 vap_index, u16 beacon_interval);
+ void                  __MTLK_IFUNC wv_mac80211_iface_set_initialized (wv_mac80211_t *mac80211, u8 vap_index);
+--- a/wireless/driver/shared/hw_mmb.c
++++ b/wireless/driver/shared/hw_mmb.c
+@@ -11382,9 +11382,6 @@
+         packet_length = 0; /* size for Null data packet must be zero */
+         CAPWAP1(hw->card_idx, bss_req->virt_addr, bss_req->size, 1 /* is_wifi */, 0 /* rssi */);
+ 
+-        if (!mtlk_vap_is_ap(vap_handle)) {
+-          wave_vap_increment_ndp_counter(vap_handle);
+-        }
+         break;
+     case PROCESS_EAPOL:
+         /* 1. dst address mc bit */

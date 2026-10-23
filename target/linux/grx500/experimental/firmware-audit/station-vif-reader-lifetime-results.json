@@ -1,0 +1,27 @@
+{
+  "schema": 2,
+  "base_commit": "bf46a5077ea14291164b145f62efcaf7d67a8f8a",
+  "upstream_pull": "Fast-forward from bf763871e9 on 2026-10-23 in development, factory, and DirectConnect trees",
+  "before_patch_253_mac80211_c_sha256": "5eac58c22fb2c2f18ae4eb585d3522a3be665fa8bcdc8e80ecdecbba612a2d59",
+  "prepared_mac80211_c_sha256": "f309f7a75523d5190958108afcead84b91eeb7533b6b862474f2d184723961f9",
+  "prepared_hw_mmb_c_sha256": "fba55bb7aa9b00bd7d8c025a2ee795d31ba61ff585d92ee856cb7435d16aa364",
+  "patch_253_sha256": "eab8be3583108495435fe7d985cba46d6d3005a3047271373ccce33de8c4cabd",
+  "matched_vendor_mac80211_c_sha256": "73afb6234f0c182161e89e93dd998f9bc8c11fd910da9e72cc9eb0d53254d899",
+  "fault_test_sha256": "98f9513b3d954c8591b029bdd55da91337aee724f2fbfda0597180f3f5d92558",
+  "test": {
+    "compiler": "native cc with ASan and UBSan",
+    "prepared_source_exit_code": 0,
+    "matched_vendor_source_exit_code": 1,
+    "prepared_source": "PASS: no tasklet VIF reader for unused NDP counter",
+    "vendor_ordinary_tasklet": "PASS: ordinary tasklet NDP count",
+    "vendor_fetched_then_delete": "FAIL: tasklet read after VIF release (ASan heap-use-after-free)",
+    "vendor_timeout_stale_slot": "FAIL: tasklet read after VIF release (ASan heap-use-after-free)"
+  },
+  "previous_factory_candidate": {
+    "sha256": "8edbe44d34446f508a07b71b7e3c13a5f2ab3b61ed0a4fa4bf767f5687b3c7f9",
+    "hardware_tested": false,
+    "upload_recommended": false,
+    "contains_patch_253": false
+  },
+    "superseded_lifetime_blocker": "Patch 254 adds serialized VIF unpublication and independently owned deferred VAP/netdev deletion; see station-remove-terminal-results.json"
+}

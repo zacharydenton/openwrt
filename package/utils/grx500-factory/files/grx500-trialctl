@@ -1,0 +1,64 @@
+#!/bin/sh
+# SPDX-License-Identifier: GPL-2.0-only
+# Explicit, boot-bound acceptance of an AX3000 stock-web trial bank.
+
+. /lib/functions.sh
+. /lib/upgrade/nand.sh
+. /lib/functions/grx500-factory.sh
+. /lib/functions/grx500-trial.sh
+
+[ "$(id -u)" = 0 ] && [ -f /etc/grx500-factory-install ] || exit 1
+
+case "$1:$#" in
+	status:1)
+		if [ -f /tmp/grx500-trial-pending ] && [ -e /tmp/grx500-trial-commit-started ]; then
+			echo 'boot environment save attempted; boot decision needs inspection'
+		elif [ -f /tmp/grx500-trial-pending ]; then
+			printf 'pending bank %s\n' "$(cat /tmp/grx500-trial-pending)"
+		elif [ -f /overlay/.ax3000-trial-status ]; then
+			cat /overlay/.ax3000-trial-status
+		else
+			echo 'no active trial'
+		fi
+		exit 0
+		;;
+	accept:1|reject:1) ;;
+	*) echo 'usage: grx500-trialctl status|accept|reject' >&2; exit 2;;
+esac
+
+# Serialize acceptance and rejection with the worker's environment save.
+exec 9<>/tmp/grx500-trial-lock/decision.lock || exit 1
+flock -x 9 || exit 1
+[ -f /tmp/grx500-trial-pending ] &&
+[ ! -e /tmp/grx500-trial-failed ] &&
+[ ! -e /tmp/grx500-trial-commit-started ] || {
+	echo 'No reversible pending trial bank; inspect status.' >&2
+	exit 1
+}
+
+if [ "$1" = reject ]; then
+	rm -f /tmp/grx500-trial-accept
+	touch /tmp/grx500-trial-failed || exit 1
+	sync
+	reboot
+	exit 0
+fi
+
+umask 077
+GRX500_TRIAL_CONFIG="$(mktemp /tmp/grx500-env.XXXXXX)" || exit 1
+tmp=""
+trap 'rm -f "$GRX500_TRIAL_CONFIG" "$tmp"' EXIT
+grx500_trial_config > "$GRX500_TRIAL_CONFIG" &&
+grx500_trial_context &&
+[ "$(cat /tmp/grx500-trial-pending)" = "$GRX500_TRIAL_BANK" ] &&
+grx500_trial_volume_context && grx500_trial_health || {
+	echo 'Trial boot, environment or startup prerequisites are not ready.' >&2
+	exit 1
+}
+boot_id="$(cat /proc/sys/kernel/random/boot_id)" || exit 1
+[ -n "$boot_id" ] || exit 1
+tmp="$(mktemp /tmp/grx500-accept.XXXXXX)" || exit 1
+printf 'AX3000-US-V1-ACCEPT-1 %s %s\n' "$GRX500_TRIAL_BANK" "$boot_id" > "$tmp" || exit 1
+mv -f "$tmp" /tmp/grx500-trial-accept || exit 1
+tmp=""
+echo 'Acceptance requested; the trial worker will recheck health before changing the boot bank.'

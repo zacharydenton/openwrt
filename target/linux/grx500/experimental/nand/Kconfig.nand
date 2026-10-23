@@ -1,0 +1,9 @@
+
+config MTD_NAND_GRX500_CALIBRATION
+	bool "Read-only AX3000 GRX500 calibration NAND"
+	depends on INTEL_MIPS
+	default y
+	select MTD
+	select MTD_BLOCK_RO
+	select MTD_RAW_NAND
+	select MTD_NAND_ECC_SW_BCH

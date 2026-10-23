@@ -1,0 +1,19 @@
+{
+  "kernel": "Linux 6.18",
+  "compiler": "mips-openwrt-linux-musl-gcc 14.4.0",
+  "byte_order": "big endian",
+  "driver_compile": "PASS",
+  "full_vmlinux_link": "PASS (independent scratch kernel, no initramfs)",
+  "board_dtc": "PASS (complete current board plus USB include, no warnings)",
+  "sources_sha256": {
+    "files/drivers/phy/intel/phy-grx500-usb.c": "e5265711c82852722aeadb58175c0907ae91689b30a9e4e8d3a6a7ca6f04ad29",
+    "files/drivers/usb/dwc3/dwc3-grx500.c": "81774d10fce73a80edda76df80d7e2d350472c7262dbb98a7675a909b59b5d61"
+  },
+  "vmlinux_sha256": "691bbfff72759095334a8739686e2f6de64a8c229f2df25ec587fa18546a338f",
+  "dtb_sha256": "0b67cc405db4bbbc296ec548892ba89376a4226dd840f2204cfe42538c62bf24",
+  "logs": {
+    "objects": "/home/zach/code/archer-ax3000-bringup/usb-port/build.log",
+    "full_link": "/home/zach/code/archer-ax3000-bringup/usb-port/link.log"
+  },
+  "hardware_verified": false
+}

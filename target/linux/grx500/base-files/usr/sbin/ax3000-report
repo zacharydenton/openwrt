@@ -1,0 +1,31 @@
+#!/bin/sh
+# Read-only diagnostics; no radio state, UBI or flash changes.
+echo 'AX3000 device diagnostics'
+uname -a
+cat /proc/cmdline
+cat /proc/mtd
+cat /proc/interrupts
+cat /proc/cpuinfo
+cat /proc/mounts
+ip -s link
+ip route
+for phy in /sys/class/ieee80211/*; do
+	[ -d "$phy" ] || continue
+	iw phy "${phy##*/}" info
+done
+iw dev
+iw reg get
+for device in /sys/class/ubi/ubi* /sys/bus/usb/devices/*; do
+	[ -d "$device" ] || continue
+	echo "$device"
+	for field in name type data_bytes reserved_ebs avail_eraseblocks \
+		eraseblock_size ro_mode mtd_num idVendor idProduct speed product; do
+		[ -r "$device/$field" ] || continue
+		printf '%s: ' "$field"
+		cat "$device/$field"
+	done
+done
+for cal in /lib/firmware/cal_wlan0.bin /lib/firmware/cal_wlan2.bin; do
+	[ -s "$cal" ] && sha256sum "$cal"
+done
+dmesg

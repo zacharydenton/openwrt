@@ -1,0 +1,156 @@
+{
+  "schema": 1,
+  "input_sha256": "96a9a7a6bd82ea5340a70181c687136eeeba3320c46e923b00ac9acfabcbc10b",
+  "input_bytes": 27201423,
+  "uimages": [
+    {
+      "offset": "0x1127",
+      "name": "TP-Link Totalimage",
+      "payload_size": 27196968,
+      "load": "0x0",
+      "entry": "0x0",
+      "os": 5,
+      "architecture": 5,
+      "type": 4,
+      "compression_header": 0,
+      "payload_sha256": "836bb4679e7038b31562f699e84b6e7766973eb669dedd0a053501cd2ed6b1f6",
+      "header_crc": "passed",
+      "payload_crc": "passed"
+    },
+    {
+      "offset": "0x116f",
+      "name": "U-Boot Img",
+      "payload_size": 150880,
+      "load": "0x0",
+      "entry": "0x0",
+      "os": 5,
+      "architecture": 5,
+      "type": 11,
+      "compression_header": 3,
+      "payload_sha256": "5c46d016bbe98dfd050721da1a53c3c6110c9d2bd82a2982070439fc2942b3fc",
+      "header_crc": "passed",
+      "payload_crc": "passed"
+    },
+    {
+      "offset": "0xd9af",
+      "name": "u-boot image",
+      "payload_size": 99616,
+      "load": "0xa0400000",
+      "entry": "0xa0400000",
+      "os": 5,
+      "architecture": 5,
+      "type": 5,
+      "compression_header": 3,
+      "payload_sha256": "47fbd96b2e7ba9484f38dd520e0804d449da1255ee57841c88e0e47ce55e0857",
+      "header_crc": "passed",
+      "payload_crc": "passed"
+    },
+    {
+      "offset": "0x25f0f",
+      "name": "gphyfw",
+      "payload_size": 131072,
+      "load": "0x0",
+      "entry": "0x0",
+      "os": 5,
+      "architecture": 5,
+      "type": 5,
+      "compression_header": 3,
+      "payload_sha256": "919e14e0d4daad0e68a92dfa7017ecbba6d49005f321727e21e8aa9c7a2cfc48",
+      "header_crc": "passed",
+      "payload_crc": "passed"
+    },
+    {
+      "offset": "0x25f4f",
+      "name": "GPHY Firmware",
+      "payload_size": 29174,
+      "load": "0x0",
+      "entry": "0x0",
+      "os": 5,
+      "architecture": 5,
+      "type": 4,
+      "compression_header": 3,
+      "payload_sha256": "4ee0bcfa6a29e41b23db9fde1099a25d6bbd44bfa4b101db6670507c0595aaaf",
+      "header_crc": "passed",
+      "payload_crc": "passed"
+    },
+    {
+      "offset": "0x45f4f",
+      "name": "LTQCPE RootFS",
+      "payload_size": 23769088,
+      "load": "0x0",
+      "entry": "0x0",
+      "os": 5,
+      "architecture": 5,
+      "type": 7,
+      "compression_header": 3,
+      "payload_sha256": "6b07340897ee9e6992aff5738aa1163c3f47f4f8274a00ef26de6e5f299250a7",
+      "header_crc": "passed",
+      "payload_crc": "passed"
+    },
+    {
+      "offset": "0x16f0f8f",
+      "name": "MIPS LTQCPE Linux-3.10.104",
+      "payload_size": 3145664,
+      "load": "0xa0020000",
+      "entry": "0xa002df00",
+      "os": 5,
+      "architecture": 5,
+      "type": 2,
+      "compression_header": 3,
+      "payload_sha256": "6b3cd0b6694811f852c364b7b70325f5443cc5d98210185b25f3703afe7ee47b",
+      "header_crc": "passed",
+      "payload_crc": "passed"
+    }
+  ],
+  "embedded_dtb_offset": "0x410",
+  "kernel_lzma_trailing_zero_bytes": 65175,
+  "inner_gphy_header": {
+    "offset": "0x0",
+    "name": "GRX500 V1.1 GPHY BE",
+    "payload_size": 65536,
+    "load": "0x0",
+    "entry": "0x0",
+    "os": 5,
+    "architecture": 5,
+    "type": 5,
+    "compression_header": 0,
+    "payload_sha256": "d8269703afd369c28a6aeeb65d2751334e38e2228816eda0bdb11c2475b0df33",
+    "header_crc": "passed",
+    "payload_crc": "passed"
+  },
+  "gphy_container_trailing_hex": "00000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000000",
+  "uboot_lzma_trailing_hex": "000000000000000000",
+  "outputs": {
+    "kernel.bin": {
+      "sha256": "4a1906cec4d0c66b492aa397d18f92e111cb21acc9c086360382715c35ef511c",
+      "bytes": 9232128
+    },
+    "board.dtb": {
+      "sha256": "98872195bcc1e16f8f56b6f21eecee4335dc6c9a788f1c224014432ede48c198",
+      "bytes": 23461
+    },
+    "rootfs.squashfs": {
+      "sha256": "6b07340897ee9e6992aff5738aa1163c3f47f4f8274a00ef26de6e5f299250a7",
+      "bytes": 23769088
+    },
+    "uboot.bin": {
+      "sha256": "87fae41adc20ac4855d0716917cf4aaebec3c5688102360849fd43475a693f13",
+      "bytes": 343580
+    },
+    "gphy-container.bin": {
+      "sha256": "4a09a920114886a3a10792be3e8f0d0e1e21050dc5ab6de02af904b89cbafafa",
+      "bytes": 65664
+    },
+    "gphy-raw.bin": {
+      "sha256": "d8269703afd369c28a6aeeb65d2751334e38e2228816eda0bdb11c2475b0df33",
+      "bytes": 65536
+    }
+  },
+  "limitations": [
+    "CRC32 and SHA256 identify bytes; they do not authenticate a firmware signature.",
+    "Rootfs header declares LZMA but payload starts directly with SquashFS; no extra LZMA step is applied.",
+    "Raw GPHY extraction does not establish compatibility with a different driver release.",
+    "No per-device Wi-Fi calibration is supplied by this generic update image.",
+    "Embedded DT and bootloader defaults do not establish live RAM or partition layout."
+  ]
+}

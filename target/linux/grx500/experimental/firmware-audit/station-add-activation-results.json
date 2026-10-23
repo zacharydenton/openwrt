@@ -1,0 +1,56 @@
+{
+  "schema": 1,
+  "base_commit": "bf763871e981e88a9d3f717d2473f6b9478984fb",
+  "patch252_sha256": "4187d3ad7dd8899e8104b124d19e66cd542823f3b0377d69b24d4f877e4165b7",
+  "fault_test_sha256": "eea806be97b7e558b34c6402f07bc2046c69756dd5ff948ae9f9a4267aad438d",
+  "prepared_mac80211_c_sha256": "5eac58c22fb2c2f18ae4eb585d3522a3be665fa8bcdc8e80ecdecbba612a2d59",
+  "fault_test": {
+    "native_asan_ubsan_cases_passed": 4,
+    "static_mips_qemu_cases_passed": 4,
+    "vendor_error_cases_failed_as_expected": 3,
+    "vendor_ordinary_case_passed": true
+  },
+  "builds": {
+    "development": {
+      "full_build_exit_code": 0,
+      "module_sha256": "a07bfd77b9b025c8a0a49cec464ef206bc17c7a99e89bd7cba080376dc9b69a2",
+      "image_audit_sha256": "a698b8442bedd0f30c7904a50fe5f757eb4d734db9cf33722fc4467232e06a16",
+      "sysupgrade_sha256": "d3d4a42e946e5ac1fc7edd8ea77515ab8d77d06ad8ca2588f44f95be980ff939"
+    },
+    "factory": {
+      "full_build_exit_code": 0,
+      "module_sha256": "2aa430aa4493a986b3f5c9865e6aca9e0b48b63392362246a2f414ea6c3d4831",
+      "image_audit_sha256": "715fddab4c11134b7839fba83c5c6654c2a68e40a8026c8feae4ee8fcf5c4e5a",
+      "sysupgrade_sha256": "36974281c638a5bd0b5073f24a43181c4136feac083bd66d2a8c167af1c01cfc",
+      "first_boot_prerequisites_sha256": "87813410884f38eb6c2c259132f4cd49bdba7b67717e78c6a7178dea99ccb48e"
+    },
+    "directconnect": {
+      "full_build_exit_code": 0,
+      "module_sha256": "bd062dd26302de563ca5a2d5f72d49c4e1a4088378025d65863d776a7aa5618d",
+      "image_audit_sha256": "27e8c4683e14c779f577e9d4a06e68e935460e9bf1282b7b1ed7604a9b5787c5",
+      "sysupgrade_sha256": "be45a22840fb5a5b4a86eb7e8ca570c28a8f62e70cce3735bb7218439fa73726"
+    }
+  },
+  "factory_source_parity": {
+    "matching_build_inputs": 359,
+    "report_sha256": "e3f25d57e4f141c0c24f7d38069a0d62013e47f0b4a8dfe3a661cd2a0872be75"
+  },
+  "factory_candidate": {
+    "path": "/home/zach/code/archer-ax3000-bringup/bf763871e9-lock252-UNAPPROVED-factory.bin",
+    "sha256": "8edbe44d34446f508a07b71b7e3c13a5f2ab3b61ed0a4fa4bf767f5687b3c7f9",
+    "bytes": 9040259,
+    "stock_checker_writer_cases_passed": 16,
+    "stock_checker_writer_report_sha256": "905daa21a179fe0db4f72568d37e92dce00fef470b975a2dee99b2793cac59ee",
+    "stock_web_route": "passed",
+    "stock_web_route_report_sha256": "d7d197f336140489a85aae6281da2c23abb7de8c9f25612342e6e2bbc6c6d306",
+    "hardware_tested": false,
+    "upload_recommended": false
+  },
+  "superseded_in_current_source_by": "Patch 254; this report and its image artifacts predate deferred station VAP/netdev ownership.",
+  "unresolved": [
+    "These historical patch-252 image artifacts still contain the old station remove_interface lifetime paths.",
+    "No physical boot, Ethernet forwarding, Wi-Fi association, flash-write or bank-fallback test.",
+    "Factory kernel lacks an enabled hardware watchdog for an early boot hang.",
+    "The user's installed stock firmware version is not verified against the pinned US image."
+  ]
+}

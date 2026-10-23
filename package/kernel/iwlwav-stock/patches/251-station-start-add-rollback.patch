@@ -1,0 +1,43 @@
+--- a/wireless/driver/linux/mac80211.c
++++ b/wireless/driver/linux/mac80211.c
+@@ -970,15 +970,16 @@
+   master_df = _wv_mac80211_master_df_get(mac80211);
+   WAVE_WV_CHECK_PTR_RES(master_df);
+ 
+-  /* from this point on, and until ieee80211_stop AP VAPs should not control channel settings */
+-  wave_radio_set_sta_vifs_exist(mac80211->radio, TRUE);
+-
+   max_vaps_count = __wv_mac80211_max_vaps_count_get(mac80211);
+   mac80211->vif_array = (struct ieee80211_vif **)mtlk_osal_mem_alloc((sizeof(struct ieee80211_vif *) * max_vaps_count), MTLK_MEM_TAG_MAC80211);
+   if (NULL == mac80211->vif_array) {
+-    return MTLK_ERR_NO_MEM;
++    return -ENOMEM;
+   }
+   memset(mac80211->vif_array, 0, sizeof(struct ieee80211_vif *) * max_vaps_count);
++
++  /* Publish STA mode only after its per-VIF table exists. On an allocation
++   * failure mac80211 does not call our stop callback to undo this state. */
++  wave_radio_set_sta_vifs_exist(mac80211->radio, TRUE);
+ 
+   return LINUX_ERR_OK;
+ }
+--- a/wireless/driver/linux/core.c
++++ b/wireless/driver/linux/core.c
+@@ -7431,6 +7431,8 @@
+       res = mtlk_clpb_push(clpb, &ctx, sizeof(ctx));
+       if (MTLK_ERR_OK != res) {
+         mtlk_clpb_purge(clpb);
++        mtlk_vap_stop(_vap_handle);
++        mtlk_vap_delete(_vap_handle);
+       }
+     } else { /* Station mode interface */
+       ctx = mtlk_df_get_user(mtlk_vap_get_df(_vap_handle));
+@@ -7438,6 +7440,8 @@
+       res = mtlk_clpb_push(clpb, &ctx, sizeof(ctx));
+       if (MTLK_ERR_OK != res) {
+         mtlk_clpb_purge(clpb);
++        mtlk_vap_stop(_vap_handle);
++        mtlk_vap_delete(_vap_handle);
+       }
+     }
+   }
